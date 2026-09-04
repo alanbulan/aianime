@@ -3815,6 +3815,8 @@
       "description": "Check and install large local components in one place. Downloads start only when you click the corresponding install button.",
       "worldName": "Director World 3D runtime",
       "worldDescription": "3D inference and 3DGS conversion components used by Director World.",
+      "worldModelsName": "Director World large models",
+      "worldModelsDescription": "Includes the SHARP and DA-2 weights. Local 3D reconstruction never starts an implicit roughly 4.19 GB model download when this dependency is missing.",
       "matteName": "Image matting runtime",
       "matteDescription": "Includes the MODNet weights and ONNX/WASM runtime. Matting never starts an implicit download when this dependency is missing.",
       "platform": "Platform",
@@ -3825,16 +3827,18 @@
       "install": "Install runtime",
       "reinstall": "Reinstall",
       "check": "Check integrity",
+      "checking": "Checking runtime integrity…",
       "installing": "Installing runtime…",
       "preparing": "Preparing the install manifest…",
       "fetchingManifest": "Fetching the domestic mirror manifest…",
       "intelMacUnsupportedNotice": "Intel Macs will not download or launch this component, and the install button is disabled. Only local SOG/3DGS generation and conversion are affected; the main app, scripts, images, videos, scene images, 360 panoramas, and existing Director World assets remain available.",
-      "footnote": "These dependencies are not part of the main installer. Director World prefers domestic mirrors. The image matting runtime is installed in the desktop app data directory with integrity checks, and the tool reads only those local files at runtime.",
+      "footnote": "These dependencies are not part of the main installer. The Director World runtime, large models, and image matting runtime are installed in the desktop app data directory with integrity checks; tools read only installed files at runtime.",
       "states": {
         "unsupported": "Unsupported",
         "not-installed": "Not installed",
         "incomplete": "Incomplete",
         "ready": "Ready",
+        "checking": "Checking",
         "installing": "Installing"
       }
     },

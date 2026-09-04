@@ -81,6 +81,10 @@ test("runtime dependency IPC registers status/install handlers and checks the ac
     { id: "world", state: "not-installed" },
   );
   assert.deepEqual(
+    await handlers.get(RUNTIME_DEPENDENCY_CHANNELS.status)({ sender }, "worldModels"),
+    { id: "worldModels", state: "not-installed" },
+  );
+  assert.deepEqual(
     await handlers.get(RUNTIME_DEPENDENCY_CHANNELS.install)({ sender }, "world"),
     { state: "ready" },
   );
@@ -132,6 +136,12 @@ test("runtime dependency status distinguishes unsupported and uninstalled platfo
     await assert.rejects(
       intelMacManager.install("world"),
       /当前平台没有可安装的导演世界 3D 运行环境/,
+    );
+    const unsupportedModels = await intelMacManager.status("worldModels");
+    assert.equal(unsupportedModels.state, "unsupported");
+    await assert.rejects(
+      intelMacManager.install("worldModels"),
+      /当前平台不支持导演世界大型模型/,
     );
 
     const uninstalled = await new RuntimeDependencyManager(root, {
@@ -250,6 +260,59 @@ test("matte dependency installs verified files into the stable desktop directory
       fetchImpl,
     });
     assert.equal((await reloaded.status("matte")).state, "incomplete");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("world model dependency installs verified SHARP and DA-2 files centrally", async () => {
+  const root = await mkdtemp(join(tmpdir(), "ai-anime-world-models-"));
+  const sharpBytes = Buffer.from("sharp fixture", "utf8");
+  const da2Bytes = Buffer.from("da2 fixture", "utf8");
+  const packageInfo = {
+    version: "test-world-models-1",
+    files: [
+      {
+        relativePath: "models/sharp/sharp_2572gikvuh.pt",
+        sizeBytes: sharpBytes.byteLength,
+        sha256: createHash("sha256").update(sharpBytes).digest("hex"),
+        urls: ["https://fixtures.example/world-models/sharp.pt"],
+      },
+      {
+        relativePath: "models/da2/model.safetensors",
+        sizeBytes: da2Bytes.byteLength,
+        sha256: createHash("sha256").update(da2Bytes).digest("hex"),
+        urls: ["https://fixtures.example/world-models/da2.safetensors"],
+      },
+    ],
+  };
+  const fetchImpl = async (url) => new Response(
+    String(url).endsWith("sharp.pt") ? sharpBytes : da2Bytes,
+  );
+  try {
+    const manager = new RuntimeDependencyManager(root, {
+      platform: "win32",
+      arch: "x64",
+      worldModelsPackage: packageInfo,
+      fetchImpl,
+    });
+    assert.equal((await manager.status("worldModels")).state, "not-installed");
+
+    const progress = [];
+    const installed = await manager.install(
+      "worldModels",
+      (entry) => progress.push(entry),
+    );
+
+    assert.equal(installed.state, "ready");
+    assert.equal(installed.id, "worldModels");
+    assert.equal(await readFile(manager.paths.sharpModelPath, "utf8"), "sharp fixture");
+    assert.equal(
+      await readFile(join(manager.paths.da2ModelRoot, "model.safetensors"), "utf8"),
+      "da2 fixture",
+    );
+    assert.ok(progress.every((entry) => entry.id === "worldModels"));
+    assert.equal(progress.at(-1)?.phase, "complete");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

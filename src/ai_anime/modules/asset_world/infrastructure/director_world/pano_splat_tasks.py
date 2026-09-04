@@ -35,6 +35,9 @@ _PANO_SHARP_MODULE = "ai_anime.modules.asset_world.infrastructure.director_world
 
 def _sharp_checkpoint_path() -> Path:
     """Return the cache path used by torch.hub.load_state_dict_from_url()."""
+    managed_path = os.environ.get("AI_ANIME_SHARP_MODEL_PATH", "").strip()
+    if managed_path:
+        return Path(managed_path).expanduser()
     torch_home = str(os.environ.get("TORCH_HOME") or "").strip()
     if torch_home:
         cache_root = Path(torch_home)
@@ -43,6 +46,23 @@ def _sharp_checkpoint_path() -> Path:
         cache_root = (Path(xdg_cache) if xdg_cache else Path.home() / ".cache") / "torch"
     checkpoint_name = Path(urlsplit(pano_sharp.DEFAULT_MODEL_URL).path).name
     return cache_root / "hub" / "checkpoints" / checkpoint_name
+
+
+def _require_managed_world_models(*, require_sharp: bool, require_da2: bool) -> None:
+    if require_sharp:
+        configured_sharp = os.environ.get("AI_ANIME_SHARP_MODEL_PATH", "").strip()
+        if configured_sharp and not Path(configured_sharp).expanduser().is_file():
+            raise RuntimeError(
+                "SHARP 模型尚未安装或不完整，请到“设置 → 环境依赖”安装导演世界大型模型。"
+            )
+    if require_da2:
+        configured_da2 = os.environ.get("AI_ANIME_DA2_MODEL_PATH", "").strip()
+        if configured_da2 and not (
+            Path(configured_da2).expanduser() / pano_sharp.DA2_MODEL_FILENAME
+        ).is_file():
+            raise RuntimeError(
+                "DA-2 模型尚未安装或不完整，请到“设置 → 环境依赖”安装导演世界大型模型。"
+            )
 
 
 def _sharp_start_message(source_kind: str, device: str) -> str:
@@ -55,6 +75,8 @@ def _sharp_start_message(source_kind: str, device: str) -> str:
     checkpoint = _sharp_checkpoint_path()
     if checkpoint.is_file():
         model_status = "加载已缓存的 SHARP 模型"
+    elif os.environ.get("AI_ANIME_SHARP_MODEL_PATH", "").strip():
+        model_status = "等待安装 SHARP 模型"
     else:
         model_status = "首次下载 SHARP 模型（约 2.81 GB，完成后会缓存）"
     return f"{model_status}；{source_kind} → 单面 3GS；计算设备：{device_label}..."
@@ -156,6 +178,10 @@ def run_pano_sharp(
     dest_sog = _sog_path_for_ply(dest_ply)
 
     depth_source = str(depth_source or "da2").strip().lower()
+    _require_managed_world_models(
+        require_sharp=geometry_mode == "sharp",
+        require_da2=depth_source == "da2",
+    )
     if depth_source == "da2" and not (
         _world_runtime_available() or pano_sharp.da2_available()
     ):
@@ -411,6 +437,7 @@ def run_single_face_sharp(
     dest_sog = _sog_path_for_ply(dest_ply)
 
     device = str(device or os.environ.get("PANO_SHARP_DEVICE") or "auto").strip().lower()
+    _require_managed_world_models(require_sharp=True, require_da2=False)
     if device == "mps":
         try:
             import torch  # type: ignore

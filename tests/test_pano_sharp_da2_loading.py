@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from types import ModuleType
 
 import pytest
 
@@ -149,6 +150,32 @@ def test_sharp_progress_distinguishes_first_download_from_cached_model(tmp_path,
     assert "首次下载" not in cached_message
 
 
+def test_managed_world_models_fail_before_hidden_download(tmp_path, monkeypatch):
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_splat_tasks
+
+    sharp_path = tmp_path / "world-models" / "sharp.pt"
+    da2_root = tmp_path / "world-models" / "da2"
+    monkeypatch.setenv("AI_ANIME_SHARP_MODEL_PATH", str(sharp_path))
+    monkeypatch.setenv("AI_ANIME_DA2_MODEL_PATH", str(da2_root))
+
+    assert pano_splat_tasks._sharp_checkpoint_path() == sharp_path
+    assert "等待安装 SHARP 模型" in pano_splat_tasks._sharp_start_message("master", "cpu")
+    with pytest.raises(RuntimeError, match="安装导演世界大型模型"):
+        pano_splat_tasks._require_managed_world_models(
+            require_sharp=True,
+            require_da2=True,
+        )
+
+    sharp_path.parent.mkdir(parents=True)
+    sharp_path.write_bytes(b"sharp")
+    da2_root.mkdir(parents=True)
+    (da2_root / "model.safetensors").write_bytes(b"da2")
+    pano_splat_tasks._require_managed_world_models(
+        require_sharp=True,
+        require_da2=True,
+    )
+
+
 def test_sharp_device_is_read_from_worker_output():
     from ai_anime.modules.asset_world.infrastructure.director_world import pano_splat_tasks
 
@@ -227,3 +254,81 @@ def test_da2_loader_keeps_explicit_local_only_env(monkeypatch):
     pano_sharp.build_da2_model(torch.device("cpu"))
 
     assert calls[0][1]["local_files_only"] is True
+
+
+def test_da2_loader_reads_managed_local_directory(tmp_path, monkeypatch):
+    torch = pytest.importorskip("torch")
+    pano_sharp = _load_pano_sharp_module()
+    model_root = tmp_path / "da2"
+    model_root.mkdir()
+    (model_root / "model.safetensors").write_bytes(b"fixture")
+    calls = []
+
+    class FakeSphereViT:
+        @classmethod
+        def from_pretrained(cls, source, **kwargs):
+            calls.append((source, kwargs))
+            return cls()
+
+        def eval(self):
+            return self
+
+        def to(self, device):
+            return self
+
+    monkeypatch.setenv("AI_ANIME_DA2_MODEL_PATH", str(model_root))
+    monkeypatch.setattr(pano_sharp, "load_da2_spherevit_class", lambda: FakeSphereViT)
+
+    pano_sharp.build_da2_model(torch.device("cpu"))
+
+    assert calls == [
+        (
+            str(model_root),
+            {"config": pano_sharp.DA2_CONFIG, "local_files_only": True},
+        )
+    ]
+
+
+def test_sharp_loader_reads_managed_file_without_network(tmp_path, monkeypatch):
+    torch = pytest.importorskip("torch")
+    pano_sharp = _load_pano_sharp_module()
+    checkpoint = tmp_path / "sharp.pt"
+    checkpoint.write_bytes(b"fixture")
+    loaded = {}
+
+    class FakePredictor:
+        def load_state_dict(self, value):
+            loaded["state"] = value
+
+        def eval(self):
+            return self
+
+        def to(self, device):
+            loaded["device"] = device
+            return self
+
+    sharp_module = ModuleType("sharp")
+    sharp_models = ModuleType("sharp.models")
+    sharp_models.PredictorParams = lambda: object()
+    sharp_models.create_predictor = lambda _params: FakePredictor()
+    monkeypatch.setitem(sys.modules, "sharp", sharp_module)
+    monkeypatch.setitem(sys.modules, "sharp.models", sharp_models)
+    monkeypatch.setattr(
+        pano_sharp.torch,
+        "load",
+        lambda path, **kwargs: {
+            "path": str(path),
+            "kwargs": kwargs,
+        },
+    )
+    monkeypatch.setattr(
+        pano_sharp.torch.hub,
+        "load_state_dict_from_url",
+        lambda *_args, **_kwargs: pytest.fail("managed SHARP must not use the network"),
+    )
+
+    result = pano_sharp.build_sharp_model(str(checkpoint), torch.device("cpu"))
+
+    assert isinstance(result, FakePredictor)
+    assert loaded["state"]["path"] == str(checkpoint)
+    assert loaded["state"]["kwargs"]["weights_only"] is True

@@ -25,7 +25,6 @@ import { EncryptedFileModelInvocationStore } from "./commercial-model-invocation
 import { saveCommercialInvocationResult } from "./commercial-invocation-result.js";
 import {
   CommercialApiClient,
-  COMMERCIAL_RUNTIME_DEPENDENCIES_URL,
   EncryptedFileCommercialRememberedLoginStore,
   EncryptedFileCommercialSessionStore,
   registerCommercialIpc,
@@ -291,8 +290,6 @@ async function startApplication(): Promise<void> {
     environment: {
       AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
       AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
-      AI_ANIME_SHARP_MODEL_URL:
-        `${COMMERCIAL_RUNTIME_DEPENDENCIES_URL}/models/sharp/sharp_2572gikvuh.pt`,
     },
   });
   try {

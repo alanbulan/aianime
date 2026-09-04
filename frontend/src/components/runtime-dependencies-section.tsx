@@ -12,7 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TaskProgress } from "@/components/task-progress";
 
-const DEPENDENCY_IDS: readonly AIAnimeRuntimeDependencyId[] = ["world", "matte"];
+const DEPENDENCY_IDS: readonly AIAnimeRuntimeDependencyId[] = [
+  "world",
+  "worldModels",
+  "matte",
+];
 
 export function formatBytes(bytes: number | undefined): string {
   if (!bytes || bytes <= 0) return "—";
@@ -52,7 +56,12 @@ function DependencyCard({
   onRefresh,
 }: DependencyCardProps) {
   const { t } = useTranslation();
-  const state = installing ? "installing" : status?.state ?? "not-installed";
+  const checking = loading && status === null;
+  const state = installing
+    ? "installing"
+    : checking
+      ? "checking"
+      : status?.state ?? "not-installed";
   const healthy = status?.healthy === true;
   const supported = status?.supported !== false;
   const isIntelMacUnsupported =
@@ -74,11 +83,15 @@ function DependencyCard({
               {t(`settings.dependencies.states.${state}`)}
             </Badge>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {status?.message ?? t(`settings.dependencies.${id}Description`)}
+          <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
+            {checking
+              ? t("settings.dependencies.checking")
+              : status?.message ?? t(`settings.dependencies.${id}Description`)}
           </p>
         </div>
-        {healthy ? (
+        {checking ? (
+          <Loader2 className="size-5 animate-spin text-primary" aria-hidden="true" />
+        ) : healthy ? (
           <CheckCircle2 className="size-5 text-primary" aria-hidden="true" />
         ) : (
           <AlertTriangle className="size-5 text-muted-foreground" aria-hidden="true" />
@@ -204,7 +217,7 @@ function DependencyCard({
 type DependencyValueMap<T> = Record<AIAnimeRuntimeDependencyId, T>;
 
 function dependencyMap<T>(value: T): DependencyValueMap<T> {
-  return { world: value, matte: value };
+  return { world: value, worldModels: value, matte: value };
 }
 
 export function RuntimeDependenciesSection({ active }: { active: boolean }) {

@@ -25,6 +25,10 @@ import {
   MatteRuntimeDependencyManager,
   type MatteDependencyPackage,
 } from "./matte-runtime-dependency.js";
+import {
+  WorldModelsRuntimeDependencyManager,
+  type WorldModelsDependencyPackage,
+} from "./world-models-runtime-dependency.js";
 
 const DEFAULT_RUNTIME_MANIFEST_BASE_URL =
   COMMERCIAL_RUNTIME_DEPENDENCIES_URL;
@@ -53,10 +57,13 @@ export const RUNTIME_DEPENDENCY_CHANNELS = {
   progress: "desktop:runtime-dependencies:progress",
 } as const;
 
-export type RuntimeDependencyId = "world" | "matte";
+export type RuntimeDependencyId = "world" | "worldModels" | "matte";
 
 export interface InstalledRuntimeDependencyPaths
   extends InstalledWorldRuntimePaths {
+  worldModelsRoot: string;
+  sharpModelPath: string;
+  da2ModelRoot: string;
   matteRoot: string;
 }
 
@@ -339,6 +346,7 @@ export class RuntimeDependencyManager {
   private readonly platform: NodeJS.Platform;
   private readonly arch: string;
   private readonly dependencyRoot: string;
+  private readonly worldModels: WorldModelsRuntimeDependencyManager;
   private readonly matte: MatteRuntimeDependencyManager;
   private worldInstalling = false;
   private smokeCheck: { at: number; error: Error | null } | null = null;
@@ -349,6 +357,7 @@ export class RuntimeDependencyManager {
     options: {
       platform?: NodeJS.Platform;
       arch?: string;
+      worldModelsPackage?: WorldModelsDependencyPackage;
       mattePackage?: MatteDependencyPackage;
       fetchImpl?: typeof fetch;
     } = {},
@@ -356,13 +365,27 @@ export class RuntimeDependencyManager {
     this.platform = options.platform ?? process.platform;
     this.arch = options.arch ?? process.arch;
     const worldPaths = installedWorldRuntimePaths(userDataPath, this.platform);
+    this.worldModels = new WorldModelsRuntimeDependencyManager(userDataPath, {
+      platform: this.platform,
+      arch: this.arch,
+      ...(options.worldModelsPackage
+        ? { packageInfo: options.worldModelsPackage }
+        : {}),
+      ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+    });
     this.matte = new MatteRuntimeDependencyManager(userDataPath, {
       platform: this.platform,
       arch: this.arch,
       ...(options.mattePackage ? { packageInfo: options.mattePackage } : {}),
       ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
     });
-    this.paths = { ...worldPaths, matteRoot: this.matte.paths.root };
+    this.paths = {
+      ...worldPaths,
+      worldModelsRoot: this.worldModels.paths.root,
+      sharpModelPath: this.worldModels.paths.sharpModelPath,
+      da2ModelRoot: this.worldModels.paths.da2ModelRoot,
+      matteRoot: this.matte.paths.root,
+    };
     this.dependencyRoot = resolve(userDataPath, "dependencies", "world");
     const resolvedUserData = resolve(userDataPath);
     if (!this.dependencyRoot.startsWith(`${resolvedUserData}${sep}`)) {
@@ -371,6 +394,7 @@ export class RuntimeDependencyManager {
   }
 
   async status(id: RuntimeDependencyId): Promise<RuntimeDependencyStatus> {
+    if (id === "worldModels") return await this.worldModels.status();
     if (id === "matte") return await this.matte.status();
     return await this.worldStatus();
   }
@@ -484,6 +508,11 @@ export class RuntimeDependencyManager {
     id: RuntimeDependencyId,
     onProgress: (progress: RuntimeDependencyProgress) => void = () => undefined,
   ): Promise<RuntimeDependencyStatus> {
+    if (id === "worldModels") {
+      return await this.worldModels.install((progress) =>
+        onProgress({ id: "worldModels", ...progress }),
+      );
+    }
     if (id === "matte") {
       return await this.matte.install((progress) =>
         onProgress({ id: "matte", ...progress }),
@@ -657,7 +686,7 @@ export function registerRuntimeDependencyIpc(
   ) => boolean,
 ): void {
   const requireDependencyId = (value: unknown): RuntimeDependencyId => {
-    if (value !== "world" && value !== "matte") {
+    if (value !== "world" && value !== "worldModels" && value !== "matte") {
       throw new Error("unknown runtime dependency");
     }
     return value;

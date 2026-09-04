@@ -322,7 +322,7 @@ type AIAnimeRuntimeDependencyState =
   | "ready"
   | "installing";
 
-type AIAnimeRuntimeDependencyId = "world" | "matte";
+type AIAnimeRuntimeDependencyId = "world" | "worldModels" | "matte";
 
 interface AIAnimeRuntimeDependencyStatus {
   id: AIAnimeRuntimeDependencyId;

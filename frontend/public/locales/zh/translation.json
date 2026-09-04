@@ -3815,6 +3815,8 @@
       "description": "集中检查并按需安装大型本地组件。只有点击对应安装按钮时才会下载。",
       "worldName": "导演世界 3D 运行环境",
       "worldDescription": "导演世界所需的 3D 推理与 3DGS 转换组件。",
+      "worldModelsName": "导演世界大型模型",
+      "worldModelsDescription": "包含 SHARP 与 DA-2 权重；未安装时本地 3D 重建不会在任务执行中隐式下载约 4.19 GB 模型。",
       "matteName": "图片抠图运行环境",
       "matteDescription": "包含 MODNet 模型权重和 ONNX/WASM 推理运行时；未安装时抠图不会触发隐式下载。",
       "platform": "适用平台",
@@ -3825,16 +3827,18 @@
       "install": "安装环境",
       "reinstall": "重新安装",
       "check": "检查完整性",
+      "checking": "正在检查运行环境完整性…",
       "installing": "正在安装运行环境…",
       "preparing": "正在准备安装清单…",
       "fetchingManifest": "正在获取国内镜像安装清单…",
       "intelMacUnsupportedNotice": "Intel Mac 不会下载或启动此组件，安装按钮已停用。受影响的只有本地 SOG/3DGS 生成与转换；主应用及脚本、图片、视频、场景图片、360 全景和已有导演世界资产仍可使用。",
-      "footnote": "这些依赖不计入主安装包。导演世界环境优先从国内镜像下载；图片抠图环境安装到桌面应用专用目录并校验文件完整性，工具运行时只读取本地文件。",
+      "footnote": "这些依赖不计入主安装包。导演世界运行环境、大型模型和图片抠图环境均安装到桌面应用专用目录并校验完整性；工具运行时只读取已安装文件。",
       "states": {
         "unsupported": "暂不支持",
         "not-installed": "未安装",
         "incomplete": "不完整",
         "ready": "可用",
+        "checking": "检查中",
         "installing": "安装中"
       }
     },

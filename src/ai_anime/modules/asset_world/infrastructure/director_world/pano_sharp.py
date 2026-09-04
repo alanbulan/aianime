@@ -32,14 +32,17 @@ from PIL import Image
 
 
 SHARP_DOMESTIC_MODEL_URL = os.environ.get("AI_ANIME_SHARP_MODEL_URL", "").strip()
+SHARP_LOCAL_MODEL_PATH = os.environ.get("AI_ANIME_SHARP_MODEL_PATH", "").strip()
 SHARP_UPSTREAM_MODEL_URL = (
     "https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt"
 )
 DEFAULT_MODEL_URL = (
-    SHARP_DOMESTIC_MODEL_URL
+    SHARP_LOCAL_MODEL_PATH
+    or SHARP_DOMESTIC_MODEL_URL
     or SHARP_UPSTREAM_MODEL_URL
 )
 DA2_HUB_ID = "haodongli/DA-2"
+DA2_MODEL_FILENAME = "model.safetensors"
 DA2_MAX_DISTANCE = 20.0
 DA2_CONFIG = {
     "inference": {
@@ -81,7 +84,7 @@ class Sharp3DUnavailable(RuntimeError):
         super().__init__(
             message
             or "SHARP/3DGS dependencies are unavailable. Install the optional world extra "
-            "and the Apple ml-sharp package; model weights are downloaded at runtime."
+            "and the Apple ml-sharp package, then install the required model weights."
         )
 
 
@@ -291,7 +294,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-url",
         default=DEFAULT_MODEL_URL,
-        help="SHARP checkpoint URL/path accepted by torch.hub.load_state_dict_from_url.",
+        help="SHARP checkpoint HTTPS URL or managed local file path.",
     )
     parser.add_argument(
         "--faces",
@@ -390,22 +393,35 @@ def load_da2_spherevit_class():
 
 def build_da2_model(device: torch.device):
     SphereViT = load_da2_spherevit_class()
-    local_only_env = os.environ.get("DA2_LOCAL_FILES_ONLY")
-    local_only = (
-        local_only_env.strip().lower() in {"1", "true", "yes", "on"}
-        if local_only_env is not None
-        else False
-    )
-    source = "local cache" if local_only else "Hugging Face"
-    print(f"Loading DA-2 checkpoint from {source}: {DA2_HUB_ID}", flush=True)
+    managed_root = os.environ.get("AI_ANIME_DA2_MODEL_PATH", "").strip()
+    if managed_root:
+        model_root = Path(managed_root).expanduser()
+        checkpoint = model_root / DA2_MODEL_FILENAME
+        if not checkpoint.is_file():
+            raise RuntimeError(
+                "DA-2 模型尚未安装或不完整，请到“设置 → 环境依赖”安装导演世界大型模型。"
+            )
+        model_source = str(model_root)
+        local_only = True
+        source = "managed local directory"
+    else:
+        local_only_env = os.environ.get("DA2_LOCAL_FILES_ONLY")
+        local_only = (
+            local_only_env.strip().lower() in {"1", "true", "yes", "on"}
+            if local_only_env is not None
+            else False
+        )
+        model_source = DA2_HUB_ID
+        source = "local cache" if local_only else "Hugging Face"
+    print(f"Loading DA-2 checkpoint from {source}: {model_source}", flush=True)
     try:
         model = SphereViT.from_pretrained(
-            DA2_HUB_ID,
+            model_source,
             config=DA2_CONFIG,
             local_files_only=local_only,
         )
     except TypeError:
-        model = SphereViT.from_pretrained(DA2_HUB_ID, config=DA2_CONFIG)
+        model = SphereViT.from_pretrained(model_source, config=DA2_CONFIG)
     model.eval()
     return model.to(device)
 
@@ -1086,18 +1102,30 @@ def _sharp_model_download_urls(model_url: str) -> tuple[str, ...]:
 def build_sharp_model(model_url: str, device: torch.device):
     from sharp.models import PredictorParams, create_predictor
 
-    state_dict = None
-    last_error: Exception | None = None
-    for candidate in _sharp_model_download_urls(model_url):
-        print(f"Loading SHARP checkpoint: {candidate}", flush=True)
+    if not str(model_url).lower().startswith(("https://", "http://")):
+        checkpoint = Path(model_url).expanduser()
+        if not checkpoint.is_file():
+            raise RuntimeError(
+                "SHARP 模型尚未安装或不完整，请到“设置 → 环境依赖”安装导演世界大型模型。"
+            )
+        print(f"Loading managed SHARP checkpoint: {checkpoint}", flush=True)
         try:
-            state_dict = torch.hub.load_state_dict_from_url(candidate, progress=True)
-            break
-        except Exception as exc:
-            last_error = exc
-            print(f"SHARP checkpoint source failed: {candidate}: {exc}", flush=True)
-    if state_dict is None:
-        raise RuntimeError("All SHARP checkpoint download sources failed") from last_error
+            state_dict = torch.load(checkpoint, map_location="cpu", weights_only=True)
+        except TypeError:
+            state_dict = torch.load(checkpoint, map_location="cpu")
+    else:
+        state_dict = None
+        last_error: Exception | None = None
+        for candidate in _sharp_model_download_urls(model_url):
+            print(f"Loading SHARP checkpoint: {candidate}", flush=True)
+            try:
+                state_dict = torch.hub.load_state_dict_from_url(candidate, progress=True)
+                break
+            except Exception as exc:
+                last_error = exc
+                print(f"SHARP checkpoint source failed: {candidate}: {exc}", flush=True)
+        if state_dict is None:
+            raise RuntimeError("All SHARP checkpoint download sources failed") from last_error
     predictor = create_predictor(PredictorParams())
     predictor.load_state_dict(state_dict)
     predictor.eval()

@@ -25,7 +25,9 @@ vi.mock("react-i18next", () => ({
         "settings.tabs.dependencies": "环境依赖",
         "settings.tabs.update": "关于与更新",
         "settings.dependencies.states.ready": "可用",
+        "settings.dependencies.states.checking": "检查中",
         "settings.dependencies.states.unsupported": "暂不支持",
+        "settings.dependencies.checking": "正在检查运行环境完整性…",
         "settings.dependencies.install": "安装环境",
         "settings.dependencies.intelMacUnsupportedNotice":
           "Intel Mac 不会下载或启动此组件，安装按钮已停用。受影响的只有本地 SOG/3DGS 生成与转换。",
@@ -279,10 +281,10 @@ describe("SettingsDialog", () => {
     }
   });
 
-  it("进入环境依赖页签时检查并可独立安装两类运行环境", async () => {
-    const dependencyStatus = (id: "world" | "matte") => ({
+  it("进入环境依赖页签时检查并可独立安装三类运行环境", async () => {
+    const dependencyStatus = (id: AIAnimeRuntimeDependencyId) => ({
       id,
-      supported: true,
+      supported: true as const,
       installed: id === "world",
       healthy: id === "world",
       installing: false,
@@ -290,14 +292,14 @@ describe("SettingsDialog", () => {
       platform: "win32",
       arch: "x64",
       accelerator:
-        id === "world"
+        id === "world" || id === "worldModels"
           ? "NVIDIA CUDA（支持 CPU 回退）"
           : "WebGPU（WASM 回退）",
       version: "1.1.38",
       message: id === "world" ? "3D 完整" : "抠图环境尚未安装",
     });
-    const status = vi.fn(async (id: "world" | "matte") => dependencyStatus(id));
-    const install = vi.fn(async (id: "world" | "matte") => ({
+    const status = vi.fn(async (id: AIAnimeRuntimeDependencyId) => dependencyStatus(id));
+    const install = vi.fn(async (id: AIAnimeRuntimeDependencyId) => ({
       ...dependencyStatus(id),
       installed: true,
       healthy: true,
@@ -319,10 +321,11 @@ describe("SettingsDialog", () => {
     render(<SettingsDialog open onOpenChange={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "环境依赖" }));
 
-    await waitFor(() => expect(status).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(status).toHaveBeenCalledTimes(3));
     expect(status).toHaveBeenCalledWith("world");
+    expect(status).toHaveBeenCalledWith("worldModels");
     expect(status).toHaveBeenCalledWith("matte");
-    expect(await screen.findByText("NVIDIA CUDA（支持 CPU 回退）")).toBeInTheDocument();
+    expect(await screen.findAllByText("NVIDIA CUDA（支持 CPU 回退）")).toHaveLength(2);
     expect(screen.getByText("WebGPU（WASM 回退）")).toBeInTheDocument();
 
     fireEvent.click(
@@ -333,6 +336,53 @@ describe("SettingsDialog", () => {
     await waitFor(() => expect(install).toHaveBeenCalledWith("matte"));
   });
 
+  it("首次完整性检查期间不把依赖误报为未安装", async () => {
+    let resolveWorld!: (value: ReturnType<typeof dependencyStatus>) => void;
+    const dependencyStatus = (id: AIAnimeRuntimeDependencyId) => ({
+      id,
+      supported: true,
+      installed: true,
+      healthy: true,
+      installing: false,
+      state: "ready" as const,
+      platform: "win32",
+      arch: "x64",
+      accelerator: id === "matte" ? "WebGPU（WASM 回退）" : "NVIDIA CUDA（支持 CPU 回退）",
+      message: "完整",
+    });
+    const status = vi.fn((id: AIAnimeRuntimeDependencyId) =>
+      id === "world"
+        ? new Promise<ReturnType<typeof dependencyStatus>>((resolve) => {
+            resolveWorld = resolve;
+          })
+        : Promise.resolve(dependencyStatus(id)),
+    );
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: {
+        platform: "win32",
+        commercial: {},
+        runtimeDependencies: {
+          status,
+          install: vi.fn(),
+          onProgress: vi.fn(() => vi.fn()),
+        },
+      },
+    });
+
+    render(<SettingsDialog open onOpenChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "环境依赖" }));
+
+    expect(await screen.findByText("正在检查运行环境完整性…")).toBeInTheDocument();
+    expect(screen.getByText("检查中")).toBeInTheDocument();
+    expect(screen.queryByText("未安装")).not.toBeInTheDocument();
+
+    resolveWorld(dependencyStatus("world"));
+    await waitFor(() => {
+      expect(screen.getAllByText("NVIDIA CUDA（支持 CPU 回退）")).toHaveLength(2);
+    });
+  });
+
   it("在 Intel Mac 上明确说明 3D 限制并停用安装", async () => {
     const install = vi.fn();
     Object.defineProperty(window, "aiAnimeDesktop", {
@@ -341,8 +391,8 @@ describe("SettingsDialog", () => {
         platform: "darwin",
         commercial: {},
         runtimeDependencies: {
-          status: vi.fn(async (id: "world" | "matte") =>
-            id === "world"
+          status: vi.fn(async (id: AIAnimeRuntimeDependencyId) =>
+            id === "world" || id === "worldModels"
               ? {
                   id,
                   supported: false,

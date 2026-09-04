@@ -153,6 +153,27 @@ export class LocalBackend {
     const matteRuntimeRoot =
       this.runtimeDependencyPaths?.matteRoot
       ?? join(userData, "dependencies", "matte", "current");
+    const sharpModelPath =
+      this.runtimeDependencyPaths?.sharpModelPath
+      ?? join(
+        userData,
+        "dependencies",
+        "world-models",
+        "current",
+        "models",
+        "sharp",
+        "sharp_2572gikvuh.pt",
+      );
+    const da2ModelRoot =
+      this.runtimeDependencyPaths?.da2ModelRoot
+      ?? join(
+        userData,
+        "dependencies",
+        "world-models",
+        "current",
+        "models",
+        "da2",
+      );
     mkdirSync(dataRoot, { recursive: true });
     mkdirSync(logDir, { recursive: true });
     this.logStream = createWriteStream(join(logDir, "backend.log"), {
@@ -189,6 +210,9 @@ export class LocalBackend {
         HERMES_CLI_PATH: hermesRuntime.cliPath,
         AI_ANIME_HERMES_ASSETS_DIR: hermesRuntime.assetsPath,
         AI_ANIME_MATTE_RUNTIME_ROOT: matteRuntimeRoot,
+        AI_ANIME_SHARP_MODEL_PATH: sharpModelPath,
+        AI_ANIME_DA2_MODEL_PATH: da2ModelRoot,
+        DA2_LOCAL_FILES_ONLY: "1",
         ...(launch.whisperModelPath
           ? { AI_ANIME_WHISPER_MODEL_DIR: launch.whisperModelPath }
           : {}),
