@@ -20,7 +20,7 @@ export interface ComposeVideoClipDependencies
 }
 
 export interface ComposeVideoClipResult {
-  readonly url: string | null;
+  readonly url: string;
   readonly durationMs: number;
 }
 
@@ -53,7 +53,7 @@ export async function composeVideoClip(
     dependencies,
   );
   return {
-    url: url || null,
+    url,
     durationMs: Math.round(params.endMs - params.startMs),
   };
 }

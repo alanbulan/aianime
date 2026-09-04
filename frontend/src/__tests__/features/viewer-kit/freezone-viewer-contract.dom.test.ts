@@ -439,7 +439,9 @@ describe("freezone viewer contracts", () => {
     expect(overlay).not.toContain("activeSourceId");
     expect(overlay).toContain("output_role: 'scene_360_candidate'");
     expect(overlay).toContain("media_kind: 'pano360'");
-    expect(overlay).toContain("aspectRatio,");
+    expect(overlay).toContain(
+      "aspectRatio: CANVAS_SCENE_360_ASPECT_RATIO",
+    );
   });
 
   it("lets canvas ThreeDWorldNode open pano360 image sources when explicitly connected", () => {

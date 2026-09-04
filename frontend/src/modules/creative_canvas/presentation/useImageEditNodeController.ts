@@ -73,6 +73,11 @@ import {
 } from '../application/generationErrorReport';
 import { resolveErrorContent } from '../application/errorDialog';
 import type { CanvasImageJobGateway } from '../application/canvasImageJob';
+import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import {
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
@@ -539,8 +544,9 @@ export function createUseImageEditNodeController({
       capabilityInputs: data.capabilityInputs,
     };
 
+    let task: CanvasGenerationTaskRef | null = null;
     try {
-      const jobId = await canvasAiGateway.submitGenerateImageJob(
+      task = await canvasAiGateway.submitGenerateImageJob(
         { projectId, canvasId },
         regenerationPayload,
       );
@@ -562,7 +568,8 @@ export function createUseImageEditNodeController({
         userAgent: runtimeDiagnostics.userAgent,
       };
       updateNodeData(newNodeId, {
-        generationJobId: jobId,
+        ...generationTaskDescriptor(task),
+        generationJobId: task.job_id,
         generationSourceType: 'imageEdit',
         generationClientSessionId: CURRENT_RUNTIME_SESSION_ID,
         generationDebugContext,
@@ -605,6 +612,7 @@ export function createUseImageEditNodeController({
         reportText,
       );
       updateNodeData(newNodeId, {
+        ...clearGenerationTaskDescriptor(task?.task_key),
         isGenerating: false,
         generationStartedAt: null,
         generationJobId: null,

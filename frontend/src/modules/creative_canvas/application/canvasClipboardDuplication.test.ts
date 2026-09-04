@@ -132,6 +132,16 @@ describe('planCanvasClipboardDuplication', () => {
       generationJobId: 'job',
       generationProviderId: 'provider',
       generationClientSessionId: 'session',
+      generationTaskKey: 'task:image:source-a',
+      generationTaskType: 'freezone_image_generate',
+      generationTaskJobId: 'task-job',
+      generationTaskRefs: [
+        {
+          task_key: 'task:image:source-a',
+          task_type: 'freezone_image_generate',
+          job_id: 'task-job',
+        },
+      ],
       generationStoryboardMetadata: { frame: 1 },
       generationError: 'failed',
       generationErrorDetails: 'details',
@@ -164,6 +174,10 @@ describe('planCanvasClipboardDuplication', () => {
       generationJobId: null,
       generationProviderId: null,
       generationClientSessionId: null,
+      generationTaskKey: null,
+      generationTaskType: null,
+      generationTaskJobId: null,
+      generationTaskRefs: null,
       generationError: null,
       generationErrorDetails: null,
     });

@@ -46,7 +46,7 @@ describe("resolveGenerationOutputUrl", () => {
   it("falls through empty or non-string values and rejects missing results", () => {
     expect(
       resolveGenerationOutputUrl(
-        { video_url: "", output_url: 42, url: "fallback.mp4" },
+        { video_url: "   ", output_url: 42, url: " fallback.mp4 " },
         "video",
       ),
     ).toBe("fallback.mp4");

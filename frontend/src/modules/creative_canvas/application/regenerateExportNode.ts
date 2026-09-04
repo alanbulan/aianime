@@ -10,7 +10,10 @@ import type {
   GenerateCanvasRedrawParams,
   GenerateCanvasRedrawResult,
 } from "./generateCanvasRedraw";
-import { generationTaskDescriptor } from "./resumeGeneration";
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from "./resumeGeneration";
 import {
   resolveCanvasRedrawAspectRatio,
   resolveCanvasRedrawImageSize,
@@ -84,11 +87,17 @@ async function regenerateFreezoneRedrawNode(
 ): Promise<void> {
   const { nodeId, projectId, updateNodeData } = params;
   updateNodeData(nodeId, {
+    ...clearGenerationTaskDescriptor(
+      typeof params.nodeData.generationTaskKey === "string"
+        ? params.nodeData.generationTaskKey
+        : null,
+    ),
     isGenerating: true,
     generationStartedAt: Date.now(),
     generationError: null,
   });
 
+  let taskKey: string | null = null;
   try {
     const { url } = await generateRedraw(
       {
@@ -101,29 +110,26 @@ async function regenerateFreezoneRedrawNode(
         modelSelector: request.modelSelector,
       },
       (task) => {
+        taskKey = task.task_key;
         updateNodeData(nodeId, generationTaskDescriptor(task));
       },
     );
     updateNodeData(nodeId, {
+      ...clearGenerationTaskDescriptor(taskKey),
       imageUrl: url,
       previewImageUrl: url,
       isGenerating: false,
       generationStartedAt: null,
       generationError: null,
-      generationTaskKey: null,
-      generationTaskType: null,
-      generationTaskJobId: null,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[regenerate] freezone redraw failed", error);
     updateNodeData(nodeId, {
+      ...clearGenerationTaskDescriptor(taskKey),
       isGenerating: false,
       generationStartedAt: null,
       generationError: message,
-      generationTaskKey: null,
-      generationTaskType: null,
-      generationTaskJobId: null,
     });
   }
 }
@@ -175,6 +181,11 @@ export async function regenerateExportImageNode(
   }
 
   updateNodeData(nodeId, {
+    ...clearGenerationTaskDescriptor(
+      typeof nodeData.generationTaskKey === "string"
+        ? nodeData.generationTaskKey
+        : null,
+    ),
     isGenerating: true,
     generationStartedAt: Date.now(),
     generationJobId: null,
@@ -183,18 +194,21 @@ export async function regenerateExportImageNode(
     generationErrorRequestId: null,
   });
 
+  let task: CanvasGenerationTaskRef | null = null;
   try {
-    const jobId = await dependencies.aiGateway.submitGenerateImageJob(
+    task = await dependencies.aiGateway.submitGenerateImageJob(
       { projectId, canvasId },
       { ...payload, nodeId },
     );
     updateNodeData(nodeId, {
-      generationJobId: jobId,
+      ...generationTaskDescriptor(task),
+      generationJobId: task.job_id,
       generationClientSessionId: runtimeSessionId,
     });
   } catch (error) {
     const resolved = resolveErrorContent(error, "图像生成失败");
     updateNodeData(nodeId, {
+      ...clearGenerationTaskDescriptor(task?.task_key),
       isGenerating: false,
       generationStartedAt: null,
       generationJobId: null,

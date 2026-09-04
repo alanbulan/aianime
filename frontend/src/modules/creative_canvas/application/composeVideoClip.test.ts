@@ -72,7 +72,7 @@ describe("composeVideoClip", () => {
     );
   });
 
-  it("falls back to 720p and normalizes an empty result URL", async () => {
+  it("falls back to 720p and rejects an empty result URL", async () => {
     const deps = dependencies({ resultUrl: "" });
 
     await expect(
@@ -87,7 +87,7 @@ describe("composeVideoClip", () => {
         },
         deps,
       ),
-    ).resolves.toEqual({ url: null, durationMs: 1_000 });
+    ).rejects.toThrow("生成任务已完成，但没有返回可用的媒体地址");
     expect(deps.composeGateway.submit).toHaveBeenCalledWith(
       "project-1",
       expect.objectContaining({ resolution: "720p" }),

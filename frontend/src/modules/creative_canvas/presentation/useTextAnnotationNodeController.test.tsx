@@ -434,6 +434,10 @@ describe('useTextAnnotationNodeController', () => {
     });
     expect(mocks.updateNodeData).toHaveBeenLastCalledWith('text-a', {
       content: '结构化提示词',
+      generationTaskJobId: null,
+      generationTaskKey: null,
+      generationTaskRefs: null,
+      generationTaskType: null,
       isGenerating: false,
       generationStartedAt: null,
     });

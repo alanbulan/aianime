@@ -54,7 +54,7 @@ describe("eraseVideoSubtitles", () => {
     );
   });
 
-  it("preserves a box selection and normalizes an empty result URL", async () => {
+  it("rejects a completed box task without a result URL", async () => {
     const deps = dependencies({ resultUrl: "" });
     const box = { x: 0.1, y: 0.7, width: 0.8, height: 0.2 };
 
@@ -68,11 +68,31 @@ describe("eraseVideoSubtitles", () => {
         },
         deps,
       ),
-    ).resolves.toEqual({ url: null });
+    ).rejects.toThrow("生成任务已完成，但没有返回可用的媒体地址");
     expect(deps.eraseGateway.submit).toHaveBeenCalledWith("project-1", {
       sourceUrl: "source.mp4",
       mode: "box",
       box,
     });
+  });
+
+  it("uses the completed task URL before requesting the result endpoint", async () => {
+    const deps = dependencies();
+    vi.mocked(deps.taskGateway.awaitCompletion).mockResolvedValue({
+      result: { video_url: "inline-clean.mp4" },
+    });
+
+    await expect(
+      eraseVideoSubtitles(
+        {
+          projectId: "project-1",
+          sourceUrl: "source.mp4",
+          mode: "smart",
+          box: null,
+        },
+        deps,
+      ),
+    ).resolves.toEqual({ url: "inline-clean.mp4" });
+    expect(deps.taskGateway.fetchResultUrl).not.toHaveBeenCalled();
   });
 });

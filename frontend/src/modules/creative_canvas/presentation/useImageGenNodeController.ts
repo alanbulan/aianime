@@ -68,7 +68,11 @@ import {
   isStaleGenerationTask,
   shouldWriteGenerationError,
 } from '../application/generationTaskArbitration';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskBatchDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasImageParams,
@@ -1018,9 +1022,11 @@ export function createUseImageGenNodeController({
     const total = Math.min(Math.max(effectiveCount, 1), 4);
     // Clear any prior failure / album on resubmit — the on-node error banner
     // should only reflect the most recent attempt.
+    const generationStartedAt = Date.now();
     updateNodeData(id, {
+      ...clearGenerationTaskDescriptor(),
       isGenerating: true,
-      generationStartedAt: Date.now(),
+      generationStartedAt,
       generationError: null,
       generationErrorDetails: null,
       generationErrorRequestId: null,
@@ -1031,10 +1037,15 @@ export function createUseImageGenNodeController({
 
     // 各并发任务完成顺序不定，本地累积已完成的 URL，整组写回（避免读改写竞态）。
     const completedUrls: string[] = [];
+    const submittedTasks: Array<CanvasGenerationTaskRef | null> = Array.from(
+      { length: total },
+      () => null,
+    );
+    const persistedTaskKeys: string[] = [];
     const runOne = async (runIndex: number) => {
       let taskKey: string | null = null;
       try {
-        const { task, url, resultFallbackError } = await generateCanvasImage(
+        const { url } = await generateCanvasImage(
           {
             projectId,
             ...genPayload,
@@ -1043,45 +1054,44 @@ export function createUseImageGenNodeController({
           },
           (submittedTask) => {
             taskKey = submittedTask.task_key;
-            // With N concurrent runs on one node only one handle can persist.
-            if (runIndex === 0) {
-              updateNodeData(id, generationTaskDescriptor(submittedTask));
-            }
+            submittedTasks[runIndex] = submittedTask;
+            persistedTaskKeys.push(submittedTask.task_key);
+            const acceptedTasks = submittedTasks.filter(
+              (task): task is CanvasGenerationTaskRef => task !== null,
+            );
+            updateNodeData(
+              id,
+              total > 1
+                ? generationTaskBatchDescriptor(acceptedTasks)
+                : generationTaskDescriptor(submittedTask),
+            );
           },
         );
-        if (resultFallbackError) {
-          console.warn('[image-gen] fallback fetch failed', resultFallbackError);
-        }
-        if (url) {
-          completedUrls.push(url);
-          const isFirstCompleted = completedUrls.length === 1;
-          updateNodeData(id, {
-            // 第 1 张完成的设为主图并结束 loading；后续只扩充画册。
-            ...(isFirstCompleted ? buildImageGenerationSuccessPatch(url) : {}),
-            ...(total > 1 ? { generationBatch: [...completedUrls] } : {}),
+        completedUrls.push(url);
+        const isFirstCompleted = completedUrls.length === 1;
+        updateNodeData(id, {
+          // 第 1 张完成的设为主图；整批结束后再退出 loading。
+          ...(isFirstCompleted
+            ? {
+                ...buildImageGenerationSuccessPatch(url),
+                isGenerating: true,
+                generationStartedAt,
+              }
+            : {}),
+          ...(total > 1 ? { generationBatch: [...completedUrls] } : {}),
+        });
+        if (canAutoCommitOnGenerate && isFirstCompleted) {
+          publishCanvasCommitRequested({
+            nodeId: id,
+            auto: true,
           });
-          if (canAutoCommitOnGenerate && isFirstCompleted) {
-            publishCanvasCommitRequested({
-              nodeId: id,
-              auto: true,
-            });
-          }
-        } else {
-          console.warn('[image-gen] generation completed without output url', task);
-          // 只有 run 0（任务句柄的归属者）且尚无任何成功时才终结 loading——
-          // 非首个任务先「无 URL 完成」不能把还在跑的整体 loading 提前掐掉。
-          if (runIndex === 0 && completedUrls.length === 0) {
-            updateNodeData(id, { isGenerating: false, generationStartedAt: null });
-          }
         }
       } catch (error) {
         console.error('[image-gen] generation failed', error);
         // 已有同批其它图完成（主图已落）时不覆盖成功态为错误——部分失败只
         // 影响画册张数。
         if (completedUrls.length > 0) return;
-        // 任务仲裁（stale / shouldWrite）只对 run 0 有意义：节点上只持久化了
-        // run 0 的任务句柄，其余 run 的 taskKey 必然对不上，套用仲裁会把
-        // 它们的失败全部误判为「过期任务」而静默吞掉。
+        // 主任务负责节点级错误仲裁；其它任务的失败只影响最终画册数量。
         if (runIndex === 0) {
           const latestNodeData = (readNode(id)?.data ?? {}) as Record<string, unknown>;
           if (
@@ -1092,23 +1102,18 @@ export function createUseImageGenNodeController({
             taskKey
             && !shouldWriteGenerationError({ nodeData: latestNodeData, taskKey, error })
           ) {
-            updateNodeData(id, { isGenerating: false, generationStartedAt: null });
             return;
           }
         }
         // Persist the failure on the node so it stays visible until the next
         // submit — the request id is the handle support uses to trace it.
-        // 只有 run 0 失败才终结 loading：非首 run 失败时 run 0 可能还在跑，
-        // 它的成功补丁会清掉这里写的错误横幅。
+        // 整批 settle 前保持 loading；成功结果会在最终收口时清掉错误横幅。
         const rawErrorMessage =
           error instanceof Error && error.message
             ? error.message
             : String(error || t('common.error'));
         const displayErrorMessage = backendErrorToastMessage(error, t);
         updateNodeData(id, {
-          ...(runIndex === 0
-            ? { isGenerating: false, generationStartedAt: null }
-            : {}),
           generationError: displayErrorMessage,
           // Keep the complete task/provider error for support copy. Only the
           // concise provider `message` is rendered on the node.
@@ -1124,6 +1129,11 @@ export function createUseImageGenNodeController({
     await Promise.allSettled(
       Array.from({ length: total }, (_, runIndex) => runOne(runIndex)),
     );
+    updateNodeData(id, {
+      ...clearGenerationTaskDescriptor(persistedTaskKeys),
+      isGenerating: false,
+      generationStartedAt: null,
+    });
     // 全部尘埃落定后撤掉占位（失败的任务不留空槽，画册按实际完成数收口）。
     setAlbumPendingTotal(id, 0);
     // Backend records each attempt (success or failure); pull the new entries.

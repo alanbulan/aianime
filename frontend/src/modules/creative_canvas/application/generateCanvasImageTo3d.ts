@@ -4,9 +4,10 @@ import {
   type CanvasImageTo3dSourceKind,
   type CanvasImageTo3dWorldSource,
 } from "../domain/imageTo3d";
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
+import {
+  requireCanvasGenerationTaskRef,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
 } from "./completeCanvasMediaGenerationTask";
 import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSource";
 
@@ -50,22 +51,42 @@ export async function generateCanvasImageTo3d(
     params.projectId,
     params.sourceUrl,
   );
-  const task = await dependencies.submissionGateway.submit(params.projectId, {
-    sourceUrl,
-    sourceKind: params.sourceKind,
-    canvasId: params.canvasId,
-    nodeId: params.nodeId,
-  });
+  const task = requireCanvasGenerationTaskRef(
+    await dependencies.submissionGateway.submit(params.projectId, {
+      sourceUrl,
+      sourceKind: params.sourceKind,
+      canvasId: params.canvasId,
+      nodeId: params.nodeId,
+    }),
+    "freezone_image_to_3gs",
+  );
   dependencies.onTaskSubmitted(task);
   const completed = await dependencies.taskGateway.awaitCompletion(
     task.task_key,
     params.projectId,
   );
-  const source = sourceFromImageTo3gsResult(completed.result, {
-    id: `generated-sog:${params.sourceKind}:${dependencies.now()}`,
+  const sourceId = `generated-sog:${params.sourceKind}:${dependencies.now()}`;
+  const sourceLabel = params.sourceKind === "pano" ? "360 3DGS" : "图片 3DGS";
+  let source = sourceFromImageTo3gsResult(completed.result, {
+    id: sourceId,
     sourceKind: params.sourceKind,
-    label: params.sourceKind === "pano" ? "360 3DGS" : "图片 3DGS",
+    label: sourceLabel,
   });
+  if (!source) {
+    const fallbackUrl = await dependencies.taskGateway
+      .fetchResultUrl(params.projectId, task.task_type, task.job_id)
+      .catch(() => null);
+    if (fallbackUrl) {
+      source = sourceFromImageTo3gsResult(
+        { output_url: fallbackUrl },
+        {
+          id: sourceId,
+          sourceKind: params.sourceKind,
+          label: sourceLabel,
+        },
+      );
+    }
+  }
   if (!source) {
     throw new Error("未能在 task.result 中找到 3D 世界地址");
   }

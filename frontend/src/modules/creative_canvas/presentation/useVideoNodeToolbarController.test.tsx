@@ -230,7 +230,6 @@ describe("useVideoNodeToolbarController", () => {
     mocks.separate.mockResolvedValue({
       audioUrl: "/audio.m4a",
       silentVideoUrl: "/silent.mp4",
-      resultFallbackError: null,
     });
     const { result } = renderHook(() =>
       useVideoNodeToolbarController({

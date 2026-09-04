@@ -2,24 +2,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@/shared/api/client";
-const awaitCompletion = vi.hoisted(() => vi.fn());
-const fetchResultUrl = vi.hoisted(() => vi.fn());
 const submitImageGeneration = vi.hoisted(() => vi.fn());
 const prepareCanvasImageSource = vi.hoisted(() => vi.fn());
 const prepareCanvasImageSources = vi.hoisted(() => vi.fn());
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("../infrastructure/freezoneGenerationTaskGateway", () => ({
-  freezoneGenerationTaskGateway: { awaitCompletion, fetchResultUrl },
-}));
-vi.mock("../mediaOperationGenerationComposition", () => ({
-  prepareCanvasImageSource,
-  prepareCanvasImageSources,
-}));
-vi.mock("../application/completeCanvasMediaGenerationTask", () => ({
-  readEmbeddedCanvasGenerationOutputUrl: (result: { output_url?: string } | null) =>
-    result?.output_url ?? null,
-}));
 import { createFreezoneAiGateway } from "./freezoneAiGateway";
 
 function gateway() {
@@ -36,6 +23,8 @@ function gateway() {
       suffix: "",
     }),
     submitImageGeneration,
+    prepareImageSource: prepareCanvasImageSource,
+    prepareImageSources: prepareCanvasImageSources,
   });
 }
 
@@ -43,24 +32,45 @@ beforeEach(() => {
   vi.mocked(apiCall).mockReset();
   vi.mocked(prepareCanvasImageSource).mockReset();
   vi.mocked(prepareCanvasImageSources).mockReset();
-  awaitCompletion.mockReset();
-  fetchResultUrl.mockReset();
   submitImageGeneration.mockReset();
 });
 
 describe("freezoneAiGateway", () => {
+  it("returns the complete task receipt without starting a second in-memory waiter", async () => {
+    const task = {
+      task_type: "freezone_gen",
+      task_key: "gen-task",
+      job_id: "gen-job",
+    };
+    submitImageGeneration.mockResolvedValue(task);
+
+    await expect(
+      gateway().submitGenerateImageJob(
+        { projectId: "project/1", canvasId: "canvas-1" },
+        {
+          prompt: "Portrait",
+          model: "cloud-image-standard",
+          size: "2K",
+          aspectRatio: "1:1",
+        },
+      ),
+    ).resolves.toEqual(task);
+  });
+
   it("delegates reference-free generation through the injected application port", async () => {
     submitImageGeneration.mockResolvedValue({
       task_type: "freezone_gen",
       task_key: "gen-task",
       job_id: "gen-job",
     });
-    awaitCompletion.mockResolvedValue({
-      result: { output_url: "/static/generated.png" },
-    });
+    const task = {
+      task_type: "freezone_gen",
+      task_key: "gen-task",
+      job_id: "gen-job",
+    } as const;
 
     await expect(
-      gateway().generateImage(
+      gateway().submitGenerateImageJob(
         { projectId: "project/1", canvasId: "canvas-1" },
         {
           prompt: "Portrait",
@@ -70,7 +80,7 @@ describe("freezoneAiGateway", () => {
           nodeId: "node-1",
         },
       ),
-    ).resolves.toBe("/static/generated.png");
+    ).resolves.toEqual(task);
 
     expect(submitImageGeneration).toHaveBeenCalledWith("project/1", {
       prompt: "Portrait",
@@ -96,12 +106,14 @@ describe("freezoneAiGateway", () => {
       task_key: "edit-task",
       job_id: "edit-job",
     });
-    awaitCompletion.mockResolvedValue({
-      result: { output_url: "/static/result.png" },
-    });
+    const task = {
+      task_type: "freezone_edit",
+      task_key: "edit-task",
+      job_id: "edit-job",
+    } as const;
 
     await expect(
-      gateway().generateImage(
+      gateway().submitGenerateImageJob(
         { projectId: "project/1", canvasId: "canvas-1" },
         {
           prompt: "Edit prompt",
@@ -115,7 +127,7 @@ describe("freezoneAiGateway", () => {
           nodeId: "node-1",
         },
       ),
-    ).resolves.toBe("/static/result.png");
+    ).resolves.toEqual(task);
 
     expect(prepareCanvasImageSource).toHaveBeenCalledWith(
       "project/1",
@@ -144,7 +156,5 @@ describe("freezoneAiGateway", () => {
         },
       },
     );
-    expect(awaitCompletion).toHaveBeenCalledWith("edit-task", "project/1");
-    expect(fetchResultUrl).not.toHaveBeenCalled();
   });
 });

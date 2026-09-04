@@ -37,7 +37,7 @@ export async function composeCanvasVideo(
     params.request,
   );
   const url = await completeCanvasMediaGenerationTask(
-    { projectId: params.projectId, task },
+    { projectId: params.projectId, task, media: "video" },
     {
       taskGateway: dependencies.taskGateway,
       onTaskSubmitted: () => undefined,

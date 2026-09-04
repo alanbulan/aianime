@@ -58,7 +58,7 @@ export async function generateCanvasScene360(
     modelSelector: params.modelSelector,
   });
   const url = await completeCanvasMediaGenerationTask(
-    { projectId: params.projectId, task },
+    { projectId: params.projectId, task, media: "image" },
     {
       taskGateway: dependencies.taskGateway,
       onTaskSubmitted: dependencies.onTaskSubmitted,

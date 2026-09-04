@@ -1,5 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasGenerationTaskRef } from "./completeCanvasMediaGenerationTask";
+import {
+  requireCanvasGenerationTaskRef,
+  type CanvasGenerationTaskRef,
+} from "./completeCanvasMediaGenerationTask";
 import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSource";
 
 export interface CanvasReversePromptCommand {
@@ -16,7 +19,10 @@ export interface CanvasReversePromptSubmissionGateway {
 }
 
 export interface CanvasReversePromptTaskGateway {
-  awaitCompletion(taskKey: string, projectId: string): Promise<unknown>;
+  awaitCompletion(
+    taskKey: string,
+    projectId: string,
+  ): Promise<{ readonly result?: unknown | null }>;
   fetchReversePrompt(projectId: string, jobId: string): Promise<string>;
 }
 
@@ -39,6 +45,16 @@ export interface GenerateCanvasReversePromptResult {
   readonly prompt: string;
 }
 
+export function resolveCanvasReversePrompt(result: unknown): string | null {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return null;
+  }
+  const prompt = Reflect.get(result, "prompt");
+  return typeof prompt === "string" && prompt.trim().length > 0
+    ? prompt
+    : null;
+}
+
 export async function generateCanvasReversePrompt(
   params: GenerateCanvasReversePromptParams,
   dependencies: GenerateCanvasReversePromptDependencies,
@@ -47,19 +63,28 @@ export async function generateCanvasReversePrompt(
     params.projectId,
     params.rawSourceUrl,
   );
-  const task = await dependencies.submissionGateway.submit(params.projectId, {
-    sourceUrl,
-    canvasId: params.canvasId,
-    nodeId: params.nodeId,
-  });
+  const task = requireCanvasGenerationTaskRef(
+    await dependencies.submissionGateway.submit(params.projectId, {
+      sourceUrl,
+      canvasId: params.canvasId,
+      nodeId: params.nodeId,
+    }),
+    "freezone_image_reverse_prompt",
+  );
   dependencies.onTaskSubmitted(task);
-  await dependencies.taskGateway.awaitCompletion(
+  const completion = await dependencies.taskGateway.awaitCompletion(
     task.task_key,
     params.projectId,
   );
-  const prompt = await dependencies.taskGateway.fetchReversePrompt(
-    params.projectId,
-    task.job_id,
-  );
+  const candidate =
+    resolveCanvasReversePrompt(completion.result)
+    ?? await dependencies.taskGateway.fetchReversePrompt(
+      params.projectId,
+      task.job_id,
+    );
+  if (typeof candidate !== "string" || !candidate.trim()) {
+    throw new Error("反推提示词任务已完成，但没有返回提示词");
+  }
+  const prompt = candidate;
   return { task, prompt };
 }

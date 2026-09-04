@@ -18,7 +18,10 @@ import {
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import { inheritMainlineFields } from '../domain/inheritMainlineFields';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasRelightParams,
@@ -126,6 +129,7 @@ export function createLightEditorOverlay({
           setSelectedNode(nextNodeId);
           onClose();
 
+          let taskKey: string | null = null;
           try {
             const { url } = await generateCanvasRelight(
               {
@@ -142,10 +146,12 @@ export function createLightEditorOverlay({
                 modelSelector: payload.modelSelector,
               },
               (task) => {
+                taskKey = task.task_key;
                 updateNodeData(nextNodeId, generationTaskDescriptor(task));
               },
             );
             updateNodeData(nextNodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               imageUrl: url,
               previewImageUrl: url,
               isGenerating: false,
@@ -156,6 +162,7 @@ export function createLightEditorOverlay({
             const message = err instanceof Error ? err.message : String(err);
             console.error('[light-editor] generation failed', err);
             updateNodeData(nextNodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               isGenerating: false,
               generationStartedAt: null,
               generationError: message,

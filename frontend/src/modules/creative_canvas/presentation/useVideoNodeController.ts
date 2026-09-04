@@ -102,7 +102,11 @@ import {
 import { resolveAudioReferenceDisplayName } from '../application/audioReferenceDisplayName';
 import { historyRecordOutputUrl, type CanvasGenerationHistoryRecord } from '../domain/generationHistoryRecord';
 import { hasMainlineContexts } from '../domain/mainlineContext';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskBatchDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import { resolveErrorContent } from '../application/errorDialog';
 import { resolveGenerationErrorDiagnostics } from '../application/generationErrorReport';
 import { resolveImageDisplayUrl } from '../domain/imageData';
@@ -112,7 +116,10 @@ import type {
   TranslateCanvasTextResult,
 } from '../application/translateCanvasText';
 import type { VideoGenMode } from '../domain/videoGenerationMode';
-import type { VideoGenerationReference } from '../application/submitVideoGeneration';
+import type {
+  VideoGenerationReference,
+  VideoGenerationTaskRef,
+} from '../application/submitVideoGeneration';
 import { useNodeGenerationHistory } from './useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
 import type { VideoElementMetadata } from './VideoNodePrimaryVideo';
@@ -1323,27 +1330,22 @@ export function createUseVideoNodeController({
           endMs,
           quality: clipQuality,
         });
-        if (result.url) {
-          const position = findNodePosition(
-            id,
-            VIDEO_NODE_DEFAULT_WIDTH,
-            VIDEO_NODE_DEFAULT_HEIGHT,
-          );
-          const newNodeId = addNode(CANVAS_NODE_TYPES.video, position, {
-            videoUrl: result.url,
-            durationMs: result.durationMs,
-            displayName: "剪辑",
-          });
-          addEdge(id, newNodeId);
-          updateNodeData(id, {
-            isClipMode: false,
-            clipStartMs: null,
-            clipEndMs: null,
-          });
-        } else {
-          console.warn("[video-node] compose completed without url", result);
-          setClipError("剪辑完成但未返回视频地址");
-        }
+        const position = findNodePosition(
+          id,
+          VIDEO_NODE_DEFAULT_WIDTH,
+          VIDEO_NODE_DEFAULT_HEIGHT,
+        );
+        const newNodeId = addNode(CANVAS_NODE_TYPES.video, position, {
+          videoUrl: result.url,
+          durationMs: result.durationMs,
+          displayName: "剪辑",
+        });
+        addEdge(id, newNodeId);
+        updateNodeData(id, {
+          isClipMode: false,
+          clipStartMs: null,
+          clipEndMs: null,
+        });
       } catch (error) {
         console.error("[video-node] clip compose failed", error);
         setClipError(error instanceof Error ? error.message : String(error));
@@ -1379,17 +1381,14 @@ export function createUseVideoNodeController({
         mode: subtitleEraseMode ?? "smart",
         box: subtitleEraseMode === "box" ? subtitleEraseBox : null,
       });
-      if (result.url) {
-        updateNodeData(id, {
-          videoUrl: result.url,
-          subtitleEraseMode: null,
-          subtitleEraseBox: null,
-        });
-      } else {
-        console.warn("[video-node] erase completed without url", result);
-      }
+      updateNodeData(id, {
+        videoUrl: result.url,
+        subtitleEraseMode: null,
+        subtitleEraseBox: null,
+      });
     } catch (error) {
       console.error("[video-node] subtitle erase failed", error);
+      toast.error(error instanceof Error ? error.message : "字幕擦除失败");
     } finally {
       setIsErasing(false);
     }
@@ -1426,19 +1425,21 @@ export function createUseVideoNodeController({
     ) {
       return;
     }
-    // 在途守卫（与 ImageGenNode 一致）：第 1 条完成就会清 isGenerating，
-    // submitDisabled 拦不住「旧批次 N-1 个任务还在跑时重新提交」——旧闭包
-    // 会用过期的 completedUrls 覆写新批次的 generationBatch。
+    // 在途守卫（与 ImageGenNode 一致）：整批完成前禁止重复提交，避免旧闭包
+    // 用过期的 completedUrls 覆写新批次的 generationBatch。
     if (submittingRef.current) return;
     submittingRef.current = true;
+    const persistedTaskKeys: string[] = [];
     try {
       if (!projectId) {
         console.error("[video-node] missing project context");
         return;
       }
+      const generationStartedAt = Date.now();
       updateNodeData(id, {
+        ...clearGenerationTaskDescriptor(),
         isGenerating: true,
-        generationStartedAt: Date.now(),
+        generationStartedAt,
         // Clear any prior failure so the banner reflects only this attempt.
         // 注意 generationBatch 不在这里清：下面还有多条校验失败的早退路径，
         // 在这里清会让一次失败的提交白白毁掉已有画册——批次清空挪到真正开跑前。
@@ -1453,7 +1454,6 @@ export function createUseVideoNodeController({
         prompt,
         cameraMovementPreset?.promptFragment,
       );
-      try {
       // Walk the current edges/nodes once — used by every non-textToVideo
       // branch to collect upstream resources. 必须与 UI 编号侧（useUpstreamNodes）
       // 同源：按连线顺序收集。曾按 state.nodes 顺序（节点创建顺序）收集，先创建
@@ -1820,6 +1820,10 @@ export function createUseVideoNodeController({
       const total = Math.min(Math.max(count, 1), 4);
       // 各并发任务完成顺序不定，本地累积已完成的 URL，整组写回（避免读改写竞态）。
       const completedUrls: string[] = [];
+      const submittedTasks: Array<VideoGenerationTaskRef | null> = Array.from(
+        { length: total },
+        () => null,
+      );
       // 收集每个子任务的失败，留到整批 settle 后统一决定是否弹错误框——避免
       // 「N 条里 1 条秒失败（如命中队列上限）、其余正常生成」时一边弹报错一边
       // 又冒加载动画的矛盾观感。
@@ -1827,11 +1831,17 @@ export function createUseVideoNodeController({
       const runOne = async (runIndex: number) => {
         try {
           const ref = await submitOnce(id);
-          // Persist the task handle so a page refresh can resume this job.
-          // N 个并发任务同节点只能存一个句柄——保留第 1 个（主视频）的。
-          if (runIndex === 0) {
-            updateNodeData(id, generationTaskDescriptor(ref));
-          }
+          submittedTasks[runIndex] = ref;
+          persistedTaskKeys.push(ref.task_key);
+          const acceptedTasks = submittedTasks.filter(
+            (task): task is VideoGenerationTaskRef => task !== null,
+          );
+          updateNodeData(
+            id,
+            total > 1
+              ? generationTaskBatchDescriptor(acceptedTasks)
+              : generationTaskDescriptor(ref),
+          );
           const completed = await completeVideoGenerationTask({
             projectId,
             task: ref,
@@ -1847,12 +1857,12 @@ export function createUseVideoNodeController({
             completedUrls.push(url);
             const isFirstCompleted = completedUrls.length === 1;
             updateNodeData(id, {
-              // 第 1 条完成的设为主视频并结束 loading；后续只扩充画册。
+              // 第 1 条完成的设为主视频；整批结束后再退出 loading。
               ...(isFirstCompleted
                 ? {
                     videoUrl: url,
-                    isGenerating: false,
-                    generationStartedAt: null,
+                    isGenerating: true,
+                    generationStartedAt,
                     sourceFileName: null,
                     generationError: null,
                     generationErrorDetails: null,
@@ -1866,12 +1876,9 @@ export function createUseVideoNodeController({
               "[video-node] video gen completed without output url",
               completed.completion,
             );
-            // 只有 run 0（任务句柄归属者）且尚无任何成功时才终结 loading——
-            // 非首个任务先「无 URL 完成」不能把还在跑的整体 loading 掐掉。
-            if (runIndex === 0 && completedUrls.length === 0) {
+            // 整批 settle 前保持 loading；最终收口会保留这个错误并清理任务回执。
+            if (completedUrls.length === 0) {
               updateNodeData(id, {
-                isGenerating: false,
-                generationStartedAt: null,
                 generationError: "视频生成未返回结果",
                 generationErrorDetails: null,
                 generationErrorRequestId: null,
@@ -1891,12 +1898,8 @@ export function createUseVideoNodeController({
           const diagnostics = resolveGenerationErrorDiagnostics(error, resolved.details);
           // Persist the failure on the node so the 重新生成 entry survives after
           // the user dismisses the dialog (previously the error was dialog-only).
-          // 只有 run 0 失败才终结 loading：非首 run 失败时 run 0 可能还在跑，
-          // 它的成功补丁会清掉这里写的错误横幅。
+          // 整批 settle 前保持 loading；其它任务仍可能回填成功结果。
           updateNodeData(id, {
-            ...(runIndex === 0
-              ? { isGenerating: false, generationStartedAt: null }
-              : {}),
             generationError: displayErrorMessage,
             generationErrorDetails: diagnostics.details,
             generationErrorRequestId: diagnostics.requestId,
@@ -1911,6 +1914,11 @@ export function createUseVideoNodeController({
       await Promise.allSettled(
         Array.from({ length: total }, (_, runIndex) => runOne(runIndex)),
       );
+      updateNodeData(id, {
+        ...clearGenerationTaskDescriptor(persistedTaskKeys),
+        isGenerating: false,
+        generationStartedAt: null,
+      });
       setAlbumPendingTotal(id, 0);
       // 整批结束后再决定错误反馈：
       //  - 一条都没成功 → 弹一次错误框（含真人素材被拦截的专用引导）；
@@ -1949,14 +1957,16 @@ export function createUseVideoNodeController({
           }),
         );
       }
-      // 所有任务尘埃落定后统一拉一次历史：N 条记录都落在本节点名下，run 0
-      // settle 时就拉会漏掉后完成的 N-1 条（后端成功失败都会记）。
+      // 所有任务尘埃落定后统一拉一次历史，避免漏掉后完成的记录。
       void refreshHistory();
-      } catch (error) {
-        console.error("[video-node] video gen failed", error);
-        updateNodeData(id, { isGenerating: false, generationStartedAt: null });
-        setAlbumPendingTotal(id, 0);
-      }
+    } catch (error) {
+      console.error("[video-node] video gen failed", error);
+      updateNodeData(id, {
+        ...clearGenerationTaskDescriptor(persistedTaskKeys),
+        isGenerating: false,
+        generationStartedAt: null,
+      });
+      setAlbumPendingTotal(id, 0);
     } finally {
       submittingRef.current = false;
     }

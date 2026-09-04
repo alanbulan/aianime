@@ -32,7 +32,10 @@ import {
   type GenerateCanvasStoryScriptParams,
   type GenerateCanvasStoryScriptResult,
 } from '../application/generateCanvasStoryScript';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type {
   TranslateCanvasTextParams,
   TranslateCanvasTextResult,
@@ -206,14 +209,17 @@ export function createUseScriptNodeController({
         generationStartedAt: Date.now(),
         generationError: null,
       });
+      let taskKey: string | null = null;
       try {
         const result = await generateCanvasStoryScript(
           { projectId, command },
           (task) => {
+            taskKey = task.task_key;
             updateNodeData(id, generationTaskDescriptor(task));
           },
         );
         updateNodeData(id, {
+          ...clearGenerationTaskDescriptor(taskKey),
           isGenerating: false,
           generationStartedAt: null,
           scriptResult: result.scriptResult,
@@ -223,6 +229,7 @@ export function createUseScriptNodeController({
       } catch (error) {
         console.error('[script-node] submit failed', error);
         updateNodeData(id, {
+          ...clearGenerationTaskDescriptor(taskKey),
           isGenerating: false,
           generationStartedAt: null,
           generationError: error instanceof Error ? error.message : '生成失败',
@@ -288,7 +295,7 @@ export function createUseScriptNodeController({
       }
       setIsTranslating(true);
       try {
-      const result = await translateCanvasText({
+        const result = await translateCanvasText({
           projectId,
           text: prompt,
           nodeType: 'text',

@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import type { CanvasGenerationTaskRef } from "./completeCanvasMediaGenerationTask";
 
 export interface CanvasImageJobPayload {
   readonly prompt: string;
@@ -30,26 +31,9 @@ export interface CanvasImageJobScope {
   readonly canvasId: string;
 }
 
-export interface CanvasImageJobStatus {
-  readonly job_id: string;
-  readonly status:
-    | "queued"
-    | "running"
-    | "succeeded"
-    | "failed"
-    | "not_found";
-  readonly result?: string | null;
-  readonly error?: string | null;
-}
-
 export interface CanvasImageJobGateway {
-  generateImage(
-    scope: CanvasImageJobScope,
-    payload: CanvasImageJobPayload,
-  ): Promise<string>;
   submitGenerateImageJob(
     scope: CanvasImageJobScope,
     payload: CanvasImageJobPayload,
-  ): Promise<string>;
-  getGenerateImageJob(jobId: string): Promise<CanvasImageJobStatus>;
+  ): Promise<CanvasGenerationTaskRef>;
 }

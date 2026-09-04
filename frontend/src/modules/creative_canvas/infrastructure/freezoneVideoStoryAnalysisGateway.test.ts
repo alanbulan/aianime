@@ -16,7 +16,7 @@ describe("freezoneVideoStoryAnalysisGateway", () => {
     const response = {
       job_id: "analysis-job",
       task_key: "analysis-task",
-      task_type: "freezone_analyze_video_story",
+      task_type: "freezone_video_story",
     };
     vi.mocked(apiCall).mockResolvedValue(response);
 
@@ -26,7 +26,11 @@ describe("freezoneVideoStoryAnalysisGateway", () => {
         durationSec: 2.5,
       }),
     ).resolves.toEqual({
-      taskKey: "analysis-task",
+      task: {
+        job_id: "analysis-job",
+        task_key: "analysis-task",
+        task_type: "freezone_video_story",
+      },
       inlineResult: response,
     });
     expect(apiCall).toHaveBeenCalledWith(
@@ -50,8 +54,18 @@ describe("freezoneVideoStoryAnalysisGateway", () => {
         videoUrl: "/static/video.mp4",
       }),
     ).resolves.toEqual({
-      taskKey: null,
+      task: null,
       inlineResult: response,
     });
+  });
+
+  it("rejects a partial asynchronous task receipt instead of treating it as inline data", async () => {
+    vi.mocked(apiCall).mockResolvedValue({ task_key: "analysis-task" });
+
+    await expect(
+      freezoneVideoStoryAnalysisGateway.submit("project-1", {
+        videoUrl: "/static/video.mp4",
+      }),
+    ).rejects.toThrow("视频解读任务回执不完整或任务类型不匹配");
   });
 });

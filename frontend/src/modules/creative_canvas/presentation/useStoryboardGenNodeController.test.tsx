@@ -185,7 +185,11 @@ describe('useStoryboardGenNodeController', () => {
     });
     mocks.showErrorDialog.mockReset();
     mocks.uploadLocalImageToBackend.mockReset().mockResolvedValue('/grid.png');
-    mocks.submitGenerateImageJob.mockReset().mockResolvedValue('job-a');
+    mocks.submitGenerateImageJob.mockReset().mockResolvedValue({
+      job_id: 'job-a',
+      task_key: 'freezone_edit:job-a',
+      task_type: 'freezone_edit',
+    });
     mocks.generateGridImage.mockReset().mockReturnValue('data:image/png,grid');
     mocks.resolvePointerAnchor.mockReset().mockReturnValue({ left: 20, top: 30 });
     mocks.resolvePickerAnchor.mockReset().mockReturnValue({ left: 10, top: 15 });
@@ -376,6 +380,9 @@ describe('useStoryboardGenNodeController', () => {
       'result-a',
       expect.objectContaining({
         generationJobId: 'job-a',
+        generationTaskJobId: 'job-a',
+        generationTaskKey: 'freezone_edit:job-a',
+        generationTaskType: 'freezone_edit',
         generationClientSessionId: 'session-a',
         generationStoryboardMetadata: {
           gridRows: 1,
@@ -423,6 +430,39 @@ describe('useStoryboardGenNodeController', () => {
         generationRequestPayload: expect.objectContaining({
           model: 'request-model-a',
         }),
+      }),
+    );
+  });
+
+  it('clears the placeholder when reference-grid upload fails before submit', async () => {
+    mocks.uploadLocalImageToBackend.mockRejectedValueOnce(
+      new Error('upload failed'),
+    );
+    const { result } = renderHook(() =>
+      useStoryboardGenNodeController({
+        id: 'storyboard-a',
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        data: data(),
+      }),
+    );
+
+    await act(async () =>
+      result.current.generateFromModifiers({
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: false,
+      }),
+    );
+
+    expect(mocks.submitGenerateImageJob).not.toHaveBeenCalled();
+    expect(mocks.updateNodeData).toHaveBeenCalledWith(
+      'result-a',
+      expect.objectContaining({
+        generationError: '可读生成错误',
+        generationJobId: null,
+        generationStartedAt: null,
+        isGenerating: false,
       }),
     );
   });

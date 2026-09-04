@@ -2,7 +2,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS,
   pollExportImageGeneration,
   type PollExportImageGenerationDependencies,
   type PollExportImageGenerationParams,
@@ -12,11 +11,9 @@ function createDependencies(
   overrides: Partial<PollExportImageGenerationDependencies> = {},
 ): PollExportImageGenerationDependencies {
   return {
-    getGenerateImageJob: vi.fn().mockResolvedValue({
-      job_id: 'job-1',
-      status: 'succeeded',
-      result: 'https://example.com/result.png',
-    }),
+    awaitGenerationTask: vi.fn().mockResolvedValue(
+      'https://example.com/result.png',
+    ),
     prepareNodeImage: vi.fn().mockResolvedValue({
       imageUrl: 'data:image/png;base64,prepared',
       aspectRatio: '16:9',
@@ -28,9 +25,21 @@ function createDependencies(
       'https://example.com/storyboard.png',
     ),
     showErrorDialog: vi.fn(),
-    sleep: vi.fn().mockResolvedValue(undefined),
     now: vi.fn(() => 1234),
     warn: vi.fn(),
+    ...overrides,
+  };
+}
+
+function pendingGenerationData(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    isGenerating: true,
+    generationJobId: 'job-1',
+    generationTaskJobId: 'job-1',
+    generationTaskKey: 'task-1',
+    generationTaskType: 'freezone_edit',
     ...overrides,
   };
 }
@@ -62,29 +71,27 @@ describe('pollExportImageGeneration', () => {
     });
     await pollExportImageGeneration(inactive, dependencies);
 
-    expect(dependencies.getGenerateImageJob).not.toHaveBeenCalled();
+    expect(dependencies.awaitGenerationTask).not.toHaveBeenCalled();
     expect(missing.updateNodeData).not.toHaveBeenCalled();
     expect(inactive.updateNodeData).not.toHaveBeenCalled();
   });
 
-  it('waits for a queued job and stores the canonical result URL', async () => {
-    const getGenerateImageJob = vi.fn()
-      .mockResolvedValueOnce({ job_id: 'job-1', status: 'queued' })
-      .mockResolvedValueOnce({
-        job_id: 'job-1',
-        status: 'succeeded',
-        result: ' https://example.com/result.png ',
-      });
-    const dependencies = createDependencies({ getGenerateImageJob });
-    const params = createParams({
-      isGenerating: true,
-      generationJobId: 'job-1',
-    });
+  it('awaits the persisted task contract and stores the canonical result URL', async () => {
+    const awaitGenerationTask = vi.fn().mockResolvedValue(
+      ' https://example.com/result.png ',
+    );
+    const dependencies = createDependencies({ awaitGenerationTask });
+    const params = createParams(pendingGenerationData());
 
     await pollExportImageGeneration(params, dependencies);
 
-    expect(dependencies.sleep).toHaveBeenCalledWith(
-      EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS,
+    expect(awaitGenerationTask).toHaveBeenCalledWith(
+      {
+        job_id: 'job-1',
+        task_key: 'task-1',
+        task_type: 'freezone_edit',
+      },
+      { recoverExpiredTask: true },
     );
     expect(dependencies.prepareNodeImage).toHaveBeenCalledWith(
       'https://example.com/result.png',
@@ -95,6 +102,10 @@ describe('pollExportImageGeneration', () => {
       imageUrl: 'https://example.com/result.png',
       previewImageUrl: 'https://example.com/result.png',
       aspectRatio: '16:9',
+      generationTaskJobId: null,
+      generationTaskKey: null,
+      generationTaskRefs: null,
+      generationTaskType: null,
       isGenerating: false,
       generationStartedAt: null,
       generationJobId: null,
@@ -109,15 +120,13 @@ describe('pollExportImageGeneration', () => {
 
   it('embeds storyboard metadata and uploads the processed image', async () => {
     const dependencies = createDependencies();
-    const params = createParams({
-      isGenerating: true,
-      generationJobId: 'job-1',
+    const params = createParams(pendingGenerationData({
       generationStoryboardMetadata: {
         gridRows: 2.4,
         gridCols: 0,
         frameNotes: ['first'],
       },
-    });
+    }));
 
     await pollExportImageGeneration(params, dependencies);
 
@@ -138,11 +147,34 @@ describe('pollExportImageGeneration', () => {
     );
   });
 
+  it('leaves the node in a retryable error state when completed-result processing fails', async () => {
+    const dependencies = createDependencies({
+      prepareNodeImage: vi.fn().mockRejectedValue(new Error('image decode failed')),
+    });
+    const params = createParams(pendingGenerationData({
+      generationClientSessionId: 'runtime-1',
+    }));
+
+    await pollExportImageGeneration(params, dependencies);
+
+    expect(params.updateNodeData).toHaveBeenCalledWith(
+      'node-1',
+      expect.objectContaining({
+        generationError: '生成结果处理失败: image decode failed',
+        generationJobId: null,
+        isGenerating: false,
+      }),
+    );
+    expect(dependencies.showErrorDialog).toHaveBeenCalledWith(
+      '生成结果处理失败: image decode failed',
+      'Generation error',
+      'image decode failed',
+      expect.stringContaining('# Generation Error Report'),
+    );
+  });
+
   it('does not apply a completed result when image preparation starts a newer job', async () => {
-    let nodeData: Record<string, unknown> = {
-      isGenerating: true,
-      generationJobId: 'job-1',
-    };
+    let nodeData: Record<string, unknown> = pendingGenerationData();
     const prepareNodeImage = vi.fn().mockImplementation(async () => {
       nodeData = {
         isGenerating: true,
@@ -163,28 +195,20 @@ describe('pollExportImageGeneration', () => {
     expect(dependencies.prepareNodeImage).toHaveBeenCalledOnce();
   });
 
-  it('retries polling errors and reports a terminal failure for this session', async () => {
-    const pollError = new Error('network unavailable');
-    const getGenerateImageJob = vi.fn()
-      .mockRejectedValueOnce(pollError)
-      .mockResolvedValueOnce({
-        job_id: 'job-1',
-        status: 'failed',
-        error: 'request_id=req-1; upstream failed',
-      });
-    const dependencies = createDependencies({ getGenerateImageJob });
-    const params = createParams({
-      isGenerating: true,
-      generationJobId: 'job-1',
+  it('reports a terminal task failure for this session', async () => {
+    const taskError = new Error('request_id=req-1; upstream failed');
+    const awaitGenerationTask = vi.fn().mockRejectedValue(taskError);
+    const dependencies = createDependencies({ awaitGenerationTask });
+    const params = createParams(pendingGenerationData({
       generationClientSessionId: 'runtime-1',
       generationDebugContext: { sourceType: 'unknown' },
-    });
+    }));
 
     await pollExportImageGeneration(params, dependencies);
 
-    expect(dependencies.warn).toHaveBeenCalledWith(
-      '[GenerationJob] poll failed',
-      { nodeId: 'node-1', jobId: 'job-1', error: pollError },
+    expect(awaitGenerationTask).toHaveBeenCalledWith(
+      expect.any(Object),
+      { recoverExpiredTask: false },
     );
     expect(dependencies.showErrorDialog).toHaveBeenCalledWith(
       'request_id=req-1; upstream failed',
@@ -200,6 +224,26 @@ describe('pollExportImageGeneration', () => {
         generationError: 'request_id=req-1; upstream failed',
         generationErrorDetails: 'request_id=req-1; upstream failed',
         generationErrorRequestId: 'req-1',
+      }),
+    );
+  });
+
+  it('rejects a legacy job id without a matching persisted task contract', async () => {
+    const dependencies = createDependencies();
+    const params = createParams(pendingGenerationData({
+      generationTaskJobId: 'different-job',
+      generationClientSessionId: 'runtime-1',
+    }));
+
+    await pollExportImageGeneration(params, dependencies);
+
+    expect(dependencies.awaitGenerationTask).not.toHaveBeenCalled();
+    expect(params.updateNodeData).toHaveBeenCalledWith(
+      'node-1',
+      expect.objectContaining({
+        generationError: '生成任务信息不完整或任务标识不一致',
+        generationJobId: null,
+        isGenerating: false,
       }),
     );
   });

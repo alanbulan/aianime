@@ -41,6 +41,14 @@ export const freezoneGenerationTaskGateway: CanvasGenerationTaskGateway = {
     return await fetchCanvasGenerationResultUrl(projectId, taskType, jobId);
   },
 
+  async fetchResult<Result>(projectId: string, taskType: string, jobId: string) {
+    return await fetchCanvasGenerationResult<Result>(
+      projectId,
+      taskType,
+      jobId,
+    );
+  },
+
   async fetchReversePrompt(projectId, jobId) {
     const result = await fetchCanvasGenerationResult<ReversePromptTransport>(
       projectId,

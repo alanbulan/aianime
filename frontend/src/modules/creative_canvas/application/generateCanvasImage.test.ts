@@ -99,15 +99,11 @@ describe("generateCanvasImage", () => {
     );
   });
 
-  it("preserves a completed task when the result fallback fails", async () => {
+  it("rejects when a completed task has no accessible result", async () => {
     const deps = dependencies({ status: "completed" });
     const error = new Error("result endpoint unavailable");
     vi.mocked(deps.taskGateway.fetchResultUrl).mockRejectedValue(error);
 
-    await expect(generateCanvasImage(params, deps)).resolves.toEqual({
-      task: deps.task,
-      url: null,
-      resultFallbackError: error,
-    });
+    await expect(generateCanvasImage(params, deps)).rejects.toBe(error);
   });
 });

@@ -17,7 +17,9 @@ export function resolveGenerationOutputUrl(
 
   for (const key of OUTPUT_URL_KEYS[media]) {
     const value = Reflect.get(result, key);
-    if (typeof value === "string" && value.length > 0) return value;
+    if (typeof value !== "string") continue;
+    const url = value.trim();
+    if (url) return url;
   }
 
   return null;

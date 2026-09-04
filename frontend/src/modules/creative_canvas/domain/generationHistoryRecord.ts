@@ -1,4 +1,9 @@
 // Copyright (c) 2026 AI anime
+import {
+  pickCanvasImageTo3dResultUrl,
+  pickStrictCanvasImageTo3dResultUrl,
+} from './imageTo3d';
+
 export interface CanvasGenerationHistoryRecord {
   readonly schema_version: number;
   readonly canvas_id: string;
@@ -39,100 +44,19 @@ export function historyRecordOutputUrl(
   return null;
 }
 
-const THREE_GS_EXT_RE = /\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i;
-
-function preferredWorldCandidate(candidates: readonly string[]): string | null {
-  const sog = candidates.find((candidate) =>
-    /\.sog(\?|#|$)/i.test(candidate),
-  );
-  if (sog) return sog;
-  const packaged = candidates.find((candidate) =>
-    /\.(ksplat|splat|spz)(\?|#|$)/i.test(candidate),
-  );
-  if (packaged) return packaged;
-  return (
-    candidates.find((candidate) => /\.ply(\?|#|$)/i.test(candidate)) ??
-    null
-  );
-}
-
 export function historyRecordWorldUrl(
   record: GenerationHistoryRecordProjection,
 ): string | null {
-  const candidates: string[] = [];
-  const visit = (value: unknown, depth: number) => {
-    if (depth > 4) return;
-    if (typeof value === 'string') {
-      if (THREE_GS_EXT_RE.test(value) || /scene_3gs|ply_fs|splat/i.test(value)) {
-        candidates.push(value);
-      }
-      return;
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) visit(item, depth + 1);
-      return;
-    }
-    if (value && typeof value === 'object') {
-      const object = value as Record<string, unknown>;
-      const preferredKeys = [
-        'sog_url',
-        'sogUrl',
-        'splat_url',
-        'splatUrl',
-        'ply_url',
-        'plyUrl',
-        'master_ply_url',
-        'masterPlyUrl',
-        'scene_3gs_ply_fs',
-        'scene_3gs_master_ply_fs',
-        'output_url',
-        'asset_url',
-        'static_url',
-        'url',
-      ];
-      for (const key of preferredKeys) {
-        const candidate = object[key];
-        if (typeof candidate === 'string' && candidate.length > 0) {
-          candidates.push(candidate);
-        }
-      }
-      for (const key in object) {
-        if (!preferredKeys.includes(key)) visit(object[key], depth + 1);
-      }
-    }
-  };
-  visit(record.result ?? {}, 0);
   return (
-    preferredWorldCandidate(candidates) ??
-    candidates[0] ??
-    historyRecordOutputUrl(record)
+    pickCanvasImageTo3dResultUrl(record.result)
+    ?? historyRecordOutputUrl(record)
   );
 }
 
 export function historyRecordStrictWorldUrl(
   record: GenerationHistoryRecordProjection,
 ): string | null {
-  const candidates: string[] = [];
-  const visit = (value: unknown, depth: number) => {
-    if (depth > 4) return;
-    if (typeof value === 'string') {
-      if (THREE_GS_EXT_RE.test(value) || /scene_3gs|ply_fs|splat/i.test(value)) {
-        candidates.push(value);
-      }
-      return;
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) visit(item, depth + 1);
-      return;
-    }
-    if (value && typeof value === 'object') {
-      for (const child of Object.values(value as Record<string, unknown>)) {
-        visit(child, depth + 1);
-      }
-    }
-  };
-  visit(record.result ?? {}, 0);
-  return preferredWorldCandidate(candidates) ?? candidates[0] ?? null;
+  return pickStrictCanvasImageTo3dResultUrl(record.result);
 }
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|webp|avif|gif|bmp|tiff?)(\?|#|$)/i;

@@ -2,6 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  clearGenerationTaskDescriptor,
+  generationTaskBatchDescriptor,
   generationTaskDescriptor,
   nodeNeedsGenerationResume,
   resumeNodeGeneration,
@@ -11,6 +13,7 @@ import {
 
 const hasTask = vi.fn();
 const awaitCompletion = vi.fn();
+const fetchResult = vi.fn();
 const fetchResultUrl = vi.fn();
 const fetchReversePrompt = vi.fn();
 const fetchStoryScriptResult = vi.fn();
@@ -19,6 +22,8 @@ const updateNodeData = vi.fn();
 const gateway: CanvasGenerationTaskGateway = {
   awaitCompletion: (taskKey, projectId) =>
     awaitCompletion(taskKey, projectId),
+  fetchResult: (projectId, taskType, jobId) =>
+    fetchResult(projectId, taskType, jobId),
   fetchResultUrl: (projectId, taskType, jobId) =>
     fetchResultUrl(projectId, taskType, jobId),
   fetchReversePrompt: (projectId, jobId) =>
@@ -60,6 +65,7 @@ describe('resumeNodeGeneration', () => {
   beforeEach(() => {
     hasTask.mockReset().mockResolvedValue(true);
     awaitCompletion.mockReset();
+    fetchResult.mockReset();
     fetchResultUrl.mockReset();
     fetchReversePrompt.mockReset();
     fetchStoryScriptResult.mockReset();
@@ -112,7 +118,7 @@ describe('resumeNodeGeneration', () => {
     );
   });
 
-  it('reconciles a terminal task even when this session submitted it', () => {
+  it('keeps one writer for an in-session task and releases it on settlement', () => {
     const task = {
       task_key: 'task-owned-terminal',
       task_type: 'freezone_video_upscale',
@@ -126,7 +132,126 @@ describe('resumeNodeGeneration', () => {
     });
 
     expect(nodeNeedsGenerationResume(node)).toBe(false);
-    expect(nodeNeedsGenerationResume(node, true)).toBe(true);
+    expect(clearGenerationTaskDescriptor(task.task_key)).toEqual({
+      generationTaskKey: null,
+      generationTaskType: null,
+      generationTaskJobId: null,
+      generationTaskRefs: null,
+    });
+    expect(nodeNeedsGenerationResume(node)).toBe(true);
+  });
+
+  it('keeps one writer for every task in an in-session batch', () => {
+    const tasks = [
+      {
+        task_key: 'task-owned-batch-1',
+        task_type: 'freezone_gen',
+        job_id: 'job-owned-batch-1',
+      },
+      {
+        task_key: 'task-owned-batch-2',
+        task_type: 'freezone_gen',
+        job_id: 'job-owned-batch-2',
+      },
+    ];
+    const descriptor = generationTaskBatchDescriptor(tasks);
+    const node = generationNode('imageGenNode', descriptor);
+
+    expect(nodeNeedsGenerationResume(node)).toBe(false);
+    clearGenerationTaskDescriptor(tasks.map((task) => task.task_key));
+    expect(nodeNeedsGenerationResume(node)).toBe(true);
+  });
+
+  it('recovers every persisted image task in a batch after reload', async () => {
+    const tasks = [
+      {
+        task_key: 'task-batch-1',
+        task_type: 'freezone_gen',
+        job_id: 'job-batch-1',
+      },
+      {
+        task_key: 'task-batch-2',
+        task_type: 'freezone_gen',
+        job_id: 'job-batch-2',
+      },
+    ];
+    awaitCompletion.mockImplementation(async (taskKey: string) => ({
+      result: {
+        output_url: `/static/project-1/${taskKey}.png`,
+      },
+    }));
+
+    await resume(
+      generationNode('imageGenNode', {
+        generationTaskJobId: tasks[0].job_id,
+        generationTaskKey: tasks[0].task_key,
+        generationTaskType: tasks[0].task_type,
+        generationTaskRefs: tasks,
+      }),
+    );
+
+    expect(awaitCompletion).toHaveBeenCalledTimes(2);
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'node-1',
+      expect.objectContaining({
+        generationBatch: [
+          '/static/project-1/task-batch-1.png',
+          '/static/project-1/task-batch-2.png',
+        ],
+        generationTaskRefs: null,
+        imageUrl: '/static/project-1/task-batch-1.png',
+        isGenerating: false,
+      }),
+    );
+  });
+
+  it('keeps successful batch outputs when another persisted task fails', async () => {
+    const tasks = [
+      {
+        task_key: 'task-partial-1',
+        task_type: 'freezone_video_gen',
+        job_id: 'job-partial-1',
+      },
+      {
+        task_key: 'task-partial-2',
+        task_type: 'freezone_video_gen',
+        job_id: 'job-partial-2',
+      },
+    ];
+    awaitCompletion.mockImplementation(async (taskKey: string) => {
+      if (taskKey === 'task-partial-1') {
+        throw new Error('first task failed');
+      }
+      return { result: { output_url: '/static/project-1/partial.mp4' } };
+    });
+
+    await resume(
+      generationNode('videoNode', {
+        generationTaskJobId: tasks[0].job_id,
+        generationTaskKey: tasks[0].task_key,
+        generationTaskType: tasks[0].task_type,
+        generationTaskRefs: tasks,
+      }),
+    );
+
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'node-1',
+      expect.objectContaining({
+        generationBatch: null,
+        generationError: null,
+        videoUrl: '/static/project-1/partial.mp4',
+      }),
+    );
+  });
+
+  it('does not route skill tasks through the generic generation recovery', () => {
+    expect(nodeNeedsGenerationResume(generationNode('skillNode'))).toBe(false);
+  });
+
+  it('leaves legacy export-image post-processing to its dedicated task owner', () => {
+    expect(nodeNeedsGenerationResume(generationNode('exportImageNode', {
+      generationJobId: 'job-1',
+    }))).toBe(false);
   });
 
   it('uses the result endpoint when an image task has no direct URL', async () => {
@@ -192,6 +317,42 @@ describe('resumeNodeGeneration', () => {
     );
   });
 
+  it('uses completed inline script and reverse-prompt results before fallback requests', async () => {
+    const scriptResult = {
+      rows: [{ dialogue: '内嵌台词' }],
+      title: '内嵌剧本',
+    };
+    awaitCompletion.mockResolvedValueOnce({ result: scriptResult });
+
+    await resume(
+      generationNode('scriptNode', {
+        generationTaskType: 'freezone_story_script',
+      }),
+    );
+
+    expect(fetchStoryScriptResult).not.toHaveBeenCalled();
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'node-1',
+      expect.objectContaining({ scriptResult }),
+    );
+
+    updateNodeData.mockClear();
+    awaitCompletion.mockResolvedValueOnce({
+      result: { prompt: '内嵌反推提示词' },
+    });
+    await resume(
+      generationNode('textAnnotationNode', {
+        generationTaskType: 'freezone_image_reverse_prompt',
+      }),
+    );
+
+    expect(fetchReversePrompt).not.toHaveBeenCalled();
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'node-1',
+      expect.objectContaining({ content: '内嵌反推提示词' }),
+    );
+  });
+
   it('clears a generation whose persisted task no longer exists', async () => {
     hasTask.mockResolvedValue(false);
 
@@ -202,6 +363,50 @@ describe('resumeNodeGeneration', () => {
       'node-1',
       expect.objectContaining({
         generationError: '生成任务已结束或不存在',
+        generationTaskKey: null,
+        isGenerating: false,
+      }),
+    );
+  });
+
+  it('recovers an artifact after its completed task record was cleared', async () => {
+    hasTask.mockResolvedValue(false);
+    fetchResultUrl.mockResolvedValue('/static/project-1/persisted.mp4');
+
+    await resume(
+      generationNode('videoNode', {
+        generationTaskType: 'freezone_video_upscale',
+      }),
+    );
+
+    expect(awaitCompletion).not.toHaveBeenCalled();
+    expect(fetchResultUrl).toHaveBeenCalledWith(
+      'project-1',
+      'freezone_video_upscale',
+      'job-1',
+    );
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'node-1',
+      expect.objectContaining({
+        generationTaskKey: null,
+        isGenerating: false,
+        videoUrl: '/static/project-1/persisted.mp4',
+      }),
+    );
+  });
+
+  it('clears a malformed persisted task instead of retrying it forever', async () => {
+    await resume(
+      generationNode('audioNode', {
+        generationTaskType: null,
+      }),
+    );
+
+    expect(hasTask).not.toHaveBeenCalled();
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'node-1',
+      expect.objectContaining({
+        generationError: '生成任务信息不完整',
         generationTaskKey: null,
         isGenerating: false,
       }),

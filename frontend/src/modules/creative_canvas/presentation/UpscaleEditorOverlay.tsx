@@ -17,7 +17,10 @@ import {
   resolveCanvasUpscaleImageSize,
   type CanvasUpscaleImageSize,
 } from '../domain/upscale';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasUpscaleParams,
@@ -124,6 +127,7 @@ export function createUpscaleEditorOverlay({
       generationError: null,
     });
 
+    let taskKey: string | null = null;
     try {
       const { url } = await generateCanvasUpscale(
         {
@@ -134,10 +138,12 @@ export function createUpscaleEditorOverlay({
           modelSelector: selectedModel.routeSelector,
         },
         (task) => {
+          taskKey = task.task_key;
           updateNodeData(node.id, generationTaskDescriptor(task));
         },
       );
       updateNodeData(node.id, {
+        ...clearGenerationTaskDescriptor(taskKey),
         imageUrl: url,
         previewImageUrl: url,
         isGenerating: false,
@@ -148,6 +154,7 @@ export function createUpscaleEditorOverlay({
       const message = err instanceof Error ? err.message : String(err);
       console.error('[upscale] generation failed', err);
       updateNodeData(node.id, {
+        ...clearGenerationTaskDescriptor(taskKey),
         isGenerating: false,
         generationStartedAt: null,
         generationError: message,

@@ -38,7 +38,10 @@ import {
   resolveThreeDWorldTitle,
   usableDirectorWorldPreviewUrl,
 } from '../application/threeDWorldNodeModel';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import { setDirectorWorldSceneSaveHandler } from '../application/directorWorldSceneSaveRegistry';
 import type {
   GenerateCanvasImageTo3dParams,
@@ -383,6 +386,7 @@ export function createUseThreeDWorldNodeController({
             }
           : {}),
       });
+      let taskKey: string | null = null;
       try {
         const { source: generatedSource } = await generateCanvasImageTo3d(
           {
@@ -393,6 +397,7 @@ export function createUseThreeDWorldNodeController({
             nodeId: id,
           },
           (task) => {
+            taskKey = task.task_key;
             updateNodeData(id, {
               taskKey: task.task_key,
               ...generationTaskDescriptor(task),
@@ -405,6 +410,7 @@ export function createUseThreeDWorldNodeController({
             | { sources?: DirectorWorldSource[] }
             | undefined)?.sources ?? [];
         updateNodeData(id, {
+          ...clearGenerationTaskDescriptor(taskKey),
           sources: mergeDirectorWorldSources(
             currentSources,
             rawPanoSource,
@@ -419,6 +425,7 @@ export function createUseThreeDWorldNodeController({
         });
       } catch (error) {
         updateNodeData(id, {
+          ...clearGenerationTaskDescriptor(taskKey),
           isGenerating: false,
           taskKey: null,
           errorMessage: `生成失败: ${error instanceof Error ? error.message : String(error)}`,

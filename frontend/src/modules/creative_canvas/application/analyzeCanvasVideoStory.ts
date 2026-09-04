@@ -1,5 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
+import {
+  requireCanvasGenerationTaskRef,
+  type CanvasStructuredTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
 import { normalizeVideoStoryRows } from "./videoStoryNormalizer";
 
 export interface CanvasVideoStoryAnalysisCommand {
@@ -8,7 +11,11 @@ export interface CanvasVideoStoryAnalysisCommand {
 }
 
 export interface CanvasVideoStoryAnalysisSubmission {
-  readonly taskKey: string | null;
+  readonly task: {
+    readonly job_id: string;
+    readonly task_key: string;
+    readonly task_type: "freezone_video_story";
+  } | null;
   readonly inlineResult: Record<string, unknown>;
 }
 
@@ -27,7 +34,13 @@ export interface AnalyzeCanvasVideoStoryParams {
 
 export interface AnalyzeCanvasVideoStoryDependencies {
   readonly submissionGateway: CanvasVideoStoryAnalysisSubmissionGateway;
-  readonly taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion">;
+  readonly taskGateway: CanvasStructuredTaskResultGateway;
+}
+
+function completedAnalysisResult(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const result = value as Record<string, unknown>;
+  return Object.keys(result).length > 0 ? result : null;
 }
 
 export async function analyzeCanvasVideoStory(
@@ -44,12 +57,24 @@ export async function analyzeCanvasVideoStory(
           : undefined,
     },
   );
-  const rawResult = submission.taskKey
-    ? ((await dependencies.taskGateway.awaitCompletion(
-        submission.taskKey,
+  let rawResult = submission.inlineResult;
+  if (submission.task) {
+    const task = requireCanvasGenerationTaskRef(
+      submission.task,
+      "freezone_video_story",
+    );
+    const completion = await dependencies.taskGateway.awaitCompletion(
+      task.task_key,
+      params.projectId,
+    );
+    rawResult =
+      completedAnalysisResult(completion.result)
+      ?? await dependencies.taskGateway.fetchResult<Record<string, unknown>>(
         params.projectId,
-      )).result ?? {})
-    : submission.inlineResult;
+        task.task_type,
+        task.job_id,
+      );
+  }
   return {
     rawResult,
     rows: normalizeVideoStoryRows(rawResult),

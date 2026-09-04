@@ -214,7 +214,11 @@ describe('useImageEditNodeController', () => {
       userAgent: 'test',
     });
     mocks.showErrorDialog.mockReset();
-    mocks.submitGenerateImageJob.mockReset().mockResolvedValue('job-a');
+    mocks.submitGenerateImageJob.mockReset().mockResolvedValue({
+      job_id: 'job-a',
+      task_key: 'freezone_edit:job-a',
+      task_type: 'freezone_edit',
+    });
     mocks.resolvePickerAnchor.mockReset().mockReturnValue({ left: 12, top: 24 });
     mocks.backendErrorToastMessage.mockReset().mockReturnValue('可读生成错误');
     mocks.useCanvasImageModels
@@ -369,6 +373,9 @@ describe('useImageEditNodeController', () => {
       'result-a',
       expect.objectContaining({
         generationJobId: 'job-a',
+        generationTaskJobId: 'job-a',
+        generationTaskKey: 'freezone_edit:job-a',
+        generationTaskType: 'freezone_edit',
         generationClientSessionId: 'session-a',
         generationRequestPayload: expect.any(Object),
       }),

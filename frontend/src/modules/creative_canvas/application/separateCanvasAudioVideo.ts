@@ -1,5 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { resolveCanvasAudioSeparationOutputs } from "./audioSeparationResult";
+import {
+  requireCanvasGenerationTaskRef,
+  type CanvasGenerationTaskRef,
+  type CanvasStructuredTaskResultGateway,
+} from "./completeCanvasMediaGenerationTask";
 
 export interface CanvasAudioSeparationCommand {
   readonly sourceUrl: string;
@@ -7,17 +12,8 @@ export interface CanvasAudioSeparationCommand {
   readonly targetBeat?: number;
 }
 
-export interface CanvasAudioSeparationTaskRef {
-  readonly job_id: string;
-  readonly task_key: string;
+export interface CanvasAudioSeparationTaskRef extends CanvasGenerationTaskRef {
   readonly task_type: "freezone_audio_separate";
-}
-
-export interface CanvasAudioSeparationTaskGateway {
-  awaitCompletion(
-    taskKey: string,
-    projectId: string,
-  ): Promise<{ readonly result?: unknown | null }>;
 }
 
 export interface CanvasAudioSeparationGateway {
@@ -25,10 +21,6 @@ export interface CanvasAudioSeparationGateway {
     projectId: string,
     command: CanvasAudioSeparationCommand,
   ): Promise<CanvasAudioSeparationTaskRef>;
-  fetchResult(
-    projectId: string,
-    jobId: string,
-  ): Promise<Record<string, unknown>>;
 }
 
 export interface SeparateCanvasAudioVideoParams
@@ -38,27 +30,29 @@ export interface SeparateCanvasAudioVideoParams
 
 export interface SeparateCanvasAudioVideoDependencies {
   readonly audioSeparationGateway: CanvasAudioSeparationGateway;
-  readonly taskGateway: CanvasAudioSeparationTaskGateway;
+  readonly taskGateway: CanvasStructuredTaskResultGateway;
 }
 
 export interface SeparateCanvasAudioVideoResult {
-  readonly audioUrl: string | null;
-  readonly silentVideoUrl: string | null;
-  readonly resultFallbackError?: unknown;
+  readonly audioUrl: string;
+  readonly silentVideoUrl: string;
 }
 
 export async function separateCanvasAudioVideo(
   params: SeparateCanvasAudioVideoParams,
   dependencies: SeparateCanvasAudioVideoDependencies,
 ): Promise<SeparateCanvasAudioVideoResult> {
-  const task = await dependencies.audioSeparationGateway.submit(
-    params.projectId,
-    {
-      sourceUrl: params.sourceUrl,
-      targetEpisode: params.targetEpisode,
-      targetBeat: params.targetBeat,
-    },
-  );
+  const task = requireCanvasGenerationTaskRef(
+    await dependencies.audioSeparationGateway.submit(
+      params.projectId,
+      {
+        sourceUrl: params.sourceUrl,
+        targetEpisode: params.targetEpisode,
+        targetBeat: params.targetBeat,
+      },
+    ),
+    "freezone_audio_separate",
+  ) as CanvasAudioSeparationTaskRef;
   const completion = await dependencies.taskGateway.awaitCompletion(
     task.task_key,
     params.projectId,
@@ -67,13 +61,13 @@ export async function separateCanvasAudioVideo(
     completion.result,
   );
   let resultFallbackError: unknown;
-  let resultFallbackFailed = false;
 
   if (!audioUrl || !silentVideoUrl) {
     try {
       const fallback = resolveCanvasAudioSeparationOutputs(
-        await dependencies.audioSeparationGateway.fetchResult(
+        await dependencies.taskGateway.fetchResult<Record<string, unknown>>(
           params.projectId,
+          task.task_type,
           task.job_id,
         ),
       );
@@ -81,13 +75,16 @@ export async function separateCanvasAudioVideo(
       silentVideoUrl = silentVideoUrl ?? fallback.silentVideoUrl;
     } catch (error) {
       resultFallbackError = error;
-      resultFallbackFailed = true;
     }
+  }
+
+  if (!audioUrl || !silentVideoUrl) {
+    if (resultFallbackError) throw resultFallbackError;
+    throw new Error("音视频分离任务已完成，但没有返回完整的音频和视频地址");
   }
 
   return {
     audioUrl,
     silentVideoUrl,
-    ...(resultFallbackFailed ? { resultFallbackError } : {}),
   };
 }

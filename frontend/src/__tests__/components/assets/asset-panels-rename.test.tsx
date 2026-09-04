@@ -113,6 +113,11 @@ beforeAll(async () => {
             refresh: "Refresh",
             save: "Save",
           },
+          taskProgress: {
+            elapsed: "Elapsed {{time}}",
+            estimated: "Estimated {{percent}}%",
+            processing: "Processing",
+          },
           assets: {
             common: {
               delete: "Delete",
@@ -621,7 +626,7 @@ describe("asset panel rename behavior", () => {
     expect(screen.getByText("Batch reference generation")).toBeInTheDocument();
     expect(screen.getByText("Generating Sword reference")).toBeInTheDocument();
     expect(screen.getByText("Queued 3 props")).toBeInTheDocument();
-    expect(screen.getByText("42%")).toBeInTheDocument();
+    expect(screen.getByText("Estimated 42.0%")).toBeInTheDocument();
   });
 
   it("starts the batch prop generation task stream after the API accepts it", async () => {

@@ -1750,10 +1750,8 @@ export type {
   CanvasImageJobGateway,
   CanvasImageJobPayload,
   CanvasImageJobScope,
-  CanvasImageJobStatus,
 } from "@/modules/creative_canvas/application/canvasImageJob";
 export {
-  EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS,
   pollExportImageGeneration,
 } from "@/modules/creative_canvas/application/pollExportImageGeneration";
 export type {
@@ -1769,13 +1767,16 @@ export type {
   RegenerateExportImageNodeParams,
 } from "@/modules/creative_canvas/application/regenerateExportNode";
 export {
+  clearGenerationTaskDescriptor,
   generationTaskDescriptor,
   nodeNeedsGenerationResume,
+  readGenerationTaskDescriptor,
   resumeNodeGeneration,
 } from "@/modules/creative_canvas/application/resumeGeneration";
 export type {
   CanvasGenerationRecoveryNode,
   CanvasGenerationTaskGateway,
+  ClearedGenerationTaskDescriptor,
   GenerationTaskDescriptor,
   ResumeNodeGenerationParams,
 } from "@/modules/creative_canvas/application/resumeGeneration";
@@ -2821,15 +2822,21 @@ export type {
   GridActionRequest,
 } from "@/modules/creative_canvas/domain/gridAction";
 export {
+  awaitCanvasMediaGenerationTask,
   completeCanvasMediaGenerationTask,
-  readEmbeddedCanvasGenerationOutputUrl,
+  parseCanvasGenerationTaskRef,
+  recoverCanvasMediaGenerationTask,
+  requireCanvasGenerationTaskRef,
 } from "@/modules/creative_canvas/application/completeCanvasMediaGenerationTask";
 export type {
+  AwaitCanvasMediaGenerationTaskResult,
   CanvasGenerationTaskCompletion,
   CanvasGenerationTaskRef,
+  CanvasRecoverableTaskResultGateway,
   CanvasTaskResultGateway,
   CompleteCanvasMediaGenerationTaskDependencies,
   CompleteCanvasMediaGenerationTaskParams,
+  RecoverCanvasMediaGenerationTaskOptions,
 } from "@/modules/creative_canvas/application/completeCanvasMediaGenerationTask";
 export type {
   CanvasGridActionGenerationCommand,
@@ -3176,10 +3183,6 @@ export {
   designCanvasAudioVoice,
   loadCanvasAudioReferences,
 } from "@/modules/creative_canvas/audioVoiceCatalogComposition";
-export {
-  fetchCanvasGenerationResult,
-  fetchCanvasGenerationResultUrl,
-} from "@/modules/creative_canvas/infrastructure/freezoneGenerationResultGateway";
 export { buildLibraryAssets } from "@/modules/creative_canvas/application/assetLibraryProjection";
 export {
   assetToDragPayload,

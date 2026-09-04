@@ -5825,7 +5825,6 @@ describe("frontend architecture boundaries", () => {
       .filter((path) => readFileSync(path, "utf8").includes("freezone/init"))
       .map(relativeSource)
       .sort();
-
     expect(endpointOwners).toEqual([]);
   });
 
@@ -15104,11 +15103,12 @@ describe("frontend architecture boundaries", () => {
     );
     expect(composition).toContain("useShallow(selectPendingExportImageNodeIds)");
     expect(composition).toContain(
-      "selectPendingGenerationResumeNodeIds(state, terminalTaskKeys)",
+      "useShallow(selectPendingGenerationResumeNodeIds)",
     );
     expect(composition).toContain(
-      "nodeNeedsGenerationResume(node, taskSettled)",
+      "nodeNeedsGenerationResume(node)",
     );
+    expect(composition).not.toContain("useTaskCenterStore");
     expect(compositionTest).toContain("useCanvasStore.getState().setCanvasData(");
     expect(compositionTest).toContain(
       "keeps pending ID selections stable across unrelated node updates",
@@ -15178,10 +15178,12 @@ describe("frontend architecture boundaries", () => {
         ),
       ),
     ).toBe(false);
-    expect(useCaseModel).toContain("EXPORT_IMAGE_GENERATION_POLL_INTERVAL_MS = 1400");
     expect(useCaseModel).toContain("buildGenerationErrorReport({");
     expect(useCaseModel).toContain("embedStoryboardImageMetadata(");
+    expect(useCaseModel).toContain("dependencies.awaitGenerationTask(task, {");
+    expect(useCaseModel).not.toContain("getGenerateImageJob");
     expect(composition).toContain("pollExportImageGenerationUseCase(");
+    expect(composition).toContain("recoverCanvasMediaGenerationTask(");
     expect(composition).toContain(
       "pollExportImageGeneration(projectId, {",
     );
@@ -15224,6 +15226,20 @@ describe("frontend architecture boundaries", () => {
       resolve(moduleRoot, "application/resumeGeneration.ts"),
       "utf8",
     );
+    const descriptorOwnersMissingSettle = sourceFiles(moduleRoot)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) => {
+        const source = readFileSync(path, "utf8");
+        return (
+          (
+            source.includes("generationTaskDescriptor(")
+            || source.includes("generationTaskBatchDescriptor(")
+          )
+          && !source.includes("clearGenerationTaskDescriptor(")
+        );
+      })
+      .map(relativeSource)
+      .sort();
 
     expect(legacyPaths.every((path) => !existsSync(path))).toBe(true);
     expect(privateBypasses).toEqual([]);
@@ -15234,7 +15250,8 @@ describe("frontend architecture boundaries", () => {
       existsSync(resolve(SRC_ROOT, "features/canvas/application/ports.ts")),
     ).toBe(false);
     expect(resumeSource).not.toContain("@/features/canvas/");
-    expect(resumeSource.match(/isCurrentGenerationTask\(/g)?.length).toBe(5);
+    expect(resumeSource.match(/isCurrentGenerationTask\(/g)?.length).toBe(10);
+    expect(descriptorOwnersMissingSettle).toEqual([]);
   });
 
   it("keeps Canvas marquee gestures in one presentation hook", () => {
@@ -20932,7 +20949,10 @@ describe("frontend architecture boundaries", () => {
       .sort();
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["../domain/audioVoice"]),
+      new Set([
+        "../domain/audioVoice",
+        "./completeCanvasMediaGenerationTask",
+      ]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -20946,8 +20966,9 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).toContain(
       "dependencies.submissionGateway.submitSpeech(",
     );
+    expect(applicationSource).toContain("completeCanvasMediaGenerationTask(");
     expect(applicationSource).toContain(
-      "dependencies.onTaskSubmitted(task)",
+      "onTaskSubmitted: () => dependencies.onTaskSubmitted(task)",
     );
     expect(applicationSource).toContain(
       '"freezone_audio_music"',
@@ -20963,10 +20984,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
-        "@/modules/task_execution/public",
         "./application/generateCanvasAudio",
         "./infrastructure/freezoneAudioGenerationGateway",
-        "./infrastructure/freezoneGenerationResultGateway",
+        "./infrastructure/freezoneGenerationTaskGateway",
       ]),
     );
     expect(compositionSource).toContain("generateCanvasAudioUseCase(params, {");
@@ -20974,11 +20994,9 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneAudioGenerationGateway",
     );
     expect(compositionSource).toContain(
-      "resultGateway: { fetchResultUrl: fetchCanvasGenerationResultUrl }",
+      "taskGateway: freezoneGenerationTaskGateway",
     );
-    expect(compositionSource).toContain(
-      "await awaitTaskCompletion(taskKey, projectId)",
-    );
+    expect(compositionSource).not.toContain("resultGateway:");
     expect(importSpecifiers(hookPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(hookPath)).not.toContain("@/api/tasks");
     expect(importSpecifiers(hookPath)).not.toContain("@/lib/url-params");
@@ -21267,9 +21285,8 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(compositionPath)).toEqual(
       expect.arrayContaining([
         "@/modules/model_usage/public",
-        "@/modules/task_execution/public",
         "./application/generateCanvasStoryScript",
-        "./infrastructure/freezoneGenerationResultGateway",
+        "./infrastructure/freezoneGenerationTaskGateway",
         "./infrastructure/freezoneStoryScriptGenerationGateway",
       ]),
     );
@@ -21285,7 +21302,7 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneStoryScriptGenerationGateway",
     );
     expect(compositionSource).toContain(
-      'fetchCanvasGenerationResult<CanvasStoryScriptResult>(',
+      "taskGateway: freezoneGenerationTaskGateway",
     );
     expect(publicSource).toContain("generateCanvasStoryScript,");
     expect(publicSource).toContain("buildCanvasStoryScriptCommand,");
@@ -21405,10 +21422,10 @@ describe("frontend architecture boundaries", () => {
       "submissionGateway: freezoneReversePromptGenerationGateway",
     );
     expect(compositionSource).toContain(
-      "taskGateway: reversePromptTaskGateway",
+      "const taskGateway = freezoneGenerationTaskGateway",
     );
     expect(compositionSource).toContain(
-      '"freezone_image_reverse_prompt"',
+      "taskGateway,",
     );
     expect(importSpecifiers(textNodeControllerPath)).not.toContain(
       "@/api/ops",
@@ -22561,6 +22578,9 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(legacyGatewayPath)).not.toContain(
       "./freezoneGenerationTaskGateway",
     );
+    expect(importSpecifiers(legacyGatewayPath)).not.toContain(
+      "../mediaOperationGenerationComposition",
+    );
     expect(legacyGatewaySource).not.toContain("platformCanvasAssetGateway");
     expect(importSpecifiers(legacyGatewayPath)).not.toContain(
       "@/modules/creative_canvas/public",
@@ -22572,13 +22592,9 @@ describe("frontend architecture boundaries", () => {
     expect(legacyGatewaySource).toContain(
       "dependencies.submitImageGeneration(projectId, {",
     );
-    expect(legacyGatewaySource).toContain(
-      "freezoneGenerationTaskGateway.awaitCompletion(",
-    );
-    expect(legacyGatewaySource).toContain(
-      "freezoneGenerationTaskGateway.fetchResultUrl(",
-    );
-    expect(legacyGatewaySource).toContain("submitImageEdit(projectId, {");
+    expect(legacyGatewaySource).not.toContain("completeCanvasMediaGenerationTask(");
+    expect(legacyGatewaySource).not.toContain("async generateImage(");
+    expect(legacyGatewaySource).toContain("const ref = await submitImageEdit(");
     expect(editEndpointOwners).toEqual([
       "modules/creative_canvas/infrastructure/freezoneAiGateway.ts",
     ]);
@@ -22682,6 +22698,16 @@ describe("frontend architecture boundaries", () => {
       )
       .map(relativeSource)
       .sort();
+    const resultGatewayConsumers = sourceFiles(SRC_ROOT)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        importSpecifiers(path).some((specifier) =>
+          specifier.endsWith("/freezoneGenerationResultGateway")
+          || specifier === "./freezoneGenerationResultGateway"
+        ),
+      )
+      .map(relativeSource)
+      .sort();
 
     expect(new Set(importSpecifiers(gatewayPath))).toEqual(
       new Set([
@@ -22700,6 +22726,7 @@ describe("frontend architecture boundaries", () => {
     expect(gatewaySource).toContain(
       "fetchCanvasGenerationResult<CanvasStoryScriptResult>(",
     );
+    expect(gatewaySource).toContain("async fetchResult<Result>(");
     expect(importSpecifiers(resultGatewayPath)).toEqual([
       "@/shared/api/client",
     ]);
@@ -22711,6 +22738,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(endpointOwners).toEqual([
       "modules/creative_canvas/infrastructure/freezoneGenerationResultGateway.ts",
+    ]);
+    expect(resultGatewayConsumers).toEqual([
+      "modules/creative_canvas/infrastructure/freezoneGenerationTaskGateway.ts",
     ]);
     expect(
       existsSync(
@@ -22821,6 +22851,9 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).toContain(
       "dependencies.taskGateway.awaitCompletion(",
     );
+    expect(applicationSource).toContain(
+      "dependencies.taskGateway.fetchResult<Record<string, unknown>>(",
+    );
     expect(applicationSource).toContain("normalizeVideoStoryRows(rawResult)");
     expect(applicationOwners).toEqual([
       "modules/creative_canvas/application/analyzeCanvasVideoStory.ts",
@@ -22844,9 +22877,8 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
-        "@/modules/task_execution/public",
-        "./application/completeCanvasMediaGenerationTask",
         "./application/analyzeCanvasVideoStory",
+        "./infrastructure/freezoneGenerationTaskGateway",
         "./infrastructure/freezoneVideoStoryAnalysisGateway",
       ]),
     );
@@ -22944,7 +22976,10 @@ describe("frontend architecture boundaries", () => {
       "export function resolveCanvasAudioSeparationOutputs(",
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
-      new Set(["./audioSeparationResult"]),
+      new Set([
+        "./audioSeparationResult",
+        "./completeCanvasMediaGenerationTask",
+      ]),
     );
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
@@ -22953,7 +22988,7 @@ describe("frontend architecture boundaries", () => {
       "dependencies.taskGateway.awaitCompletion(",
     );
     expect(applicationSource).toContain(
-      "dependencies.audioSeparationGateway.fetchResult(",
+      "dependencies.taskGateway.fetchResult<Record<string, unknown>>(",
     );
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
@@ -22967,9 +23002,8 @@ describe("frontend architecture boundaries", () => {
     expect(submitEndpointOwners).toEqual([
       "modules/creative_canvas/infrastructure/freezoneAudioSeparationGateway.ts",
     ]);
-    expect(resultEndpointOwners).toEqual([
-      "modules/creative_canvas/infrastructure/freezoneAudioSeparationGateway.ts",
-    ]);
+    expect(resultEndpointOwners).toEqual([]);
+    expect(adapterSource).not.toContain("fetchCanvasGenerationResult");
     for (const legacySymbol of [
       "FreezoneAudioSeparatePayload",
       "submitFreezoneAudioSeparate",
@@ -22983,11 +23017,8 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain(
       "audioSeparationGateway: freezoneAudioSeparationGateway",
     );
-    expect(importSpecifiers(compositionPath)).toContain(
-      "@/modules/task_execution/public",
-    );
     expect(compositionSource).toContain(
-      "const task = await awaitTaskCompletion(taskKey, projectId)",
+      "taskGateway: freezoneGenerationTaskGateway",
     );
     expect(importSpecifiers(controllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(controllerPath)).not.toContain("@/api/tasks");
@@ -23176,15 +23207,17 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).toContain(
       "export function normalizeMultiAngleYaw(",
     );
-    expect(importSpecifiers(completionPath)).toEqual([]);
+    expect(importSpecifiers(completionPath)).toEqual([
+      "./generationOutputUrl",
+    ]);
     expect(completionSource).toContain(
-      "dependencies.onTaskSubmitted(params.task)",
+      "dependencies.onTaskSubmitted(task)",
     );
     expect(completionSource).toContain(
-      "dependencies.taskGateway.fetchResultUrl(",
+      "taskGateway.fetchResultUrl(",
     );
     expect(completionSource).toContain(
-      "readEmbeddedCanvasGenerationOutputUrl(",
+      "resolveGenerationOutputUrl(",
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
@@ -24243,6 +24276,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
+        "sonner",
         "../domain/canvasConnection",
         "../domain/canvasNodeData",
         "../domain/imageData",
@@ -26638,7 +26672,7 @@ describe("frontend architecture boundaries", () => {
     for (const legacyPath of legacyPaths) {
       expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
     }
-    expect(importSpecifiers(domainPath)).toEqual([]);
+    expect(importSpecifiers(domainPath)).toEqual(["./imageTo3d"]);
     expect(importSpecifiers(assetDomainPath)).toEqual([]);
     expect(domainSource).not.toContain("react");
     expect(assetDomainSource).not.toContain("react");
@@ -30961,7 +30995,7 @@ describe("frontend architecture boundaries", () => {
       "composeGateway: freezoneVideoComposeGateway",
     );
     expect(compositionSource).toContain(
-      "fetchResultUrl: fetchCanvasGenerationResultUrl",
+      "taskGateway: freezoneGenerationTaskGateway",
     );
     expect(legacyCompositionSource).not.toContain("composeVideoClipUseCase");
     expect(legacyCompositionSource).not.toContain(
@@ -31178,6 +31212,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(applicationSource).toContain('params.mode === "box"');
     expect(applicationSource).toContain('"smart_subtitle"');
+    expect(applicationSource).toContain("completeCanvasMediaGenerationTask(");
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
         "@/shared/api/client",
@@ -31205,7 +31240,7 @@ describe("frontend architecture boundaries", () => {
       "eraseGateway: freezoneVideoSubtitleEraseGateway",
     );
     expect(compositionSource).toContain(
-      "fetchResultUrl: fetchCanvasGenerationResultUrl",
+      "taskGateway: freezoneGenerationTaskGateway",
     );
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain("export type VideoSubtitleEraseMode");
@@ -31308,10 +31343,15 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).not.toContain("react");
     expect(adapterSource).not.toContain("@/shared/stores/");
     expect(adapterSource).toContain('method: "POST"');
-    expect(endpointOwners).toEqual(
-      endpointFragments.map(() => [
+    expect(endpointOwners).toEqual([
+      [
         "modules/creative_canvas/infrastructure/freezoneCanvasTextTranslationGateway.ts",
-      ]),
+      ],
+      [],
+    ]);
+    expect(adapterSource).not.toContain("fetchCanvasGenerationResult");
+    expect(applicationSource).toContain(
+      "dependencies.taskGateway.fetchResult<Record<string, unknown>>(",
     );
     for (const legacySymbol of [
       "FreezoneTextTranslateNodeType",
@@ -31325,12 +31365,11 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(compositionPath))).toEqual(
       new Set([
         "@/modules/model_usage/public",
-        "@/modules/task_execution/public",
         "./application/completeCanvasMediaGenerationTask",
         "./application/generateCanvasStoryScript",
         "./application/translateCanvasText",
         "./infrastructure/freezoneCanvasTextTranslationGateway",
-        "./infrastructure/freezoneGenerationResultGateway",
+        "./infrastructure/freezoneGenerationTaskGateway",
         "./infrastructure/freezoneStoryScriptGenerationGateway",
       ]),
     );
@@ -31338,7 +31377,7 @@ describe("frontend architecture boundaries", () => {
       "translationGateway: freezoneCanvasTextTranslationGateway",
     );
     expect(compositionSource).toContain(
-      "awaitCompletion: awaitTaskCompletion",
+      "taskGateway: freezoneGenerationTaskGateway",
     );
     expect(compositionSource).toContain(
       "const selection = await resolveCanvasTextModelSelection(params.model)",
@@ -31583,7 +31622,6 @@ describe("frontend architecture boundaries", () => {
 
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "./generationOutputUrl",
         "./submitVideoGeneration",
         "./completeCanvasMediaGenerationTask",
       ]),
@@ -31592,16 +31630,14 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/shared/stores/");
     expect(applicationSource).toContain(
-      'resolveGenerationOutputUrl(completion.result, "video")',
+      "awaitCanvasMediaGenerationTask(",
     );
-    expect(applicationSource).toContain(
-      "dependencies.taskGateway.fetchResultUrl(",
-    );
+    expect(applicationSource).not.toContain("resolveGenerationOutputUrl(");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/completeVideoGenerationTask.ts",
     ]);
     expect(compositionSource).toContain(
-      "fetchResultUrl: fetchCanvasGenerationResultUrl",
+      "taskGateway: freezoneGenerationTaskGateway",
     );
     expect(legacyCompositionSource).not.toContain(
       "completeVideoGenerationTaskUseCase",
@@ -32650,7 +32686,7 @@ describe("frontend architecture boundaries", () => {
     const completionSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "modules/creative_canvas/application/completeVideoGenerationTask.ts",
+        "modules/creative_canvas/application/completeCanvasMediaGenerationTask.ts",
       ),
       "utf8",
     );

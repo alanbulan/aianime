@@ -54,4 +54,64 @@ describe("generateCanvasReversePrompt", () => {
       "reverse-job",
     );
   });
+
+  it("uses the prompt embedded in the completed task", async () => {
+    const task = {
+      task_key: "reverse-inline-task",
+      task_type: "freezone_image_reverse_prompt",
+      job_id: "reverse-inline-job",
+    };
+    const taskGateway: CanvasReversePromptTaskGateway = {
+      awaitCompletion: vi.fn().mockResolvedValue({
+        result: { prompt: "Embedded prompt" },
+      }),
+      fetchReversePrompt: vi.fn(),
+    };
+
+    await expect(
+      generateCanvasReversePrompt(
+        {
+          projectId: "project-1",
+          rawSourceUrl: "/source.png",
+          canvasId: "canvas-1",
+          nodeId: "text-1",
+        },
+        {
+          sourceGateway: { prepare: vi.fn().mockResolvedValue("/source.png") },
+          submissionGateway: { submit: vi.fn().mockResolvedValue(task) },
+          taskGateway,
+          onTaskSubmitted: vi.fn(),
+        },
+      ),
+    ).resolves.toEqual({ task, prompt: "Embedded prompt" });
+    expect(taskGateway.fetchReversePrompt).not.toHaveBeenCalled();
+  });
+
+  it("rejects a completed task without a prompt", async () => {
+    const task = {
+      task_key: "reverse-empty-task",
+      task_type: "freezone_image_reverse_prompt",
+      job_id: "reverse-empty-job",
+    };
+
+    await expect(
+      generateCanvasReversePrompt(
+        {
+          projectId: "project-1",
+          rawSourceUrl: "/source.png",
+          canvasId: "canvas-1",
+          nodeId: "text-1",
+        },
+        {
+          sourceGateway: { prepare: vi.fn().mockResolvedValue("/source.png") },
+          submissionGateway: { submit: vi.fn().mockResolvedValue(task) },
+          taskGateway: {
+            awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
+            fetchReversePrompt: vi.fn().mockResolvedValue(""),
+          },
+          onTaskSubmitted: vi.fn(),
+        },
+      ),
+    ).rejects.toThrow("反推提示词任务已完成，但没有返回提示词");
+  });
 });

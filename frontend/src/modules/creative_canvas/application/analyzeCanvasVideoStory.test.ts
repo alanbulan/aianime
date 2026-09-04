@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it, vi } from "vitest";
 
-import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
+import type { CanvasStructuredTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 import {
   analyzeCanvasVideoStory,
   type CanvasVideoStoryAnalysisSubmissionGateway,
@@ -11,7 +11,11 @@ describe("analyzeCanvasVideoStory", () => {
   it("waits for an asynchronous analysis task and normalizes its rows", async () => {
     const submissionGateway: CanvasVideoStoryAnalysisSubmissionGateway = {
       submit: vi.fn().mockResolvedValue({
-        taskKey: "analysis-task",
+        task: {
+          task_key: "analysis-task",
+          job_id: "analysis-job",
+          task_type: "freezone_video_story",
+        },
         inlineResult: {},
       }),
     };
@@ -20,8 +24,9 @@ describe("analyzeCanvasVideoStory", () => {
         shots: [{ shot: 1, visual_description: "Opening shot" }],
       },
     };
-    const taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion"> = {
+    const taskGateway: CanvasStructuredTaskResultGateway = {
       awaitCompletion: vi.fn().mockResolvedValue({ result: rawResult }),
+      fetchResult: vi.fn(),
     };
 
     await expect(
@@ -31,7 +36,10 @@ describe("analyzeCanvasVideoStory", () => {
           videoUrl: "/static/video.mp4",
           durationMs: 2_500,
         },
-        { submissionGateway, taskGateway },
+        {
+          submissionGateway,
+          taskGateway,
+        },
       ),
     ).resolves.toEqual({
       rawResult,
@@ -58,12 +66,13 @@ describe("analyzeCanvasVideoStory", () => {
     };
     const submissionGateway: CanvasVideoStoryAnalysisSubmissionGateway = {
       submit: vi.fn().mockResolvedValue({
-        taskKey: null,
+        task: null,
         inlineResult,
       }),
     };
-    const taskGateway: Pick<CanvasTaskResultGateway, "awaitCompletion"> = {
+    const taskGateway: CanvasStructuredTaskResultGateway = {
       awaitCompletion: vi.fn(),
+      fetchResult: vi.fn(),
     };
 
     await expect(
@@ -73,7 +82,10 @@ describe("analyzeCanvasVideoStory", () => {
           videoUrl: "/static/video.mp4",
           durationMs: 0,
         },
-        { submissionGateway, taskGateway },
+        {
+          submissionGateway,
+          taskGateway,
+        },
       ),
     ).resolves.toEqual({
       rawResult: inlineResult,
@@ -89,5 +101,44 @@ describe("analyzeCanvasVideoStory", () => {
       durationSec: undefined,
     });
     expect(taskGateway.awaitCompletion).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the durable analysis result when task completion has no payload", async () => {
+    const submissionGateway: CanvasVideoStoryAnalysisSubmissionGateway = {
+      submit: vi.fn().mockResolvedValue({
+        task: {
+          task_key: "analysis-task",
+          job_id: "analysis-job",
+          task_type: "freezone_video_story",
+        },
+        inlineResult: {},
+      }),
+    };
+    const taskGateway: CanvasStructuredTaskResultGateway = {
+      awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
+      fetchResult: vi.fn(),
+    };
+    const fallback = {
+      video_story: { shots: [{ shot: 3, narrative: "Recovered" }] },
+    };
+    vi.mocked(taskGateway.fetchResult).mockResolvedValue(fallback);
+
+    await expect(
+      analyzeCanvasVideoStory(
+        {
+          projectId: "project-1",
+          videoUrl: "/static/video.mp4",
+        },
+        { submissionGateway, taskGateway },
+      ),
+    ).resolves.toEqual({
+      rawResult: fallback,
+      rows: [expect.objectContaining({ shotNumber: 3, narrative: "Recovered" })],
+    });
+    expect(taskGateway.fetchResult).toHaveBeenCalledWith(
+      "project-1",
+      "freezone_video_story",
+      "analysis-job",
+    );
   });
 });

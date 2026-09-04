@@ -236,9 +236,17 @@ describe('useScriptNodeController', () => {
     mocks.generateCanvasStoryScript.mockImplementation(
       async (
         _command: unknown,
-        onTaskSubmitted: (task: { task_key: string }) => void,
+        onTaskSubmitted: (task: {
+          job_id: string;
+          task_key: string;
+          task_type: string;
+        }) => void,
       ) => {
-        onTaskSubmitted({ task_key: 'script-task' });
+        onTaskSubmitted({
+          job_id: 'script-job',
+          task_key: 'script-task',
+          task_type: 'freezone_story_script',
+        });
         return {
           scriptResult: {
             title: '生成标题',
@@ -272,6 +280,10 @@ describe('useScriptNodeController', () => {
       expect.objectContaining({ generationTaskKey: 'script-task' }),
     );
     expect(mocks.updateNodeData).toHaveBeenLastCalledWith('script-a', {
+      generationTaskJobId: null,
+      generationTaskKey: null,
+      generationTaskRefs: null,
+      generationTaskType: null,
       isGenerating: false,
       generationStartedAt: null,
       scriptResult: {

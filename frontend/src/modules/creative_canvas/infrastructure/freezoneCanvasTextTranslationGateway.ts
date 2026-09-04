@@ -23,10 +23,4 @@ export const freezoneCanvasTextTranslationGateway: CanvasTextTranslationGateway 
       },
     );
   },
-  async fetchTranslatedText(projectId, jobId) {
-    const result = await apiCall<{ translated_text: string }>(
-      `projects/${encodeURIComponent(projectId)}/freezone/jobs/freezone_text_translate/${encodeURIComponent(jobId)}/result`,
-    );
-    return result.translated_text;
-  },
 };

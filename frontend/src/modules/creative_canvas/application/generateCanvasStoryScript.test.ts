@@ -113,4 +113,68 @@ describe("Canvas story script generation", () => {
     expect(isCanvasStoryScriptResult(scriptResult)).toBe(true);
     expect(isCanvasStoryScriptResult({ rows: null })).toBe(false);
   });
+
+  it("uses the script embedded in the completed task", async () => {
+    const task = {
+      task_key: "script-inline-task",
+      task_type: "freezone_story_script",
+      job_id: "script-inline-job",
+    };
+    const scriptResult = {
+      title: "Embedded episode",
+      rows: [{ shot_no: 1, dialogue: "Embedded line" }],
+    };
+    const taskGateway: CanvasStoryScriptTaskGateway = {
+      awaitCompletion: vi.fn().mockResolvedValue({ result: scriptResult }),
+      fetchStoryScriptResult: vi.fn(),
+    };
+
+    await expect(
+      generateCanvasStoryScript(
+        {
+          projectId: "project-1",
+          command: {
+            sourceText: "Story",
+            canvasId: "canvas-1",
+            nodeId: "script-1",
+          },
+        },
+        {
+          submissionGateway: { submit: vi.fn().mockResolvedValue(task) },
+          taskGateway,
+          onTaskSubmitted: vi.fn(),
+        },
+      ),
+    ).resolves.toEqual({ task, scriptResult });
+    expect(taskGateway.fetchStoryScriptResult).not.toHaveBeenCalled();
+  });
+
+  it("rejects a completed task with an invalid fallback script", async () => {
+    const task = {
+      task_key: "script-invalid-task",
+      task_type: "freezone_story_script",
+      job_id: "script-invalid-job",
+    };
+
+    await expect(
+      generateCanvasStoryScript(
+        {
+          projectId: "project-1",
+          command: {
+            sourceText: "Story",
+            canvasId: "canvas-1",
+            nodeId: "script-1",
+          },
+        },
+        {
+          submissionGateway: { submit: vi.fn().mockResolvedValue(task) },
+          taskGateway: {
+            awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
+            fetchStoryScriptResult: vi.fn().mockResolvedValue({ rows: null }),
+          },
+          onTaskSubmitted: vi.fn(),
+        },
+      ),
+    ).rejects.toThrow("剧本生成任务已完成，但返回的剧本结构无效");
+  });
 });

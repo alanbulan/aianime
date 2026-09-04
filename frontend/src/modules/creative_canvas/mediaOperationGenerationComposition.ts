@@ -1,9 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { awaitTaskCompletion } from "@/modules/task_execution/public";
-
 import type {
   CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
 } from "./application/completeCanvasMediaGenerationTask";
 import {
   generateCanvasGridAction as generateCanvasGridActionUseCase,
@@ -29,7 +26,6 @@ import {
 } from "./application/generateCanvasRelight";
 import {
   generateCanvasReversePrompt as generateCanvasReversePromptUseCase,
-  type CanvasReversePromptTaskGateway,
   type GenerateCanvasReversePromptParams,
 } from "./application/generateCanvasReversePrompt";
 import {
@@ -63,10 +59,7 @@ import { freezoneImageTo3dGenerationGateway } from "./infrastructure/freezoneIma
 import { freezoneMultiAngleGenerationGateway } from "./infrastructure/freezoneMultiAngleGenerationGateway";
 import { freezoneOutpaintGenerationGateway } from "./infrastructure/freezoneOutpaintGenerationGateway";
 import { freezoneRedrawGenerationGateway } from "./infrastructure/freezoneRedrawGenerationGateway";
-import {
-  fetchCanvasGenerationResult,
-  fetchCanvasGenerationResultUrl,
-} from "./infrastructure/freezoneGenerationResultGateway";
+import { freezoneGenerationTaskGateway } from "./infrastructure/freezoneGenerationTaskGateway";
 import { freezoneRelightGenerationGateway } from "./infrastructure/freezoneRelightGenerationGateway";
 import { freezoneReversePromptGenerationGateway } from "./infrastructure/freezoneReversePromptGenerationGateway";
 import { freezoneScene360GenerationGateway } from "./infrastructure/freezoneScene360GenerationGateway";
@@ -74,10 +67,7 @@ import { freezoneUpscaleGenerationGateway } from "./infrastructure/freezoneUpsca
 import { freezoneVideoUpscaleGenerationGateway } from "./infrastructure/freezoneVideoUpscaleGenerationGateway";
 import { httpFreezoneAssetUploadGateway } from "./infrastructure/httpFreezoneAssetUploadGateway";
 
-const taskGateway: CanvasTaskResultGateway = {
-  awaitCompletion: awaitTaskCompletion,
-  fetchResultUrl: fetchCanvasGenerationResultUrl,
-};
+const taskGateway = freezoneGenerationTaskGateway;
 
 const imageSourceDependencies = {
   uploadGateway: httpFreezoneAssetUploadGateway,
@@ -99,18 +89,6 @@ const imageReferenceSourceGateway: CanvasImageReferencePreparationGateway = {
       { projectId, rawUrls },
       imageSourceDependencies,
     );
-  },
-};
-
-const reversePromptTaskGateway: CanvasReversePromptTaskGateway = {
-  awaitCompletion: awaitTaskCompletion,
-  async fetchReversePrompt(projectId, jobId) {
-    const result = await fetchCanvasGenerationResult<{ readonly prompt: string }>(
-      projectId,
-      "freezone_image_reverse_prompt",
-      jobId,
-    );
-    return result.prompt;
   },
 };
 
@@ -221,7 +199,7 @@ export function generateCanvasReversePrompt(
   return generateCanvasReversePromptUseCase(params, {
     sourceGateway: imageSourceGateway,
     submissionGateway: freezoneReversePromptGenerationGateway,
-    taskGateway: reversePromptTaskGateway,
+    taskGateway,
     onTaskSubmitted,
   });
 }

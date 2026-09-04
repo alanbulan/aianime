@@ -22,7 +22,10 @@ import {
   type CanvasVideoUpscaleResolution,
 } from '../domain/videoUpscale';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasVideoUpscaleParams,
@@ -120,6 +123,7 @@ export function createVideoUpscaleEditorOverlay({
           generationError: null,
         });
 
+        let taskKey: string | null = null;
         try {
           const { url } = await generateCanvasVideoUpscale(
             {
@@ -131,10 +135,12 @@ export function createVideoUpscaleEditorOverlay({
               nodeId: node.id,
             },
             (task) => {
+              taskKey = task.task_key;
               updateNodeData(node.id, generationTaskDescriptor(task));
             },
           );
           updateNodeData(node.id, {
+            ...clearGenerationTaskDescriptor(taskKey),
             videoUrl: url,
             isGenerating: false,
             generationStartedAt: null,
@@ -144,6 +150,7 @@ export function createVideoUpscaleEditorOverlay({
           const message = err instanceof Error ? err.message : String(err);
           console.error('[video-upscale] generation failed', err);
           updateNodeData(node.id, {
+            ...clearGenerationTaskDescriptor(taskKey),
             isGenerating: false,
             generationStartedAt: null,
             generationError: message,

@@ -42,7 +42,10 @@ import {
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import { inheritMainlineFields } from '../domain/inheritMainlineFields';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasOutpaintParams,
@@ -197,6 +200,7 @@ export function createOutpaintEditorOverlay({
           apiModel: string,
           modelSelector?: string,
         ) => {
+          let taskKey: string | null = null;
           try {
             const { url } = await generateCanvasOutpaint(
               {
@@ -208,10 +212,12 @@ export function createOutpaintEditorOverlay({
                 modelSelector,
               },
               (task) => {
+                taskKey = task.task_key;
                 updateNodeData(nodeId, generationTaskDescriptor(task));
               },
             );
             updateNodeData(nodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               imageUrl: url,
               previewImageUrl: url,
               isGenerating: false,
@@ -222,6 +228,7 @@ export function createOutpaintEditorOverlay({
             const message = err instanceof Error ? err.message : String(err);
             console.error('[outpaint] generation failed', err);
             updateNodeData(nodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               isGenerating: false,
               generationStartedAt: null,
               generationError: message,

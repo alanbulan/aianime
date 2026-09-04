@@ -43,23 +43,4 @@ describe("freezoneCanvasTextTranslationGateway", () => {
       },
     );
   });
-
-  it("loads and projects translated text", async () => {
-    vi.mocked(apiCall).mockResolvedValue({
-      translated_text: "translated prompt",
-      source_language: "zh",
-      target_language: "en",
-      node_type: "video",
-    });
-
-    await expect(
-      freezoneCanvasTextTranslationGateway.fetchTranslatedText(
-        "project/1",
-        "job/1",
-      ),
-    ).resolves.toBe("translated prompt");
-    expect(apiCall).toHaveBeenCalledWith(
-      "projects/project%2F1/freezone/jobs/freezone_text_translate/job%2F1/result",
-    );
-  });
 });

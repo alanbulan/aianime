@@ -1,9 +1,10 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasGenerationTaskRef } from "./completeCanvasMediaGenerationTask";
+import {
+  requireCanvasGenerationTaskRef,
+  type CanvasGenerationTaskRef,
+} from "./completeCanvasMediaGenerationTask";
 import type { VideoSceneOptimize } from "../domain/videoGenerationModel";
-import type {
-  VideoGenMode,
-} from "../domain/videoGenerationMode";
+import type { VideoGenMode } from "../domain/videoGenerationMode";
 
 export type VideoGenerationAspectRatio = string;
 
@@ -141,6 +142,17 @@ function commonSubmission(
   };
 }
 
+async function submitCheckedVideoGeneration(
+  projectId: string,
+  submission: VideoGenerationSubmission,
+  dependencies: SubmitVideoGenerationDependencies,
+): Promise<VideoGenerationTaskRef> {
+  return requireCanvasGenerationTaskRef(
+    await dependencies.submissionGateway.submit(projectId, submission),
+    "freezone_video_gen",
+  ) as VideoGenerationTaskRef;
+}
+
 export async function submitVideoGeneration(
   params: SubmitVideoGenerationParams,
   dependencies: SubmitVideoGenerationDependencies,
@@ -148,43 +160,63 @@ export async function submitVideoGeneration(
   const common = commonSubmission(params);
   switch (params.kind) {
     case "text":
-      return await dependencies.submissionGateway.submit(params.projectId, {
-        ...common,
-        kind: params.kind,
-        humanReview: params.humanReview,
-        sceneOptimize: params.sceneOptimize,
-      });
+      return await submitCheckedVideoGeneration(
+        params.projectId,
+        {
+          ...common,
+          kind: params.kind,
+          humanReview: params.humanReview,
+          sceneOptimize: params.sceneOptimize,
+        },
+        dependencies,
+      );
     case "keyframes":
-      return await dependencies.submissionGateway.submit(params.projectId, {
-        ...common,
-        kind: params.kind,
-        firstFrameUrl: params.firstFrameUrl,
-        lastFrameUrl: params.lastFrameUrl,
-        humanReview: params.humanReview,
-        sceneOptimize: params.sceneOptimize,
-      });
+      return await submitCheckedVideoGeneration(
+        params.projectId,
+        {
+          ...common,
+          kind: params.kind,
+          firstFrameUrl: params.firstFrameUrl,
+          lastFrameUrl: params.lastFrameUrl,
+          humanReview: params.humanReview,
+          sceneOptimize: params.sceneOptimize,
+        },
+        dependencies,
+      );
     case "imageReferences":
-      return await dependencies.submissionGateway.submit(params.projectId, {
-        ...common,
-        kind: params.kind,
-        imageUrls: params.imageUrls,
-        humanReview: params.humanReview,
-        sceneOptimize: params.sceneOptimize,
-      });
+      return await submitCheckedVideoGeneration(
+        params.projectId,
+        {
+          ...common,
+          kind: params.kind,
+          imageUrls: params.imageUrls,
+          humanReview: params.humanReview,
+          sceneOptimize: params.sceneOptimize,
+        },
+        dependencies,
+      );
     case "videoEdit":
-      return await dependencies.submissionGateway.submit(params.projectId, {
-        ...common,
-        kind: params.kind,
-        videoUrl: params.videoUrl,
-        imageUrls: params.imageUrls,
-      });
+      return await submitCheckedVideoGeneration(
+        params.projectId,
+        {
+          ...common,
+          kind: params.kind,
+          videoUrl: params.videoUrl,
+          imageUrls: params.imageUrls,
+        },
+        dependencies,
+      );
     case "allReferences":
-      return await dependencies.submissionGateway.submit(params.projectId, {
-        ...common,
-        kind: params.kind,
-        references: params.references,
-        humanReview: params.humanReview,
-        sceneOptimize: params.sceneOptimize,
-      });
+      return await submitCheckedVideoGeneration(
+        params.projectId,
+        {
+          ...common,
+          kind: params.kind,
+          references: params.references,
+          humanReview: params.humanReview,
+          sceneOptimize: params.sceneOptimize,
+        },
+        dependencies,
+      );
   }
 }

@@ -63,6 +63,11 @@ import {
 } from '../application/generationErrorReport';
 import { resolveErrorContent } from '../application/errorDialog';
 import type { CanvasImageJobGateway } from '../application/canvasImageJob';
+import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
 export interface StoryboardGenNodeStore {
@@ -615,11 +620,37 @@ export function createUseStoryboardGenNodeController({
         safeCols,
         selectedResolution.value,
       );
-      const gridImageUrl = await uploadLocalImageToBackend(
-        projectId,
-        gridImageDataUrl,
-        `storyboard-grid-${id}-${Date.now()}.png`,
-      );
+      let gridImageUrl: string;
+      try {
+        gridImageUrl = await uploadLocalImageToBackend(
+          projectId,
+          gridImageDataUrl,
+          `storyboard-grid-${id}-${Date.now()}.png`,
+        );
+      } catch (uploadError) {
+        const resolvedError = resolveErrorContent(uploadError, '生成失败');
+        const displayErrorMessage = backendErrorToastMessage(uploadError, t);
+        const diagnostics = resolveGenerationErrorDiagnostics(
+          uploadError,
+          resolvedError.details,
+        );
+        setError(displayErrorMessage);
+        void showErrorDialog(
+          displayErrorMessage,
+          t('common.error'),
+          diagnostics.details ?? undefined,
+        );
+        updateNodeData(newNodeId, {
+          isGenerating: false,
+          generationStartedAt: null,
+          generationJobId: null,
+          generationClientSessionId: null,
+          generationError: displayErrorMessage,
+          generationErrorDetails: diagnostics.details,
+          generationErrorRequestId: diagnostics.requestId,
+        });
+        return;
+      }
       const allReferenceImages = [...incomingImages, gridImageUrl];
       const metadataFrameNotes = resolveStoryboardGenerationFrameNotes({
         frames: data.frames,
@@ -659,14 +690,15 @@ export function createUseStoryboardGenNodeController({
         userAgent: runtimeDiagnostics.userAgent,
       };
 
+      let task: CanvasGenerationTaskRef | null = null;
       try {
-        const jobId =
-          await canvasAiGateway.submitGenerateImageJob(
-            { projectId, canvasId },
-            regenerationPayload,
-          );
+        task = await canvasAiGateway.submitGenerateImageJob(
+          { projectId, canvasId },
+          regenerationPayload,
+        );
         updateNodeData(newNodeId, {
-          generationJobId: jobId,
+          ...generationTaskDescriptor(task),
+          generationJobId: task.job_id,
           generationSourceType: 'storyboardGen',
           generationClientSessionId: CURRENT_RUNTIME_SESSION_ID,
           generationDebugContext,
@@ -699,6 +731,7 @@ export function createUseStoryboardGenNodeController({
           reportText,
         );
         updateNodeData(newNodeId, {
+          ...clearGenerationTaskDescriptor(task?.task_key),
           isGenerating: false,
           generationStartedAt: null,
           generationJobId: null,

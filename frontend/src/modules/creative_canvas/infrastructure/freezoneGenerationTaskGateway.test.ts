@@ -101,6 +101,27 @@ describe("freezoneGenerationTaskGateway", () => {
     );
   });
 
+  it("fetches a structured result through the same task gateway", async () => {
+    const result = {
+      audio_url: "/static/audio.m4a",
+      mute_video_url: "/static/mute.mp4",
+    };
+    vi.mocked(fetchCanvasGenerationResult).mockResolvedValue(result);
+
+    await expect(
+      freezoneGenerationTaskGateway.fetchResult<typeof result>(
+        "project/1",
+        "freezone_audio_separate",
+        "job/1",
+      ),
+    ).resolves.toBe(result);
+    expect(fetchCanvasGenerationResult).toHaveBeenCalledWith(
+      "project/1",
+      "freezone_audio_separate",
+      "job/1",
+    );
+  });
+
   it("fetches reverse-prompt text from its task result", async () => {
     vi.mocked(fetchCanvasGenerationResult).mockResolvedValue({
       prompt: "cinematic rain",

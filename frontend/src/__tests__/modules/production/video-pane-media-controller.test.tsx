@@ -118,7 +118,7 @@ describe("Production video pane media controller", () => {
       downloadUrl: "/static/current.mp4",
       hasGeneratedVideo: true,
       previewSource: "/static/current.mp4#t=0.1",
-      videoPercent: 43,
+      videoTask: { status: "running", progress: 0.426 },
     });
     expect(result.current.candidates).toEqual([
       expect.objectContaining({

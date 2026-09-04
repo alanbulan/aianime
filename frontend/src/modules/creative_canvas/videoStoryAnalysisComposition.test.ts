@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const awaitTaskCompletion = vi.hoisted(() => vi.fn());
 const submitVideoStoryAnalysis = vi.hoisted(() => vi.fn());
+const fetchCanvasGenerationResult = vi.hoisted(() => vi.fn());
 
 vi.mock("@/modules/task_execution/public", () => ({
   awaitTaskCompletion,
@@ -13,12 +14,16 @@ vi.mock("./infrastructure/freezoneVideoStoryAnalysisGateway", () => ({
     submit: submitVideoStoryAnalysis,
   },
 }));
+vi.mock("./infrastructure/freezoneGenerationResultGateway", () => ({
+  fetchCanvasGenerationResult,
+}));
 
 import { analyzeCanvasVideoStory } from "./videoStoryAnalysisComposition";
 
 beforeEach(() => {
   awaitTaskCompletion.mockReset();
   submitVideoStoryAnalysis.mockReset();
+  fetchCanvasGenerationResult.mockReset();
 });
 
 describe("videoStoryAnalysisComposition", () => {
@@ -29,7 +34,11 @@ describe("videoStoryAnalysisComposition", () => {
       },
     };
     submitVideoStoryAnalysis.mockResolvedValue({
-      taskKey: "analysis-task",
+      task: {
+        task_key: "analysis-task",
+        job_id: "analysis-job",
+        task_type: "freezone_video_story",
+      },
       inlineResult: {},
     });
     awaitTaskCompletion.mockResolvedValue({ result: rawResult });

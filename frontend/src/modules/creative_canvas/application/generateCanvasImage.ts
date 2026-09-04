@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import {
   completeCanvasMediaGenerationTask,
+  requireCanvasGenerationTaskRef,
   type CanvasGenerationTaskRef,
   type CanvasTaskResultGateway,
 } from "./completeCanvasMediaGenerationTask";
@@ -69,8 +70,7 @@ export interface GenerateCanvasImageDependencies
 
 export interface GenerateCanvasImageResult {
   readonly task: CanvasImageGenerationTaskRef;
-  readonly url: string | null;
-  readonly resultFallbackError?: unknown;
+  readonly url: string;
 }
 
 export async function submitCanvasImageGeneration(
@@ -81,21 +81,24 @@ export async function submitCanvasImageGeneration(
     params.projectId,
     params.referenceUrls,
   );
-  return await dependencies.submissionGateway.submit(params.projectId, {
-    prompt: params.prompt,
-    aspectRatio: params.aspectRatio,
-    imageSize: params.imageSize,
-    referenceUrls,
-    camera: params.camera,
-    style: params.style,
-    model: params.model,
-    modelId: params.modelId,
-    genMode: params.genMode,
-    quality: params.quality,
-    extraParams: params.extraParams,
-    canvasId: params.canvasId,
-    nodeId: params.nodeId,
-  });
+  return requireCanvasGenerationTaskRef(
+    await dependencies.submissionGateway.submit(params.projectId, {
+      prompt: params.prompt,
+      aspectRatio: params.aspectRatio,
+      imageSize: params.imageSize,
+      referenceUrls,
+      camera: params.camera,
+      style: params.style,
+      model: params.model,
+      modelId: params.modelId,
+      genMode: params.genMode,
+      quality: params.quality,
+      extraParams: params.extraParams,
+      canvasId: params.canvasId,
+      nodeId: params.nodeId,
+    }),
+    "freezone_gen",
+  ) as CanvasImageGenerationTaskRef;
 }
 
 export async function generateCanvasImage(
@@ -103,34 +106,12 @@ export async function generateCanvasImage(
   dependencies: GenerateCanvasImageDependencies,
 ): Promise<GenerateCanvasImageResult> {
   const task = await submitCanvasImageGeneration(params, dependencies);
-  let resultFallbackError: unknown;
-  let resultFallbackFailed = false;
   const url = await completeCanvasMediaGenerationTask(
-    { projectId: params.projectId, task },
+    { projectId: params.projectId, task, media: "image" },
     {
-      taskGateway: {
-        awaitCompletion: (taskKey, projectId) =>
-          dependencies.taskGateway.awaitCompletion(taskKey, projectId),
-        fetchResultUrl: async (projectId, taskType, jobId) => {
-          try {
-            return await dependencies.taskGateway.fetchResultUrl(
-              projectId,
-              taskType,
-              jobId,
-            );
-          } catch (error) {
-            resultFallbackError = error;
-            resultFallbackFailed = true;
-            return "";
-          }
-        },
-      },
+      taskGateway: dependencies.taskGateway,
       onTaskSubmitted: dependencies.onTaskSubmitted,
     },
   );
-  return {
-    task,
-    url: url || null,
-    ...(resultFallbackFailed ? { resultFallbackError } : {}),
-  };
+  return { task, url };
 }

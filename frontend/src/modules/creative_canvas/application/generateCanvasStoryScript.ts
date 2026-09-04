@@ -1,7 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
+import {
+  requireCanvasGenerationTaskRef,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
 } from "./completeCanvasMediaGenerationTask";
 
 export const STORY_SCRIPT_SOURCE_REQUIRED_MESSAGE =
@@ -166,18 +167,27 @@ export async function generateCanvasStoryScript(
   params: GenerateCanvasStoryScriptParams,
   dependencies: GenerateCanvasStoryScriptDependencies,
 ): Promise<GenerateCanvasStoryScriptResult> {
-  const task = await dependencies.submissionGateway.submit(
-    params.projectId,
-    params.command,
+  const task = requireCanvasGenerationTaskRef(
+    await dependencies.submissionGateway.submit(
+      params.projectId,
+      params.command,
+    ),
+    "freezone_story_script",
   );
   dependencies.onTaskSubmitted(task);
-  await dependencies.taskGateway.awaitCompletion(
+  const completion = await dependencies.taskGateway.awaitCompletion(
     task.task_key,
     params.projectId,
   );
-  const scriptResult = await dependencies.taskGateway.fetchStoryScriptResult(
-    params.projectId,
-    task.job_id,
-  );
+  const candidate = isCanvasStoryScriptResult(completion.result)
+    ? completion.result
+    : await dependencies.taskGateway.fetchStoryScriptResult(
+      params.projectId,
+      task.job_id,
+    );
+  if (!isCanvasStoryScriptResult(candidate)) {
+    throw new Error("剧本生成任务已完成，但返回的剧本结构无效");
+  }
+  const scriptResult = candidate;
   return { task, scriptResult };
 }

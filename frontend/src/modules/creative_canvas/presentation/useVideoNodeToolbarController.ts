@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import type {
@@ -64,9 +65,8 @@ export type VideoNodeSeparateAudioVideo = (params: {
   projectId: string;
   sourceUrl: string;
 }) => Promise<{
-  audioUrl: string | null;
-  silentVideoUrl: string | null;
-  resultFallbackError?: unknown;
+  audioUrl: string;
+  silentVideoUrl: string;
 }>;
 
 export interface VideoNodeToolbarControllerOptions {
@@ -238,27 +238,10 @@ export function createUseVideoNodeToolbarController({
 
       updateNodeData(nodeId, { isSeparatingAv: true });
       try {
-        const {
-          audioUrl,
-          silentVideoUrl,
-          resultFallbackError,
-        } = await separateCanvasAudioVideo({
+        const { audioUrl, silentVideoUrl } = await separateCanvasAudioVideo({
           projectId,
           sourceUrl: videoUrl,
         });
-        if (resultFallbackError) {
-          console.warn(
-            "[audio-separate] job result fetch failed",
-            resultFallbackError,
-          );
-        }
-        if (!audioUrl || !silentVideoUrl) {
-          console.warn("[audio-separate] could not resolve audio/video urls", {
-            audioOutputUrl: audioUrl,
-            silentVideoOutputUrl: silentVideoUrl,
-          });
-          return;
-        }
         console.info("[audio-separate] resolved urls", {
           audioOutputUrl: audioUrl,
           silentVideoOutputUrl: silentVideoUrl,
@@ -282,6 +265,9 @@ export function createUseVideoNodeToolbarController({
         addEdge(nodeId, silentVideoNodeId);
       } catch (error) {
         console.error("[audio-separate] failed", error);
+        toast.error(
+          error instanceof Error ? error.message : "音视频分离失败",
+        );
       } finally {
         updateNodeData(nodeId, { isSeparatingAv: false });
       }

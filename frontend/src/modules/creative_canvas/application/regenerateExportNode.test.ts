@@ -7,8 +7,6 @@ import { regenerateExportImageNode } from './regenerateExportNode';
 const submitImage = vi.fn();
 const updateNodeData = vi.fn();
 const aiGateway: CanvasImageJobGateway = {
-  generateImage: vi.fn(),
-  getGenerateImageJob: vi.fn(),
   submitGenerateImageJob: (scope, payload) => submitImage(scope, payload),
 };
 
@@ -38,7 +36,11 @@ describe('regenerateExportImageNode', () => {
   });
 
   it('re-submits a stored image generation through the injected AI gateway', async () => {
-    submitImage.mockResolvedValue('image-job');
+    submitImage.mockResolvedValue({
+      job_id: 'image-job',
+      task_key: 'freezone_gen:image-job',
+      task_type: 'freezone_gen',
+    });
 
     await regenerate({
       generationRequestPayload: {
@@ -54,10 +56,16 @@ describe('regenerateExportImageNode', () => {
       expect.objectContaining({ nodeId: 'export-node', prompt: '重新生成' }),
     );
     expect(generateRedraw).not.toHaveBeenCalled();
-    expect(updateNodeData).toHaveBeenLastCalledWith('export-node', {
-      generationClientSessionId: 'runtime-test',
-      generationJobId: 'image-job',
-    });
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'export-node',
+      expect.objectContaining({
+        generationClientSessionId: 'runtime-test',
+        generationJobId: 'image-job',
+        generationTaskJobId: 'image-job',
+        generationTaskKey: 'freezone_gen:image-job',
+        generationTaskType: 'freezone_gen',
+      }),
+    );
   });
 
   it('replays a stored redraw and writes its completed output URL', async () => {

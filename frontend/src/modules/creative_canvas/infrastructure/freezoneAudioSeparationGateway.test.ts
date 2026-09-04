@@ -59,22 +59,4 @@ describe("freezoneAudioSeparationGateway", () => {
       "Unexpected audio separation task type: freezone_video_gen",
     );
   });
-
-  it("loads the dedicated audio separation result", async () => {
-    const result = {
-      audio_url: "/static/audio.m4a",
-      mute_video_url: "/static/mute.mp4",
-    };
-    vi.mocked(apiCall).mockResolvedValue(result);
-
-    await expect(
-      freezoneAudioSeparationGateway.fetchResult(
-        "project/1",
-        "separate/job",
-      ),
-    ).resolves.toBe(result);
-    expect(apiCall).toHaveBeenCalledWith(
-      "projects/project%2F1/freezone/jobs/freezone_audio_separate/separate%2Fjob/result",
-    );
-  });
 });

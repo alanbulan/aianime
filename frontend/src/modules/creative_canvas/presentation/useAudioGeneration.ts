@@ -7,7 +7,10 @@ import {
   joinUpstreamText,
   type UpstreamContent,
 } from '../application/graphContentResolver';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
 
@@ -87,6 +90,7 @@ export function createUseAudioGeneration({
         generationStartedAt: Date.now(),
         generationError: null,
       });
+      let taskKey: string | null = null;
       try {
         const result = await generateCanvasAudio(
           isMusic
@@ -106,11 +110,13 @@ export function createUseAudioGeneration({
                 voiceRef: data.voiceRef,
               },
           (task) => {
+            taskKey = task.task_key;
             // Persist the task handle so a page refresh can resume this job.
             updateNodeData(nodeId, generationTaskDescriptor(task));
           },
         );
         updateNodeData(nodeId, {
+          ...clearGenerationTaskDescriptor(taskKey),
           isGenerating: false,
           audioUrl: result.audioUrl,
           durationMs: null,
@@ -122,6 +128,7 @@ export function createUseAudioGeneration({
           error,
         );
         updateNodeData(nodeId, {
+          ...clearGenerationTaskDescriptor(taskKey),
           isGenerating: false,
           generationError: error instanceof Error ? error.message : '生成失败',
         });

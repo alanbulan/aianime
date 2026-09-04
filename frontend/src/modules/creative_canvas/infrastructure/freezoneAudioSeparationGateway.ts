@@ -30,9 +30,4 @@ export const freezoneAudioSeparationGateway: CanvasAudioSeparationGateway = {
       task_type: task.task_type,
     };
   },
-  async fetchResult(projectId, jobId) {
-    return await apiCall<Record<string, unknown>>(
-      `projects/${encodeURIComponent(projectId)}/freezone/jobs/freezone_audio_separate/${encodeURIComponent(jobId)}/result`,
-    );
-  },
 };

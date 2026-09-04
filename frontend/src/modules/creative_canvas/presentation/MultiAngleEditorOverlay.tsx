@@ -16,7 +16,10 @@ import {
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import { inheritMainlineFields } from '../domain/inheritMainlineFields';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasMultiAngleParams,
@@ -109,6 +112,7 @@ export function createMultiAngleEditorOverlay({
           setSelectedNode(nextNodeId);
           onClose();
 
+          let taskKey: string | null = null;
           try {
             const { url } = await generateCanvasMultiAngle(
               {
@@ -124,10 +128,12 @@ export function createMultiAngleEditorOverlay({
                 imageSize: payload.imageSize,
               },
               (task) => {
+                taskKey = task.task_key;
                 updateNodeData(nextNodeId, generationTaskDescriptor(task));
               },
             );
             updateNodeData(nextNodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               imageUrl: url,
               previewImageUrl: url,
               isGenerating: false,
@@ -138,6 +144,7 @@ export function createMultiAngleEditorOverlay({
             const message = err instanceof Error ? err.message : String(err);
             console.error('[multi-angle] generation failed', err);
             updateNodeData(nextNodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               isGenerating: false,
               generationStartedAt: null,
               generationError: message,

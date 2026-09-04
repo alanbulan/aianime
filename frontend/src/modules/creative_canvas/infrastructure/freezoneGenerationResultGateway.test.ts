@@ -42,4 +42,30 @@ describe("freezoneGenerationResultGateway", () => {
       ),
     ).resolves.toBe("/audio/result.mp3");
   });
+
+  it("accepts the terminal output_url alias and trims it", async () => {
+    vi.mocked(apiCall).mockResolvedValue({
+      output_url: " /static/output.mp4 ",
+    });
+
+    await expect(
+      fetchCanvasGenerationResultUrl(
+        "project/3",
+        "freezone_video_upscale",
+        "job/3",
+      ),
+    ).resolves.toBe("/static/output.mp4");
+  });
+
+  it("rejects a completed result without a usable URL", async () => {
+    vi.mocked(apiCall).mockResolvedValue({ url: "   " });
+
+    await expect(
+      fetchCanvasGenerationResultUrl(
+        "project/4",
+        "freezone_video_upscale",
+        "job/4",
+      ),
+    ).rejects.toThrow("生成结果中没有可用的媒体地址");
+  });
 });

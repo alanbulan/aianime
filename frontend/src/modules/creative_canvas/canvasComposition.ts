@@ -89,6 +89,8 @@ import {
   generateCanvasMultiAngle,
   generateCanvasVideoUpscale,
   generateCanvasGridAction,
+  prepareCanvasImageSource,
+  prepareCanvasImageSources,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
 import {
@@ -119,6 +121,7 @@ import { getCanvasBeatDirectorManifest as getCanvasBeatDirectorManifestUseCase, 
 import { getCanvasDirectorStagePalette as getCanvasDirectorStagePaletteUseCase, type GetCanvasDirectorStagePaletteParams } from './application/directorStagePalette';
 import { getFreezoneCanvasMetadata } from './application/canvasMetadataState';
 import { getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase, type GetCanvasSceneAssetsForBeatParams } from './application/sceneAssets';
+import { recoverCanvasMediaGenerationTask } from './application/completeCanvasMediaGenerationTask';
 import { nodeNeedsGenerationResume, resumeNodeGeneration as resumeNodeGenerationUseCase, type ResumeNodeGenerationParams } from './application/resumeGeneration';
 import { matteImageInBrowserWorker, preloadBrowserMatteWorker } from './infrastructure/browserMatteWorkerClient';
 import { platformCanvasAssetGateway } from './assetTransferComposition';
@@ -163,7 +166,6 @@ import { uploadLocalImageToBackend as uploadLocalImageToBackendUseCase } from '.
 import { useCanvasStore } from './canvasStoreComposition';
 import { useShallow } from 'zustand/react/shallow';
 import type { EdgeTypes } from '@xyflow/react';
-import { isTerminal, useTaskCenterStore } from '@/modules/task_execution/public';
 
 import {
   embedStoryboardImageMetadata,
@@ -212,10 +214,11 @@ const freezoneAiGateway = createFreezoneAiGateway({
   resolvePromptReferenceRoles,
   submitImageGeneration: (projectId, command) =>
     submitCanvasImageGeneration({ projectId, ...command }),
+  prepareImageSource: prepareCanvasImageSource,
+  prepareImageSources: prepareCanvasImageSources,
 });
 
 type CanvasStoreState = ReturnType<typeof useCanvasStore.getState>;
-type TaskCenterStoreState = ReturnType<typeof useTaskCenterStore.getState>;
 
 function selectPendingExportImageNodeIds(state: CanvasStoreState): string[] {
   return state.nodes
@@ -233,27 +236,10 @@ function selectPendingExportImageNodeIds(state: CanvasStoreState): string[] {
 
 function selectPendingGenerationResumeNodeIds(
   state: CanvasStoreState,
-  terminalTaskKeys: readonly string[],
 ): string[] {
   return state.nodes
-    .filter((node) => {
-      const data = node.data as Record<string, unknown>;
-      const taskKey =
-        typeof data.generationTaskKey === 'string'
-          ? data.generationTaskKey
-          : '';
-      return nodeNeedsGenerationResume(
-        node,
-        terminalTaskKeys.includes(taskKey),
-      );
-    })
+    .filter((node) => nodeNeedsGenerationResume(node))
     .map((node) => node.id);
-}
-
-function selectTerminalTaskKeys(state: TaskCenterStoreState): string[] {
-  return Array.from(state.tasks.values())
-    .filter(isTerminal)
-    .map((task) => task.task_key);
 }
 
 function usePendingExportImageNodeIds(): readonly string[] {
@@ -261,13 +247,8 @@ function usePendingExportImageNodeIds(): readonly string[] {
 }
 
 function usePendingGenerationResumeNodeIds(): readonly string[] {
-  const terminalTaskKeys = useTaskCenterStore(
-    useShallow(selectTerminalTaskKeys),
-  );
   return useCanvasStore(
-    useShallow((state) =>
-      selectPendingGenerationResumeNodeIds(state, terminalTaskKeys),
-    ),
+    useShallow(selectPendingGenerationResumeNodeIds),
   );
 }
 
@@ -310,16 +291,7 @@ function resumePendingGenerationNode({
   if (!node) {
     return Promise.resolve();
   }
-  const data = node.data as Record<string, unknown>;
-  const taskKey =
-    typeof data.generationTaskKey === 'string'
-      ? data.generationTaskKey
-      : '';
-  const task = taskKey
-    ? useTaskCenterStore.getState().tasks.get(taskKey)
-    : undefined;
-  const taskSettled = task ? isTerminal(task) : false;
-  if (!nodeNeedsGenerationResume(node, taskSettled)) {
+  if (!nodeNeedsGenerationResume(node)) {
     return Promise.resolve();
   }
   return resumeNodeGeneration({
@@ -978,16 +950,17 @@ export function pollExportImageGeneration(
       runtimeSessionId: CURRENT_RUNTIME_SESSION_ID,
     },
     {
-      getGenerateImageJob: (jobId) => freezoneAiGateway.getGenerateImageJob(jobId),
+      awaitGenerationTask: (task, options) =>
+        recoverCanvasMediaGenerationTask(
+          { projectId, task, media: 'image' },
+          freezoneGenerationTaskGateway,
+          { checkTaskExistence: options.recoverExpiredTask },
+        ),
       prepareNodeImage,
       embedStoryboardImageMetadata,
       uploadLocalImage: (source, filename) =>
         uploadLocalImageToBackend(projectId, source, filename),
       showErrorDialog: showErrorDialogInfrastructure,
-      sleep: (delayMs) =>
-        new Promise<void>((resolve) => {
-          window.setTimeout(resolve, delayMs);
-        }),
       now: () => Date.now(),
       warn: (message, context) => console.warn(message, context),
     },

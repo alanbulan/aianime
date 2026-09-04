@@ -17,7 +17,10 @@ import type {
   GridActionRequest,
 } from '../domain/gridAction';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasGridActionParams,
@@ -132,6 +135,7 @@ export function createGridActionConfirmOverlay({
         setSelectedNode(nextNodeId);
         onClose();
 
+        let taskKey: string | null = null;
         try {
           const { url } = await generateCanvasGridAction(
             {
@@ -143,10 +147,12 @@ export function createGridActionConfirmOverlay({
               modelSelector: selectedModel.routeSelector,
             },
             (task) => {
+              taskKey = task.task_key;
               updateNodeData(nextNodeId, generationTaskDescriptor(task));
             },
           );
           updateNodeData(nextNodeId, {
+            ...clearGenerationTaskDescriptor(taskKey),
             imageUrl: url,
             previewImageUrl: url,
             isGenerating: false,
@@ -157,6 +163,7 @@ export function createGridActionConfirmOverlay({
           const message = err instanceof Error ? err.message : String(err);
           console.error('[grid-action] generation failed', err);
           updateNodeData(nextNodeId, {
+            ...clearGenerationTaskDescriptor(taskKey),
             isGenerating: false,
             generationStartedAt: null,
             generationError: message,

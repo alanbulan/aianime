@@ -1,7 +1,9 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasGenerationTaskRef,
-  CanvasTaskResultGateway,
+import {
+  completeCanvasMediaGenerationTask,
+  requireCanvasGenerationTaskRef,
+  type CanvasGenerationTaskRef,
+  type CanvasTaskResultGateway,
 } from "./completeCanvasMediaGenerationTask";
 import type {
   VideoSubtitleEraseBox,
@@ -34,26 +36,27 @@ export interface EraseVideoSubtitlesDependencies {
 }
 
 export interface EraseVideoSubtitlesResult {
-  readonly url: string | null;
+  readonly url: string;
 }
 
 export async function eraseVideoSubtitles(
   params: EraseVideoSubtitlesParams,
   dependencies: EraseVideoSubtitlesDependencies,
 ): Promise<EraseVideoSubtitlesResult> {
-  const task = await dependencies.eraseGateway.submit(params.projectId, {
-    sourceUrl: params.sourceUrl,
-    mode: params.mode === "box" ? "box" : "smart_subtitle",
-    box: params.mode === "box" ? params.box : null,
-  });
-  await dependencies.taskGateway.awaitCompletion(
-    task.task_key,
-    params.projectId,
+  const task = requireCanvasGenerationTaskRef(
+    await dependencies.eraseGateway.submit(params.projectId, {
+      sourceUrl: params.sourceUrl,
+      mode: params.mode === "box" ? "box" : "smart_subtitle",
+      box: params.mode === "box" ? params.box : null,
+    }),
+    "freezone_video_erase",
   );
-  const url = await dependencies.taskGateway.fetchResultUrl(
-    params.projectId,
-    task.task_type,
-    task.job_id,
+  const url = await completeCanvasMediaGenerationTask(
+    { projectId: params.projectId, task, media: "video" },
+    {
+      taskGateway: dependencies.taskGateway,
+      onTaskSubmitted: () => undefined,
+    },
   );
-  return { url: url || null };
+  return { url };
 }

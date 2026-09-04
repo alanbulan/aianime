@@ -24,11 +24,33 @@ export const freezoneVideoStoryAnalysisGateway: CanvasVideoStoryAnalysisSubmissi
       },
     );
     const inlineResult = asRecord(response);
+    const taskKey =
+      typeof inlineResult.task_key === "string"
+        ? inlineResult.task_key.trim()
+        : "";
+    const jobId =
+      typeof inlineResult.job_id === "string"
+        ? inlineResult.job_id.trim()
+        : "";
+    const taskType =
+      typeof inlineResult.task_type === "string"
+        ? inlineResult.task_type.trim()
+        : "";
+    const hasTaskReceipt = Boolean(taskKey || jobId || taskType);
+    if (
+      hasTaskReceipt
+      && (!taskKey || !jobId || taskType !== "freezone_video_story")
+    ) {
+      throw new Error("视频解读任务回执不完整或任务类型不匹配");
+    }
     return {
-      taskKey:
-        typeof inlineResult.task_key === "string"
-          ? inlineResult.task_key
-          : null,
+      task: hasTaskReceipt
+        ? {
+            task_key: taskKey,
+            job_id: jobId,
+            task_type: "freezone_video_story" as const,
+          }
+        : null,
       inlineResult,
     };
   },

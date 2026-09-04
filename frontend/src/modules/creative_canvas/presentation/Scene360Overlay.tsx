@@ -18,7 +18,10 @@ import {
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
 } from '../domain/imageNodeLayout';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasScene360Params,
@@ -115,6 +118,7 @@ export function createScene360Overlay({
       setSelectedNode(nextNodeId);
       onClose();
 
+      let taskKey: string | null = null;
       try {
         const { url } = await generateCanvasScene360(
           {
@@ -126,10 +130,12 @@ export function createScene360Overlay({
             modelSelector: selectedModel.routeSelector,
           },
           (task) => {
+            taskKey = task.task_key;
             updateNodeData(nextNodeId, generationTaskDescriptor(task));
           },
         );
         updateNodeData(nextNodeId, {
+          ...clearGenerationTaskDescriptor(taskKey),
           imageUrl: url,
           previewImageUrl: url,
           aspectRatio: CANVAS_SCENE_360_ASPECT_RATIO,
@@ -151,6 +157,7 @@ export function createScene360Overlay({
         const message = err instanceof Error ? err.message : String(err);
         console.error('[scene-360] generation failed', err);
         updateNodeData(nextNodeId, {
+          ...clearGenerationTaskDescriptor(taskKey),
           isGenerating: false,
           generationStartedAt: null,
           generationError: message,

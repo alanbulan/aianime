@@ -5,7 +5,10 @@ import {
 } from "../domain/directorWorldSources";
 import { hasMainlineContexts, type MainlineContext } from "../domain/mainlineContext";
 import { resolveNodeDisplayName } from "../domain/nodeDisplay";
-import type { CanvasImageTo3dVisibleSourceKind } from "../domain/imageTo3d";
+import {
+  pickCanvasImageTo3dResultUrl,
+  type CanvasImageTo3dVisibleSourceKind,
+} from "../domain/imageTo3d";
 import type { DirectorStageManifest, DirectorWorldSource, ThreeDSceneSnapshot } from '@/features/viewer-kit/public';
 
 type ThreeDWorldNodeData = {
@@ -184,65 +187,7 @@ export function projectThreeDWorldPanoSources(
 }
 
 export function pickThreeDWorldPlyUrl(result: unknown): string | null {
-  if (!result) return null;
-  const candidates: string[] = [];
-  const visit = (value: unknown, depth: number): void => {
-    if (depth > 4) return;
-    if (typeof value === 'string') {
-      if (
-        /\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i.test(value) ||
-        /scene_3gs|ply_fs|splat/i.test(value)
-      ) {
-        candidates.push(value);
-      }
-      return;
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) visit(item, depth + 1);
-      return;
-    }
-    if (!value || typeof value !== 'object') return;
-    const record = value as Record<string, unknown>;
-    const preferredKeys = [
-      'sog_url',
-      'sogUrl',
-      'sog_path',
-      'sogPath',
-      'splat_url',
-      'splatUrl',
-      'splat_path',
-      'splatPath',
-      'ply_url',
-      'plyUrl',
-      'master_ply_url',
-      'masterPlyUrl',
-      'scene_3gs_ply_fs',
-      'scene_3gs_master_ply_fs',
-      'output_url',
-      'asset_url',
-      'static_url',
-      'url',
-    ];
-    for (const key of preferredKeys) {
-      const candidate = record[key];
-      if (typeof candidate === 'string' && candidate.length > 0) {
-        candidates.push(candidate);
-      }
-    }
-    for (const key in record) {
-      if (!preferredKeys.includes(key)) visit(record[key], depth + 1);
-    }
-  };
-  visit(result, 0);
-  return (
-    candidates.find((candidate) => /\.sog(\?|#|$)/i.test(candidate)) ??
-    candidates.find((candidate) =>
-      /\.(ksplat|splat|spz)(\?|#|$)/i.test(candidate),
-    ) ??
-    candidates.find((candidate) => /\.ply(\?|#|$)/i.test(candidate)) ??
-    candidates[0] ??
-    null
-  );
+  return pickCanvasImageTo3dResultUrl(result);
 }
 
 function resolveNodeDimension(

@@ -5,11 +5,10 @@ import {
   buildCanvasAudioPrompt,
   deriveAudioText,
   generateCanvasAudio,
-  type CanvasAudioGenerationResultGateway,
   type CanvasAudioGenerationSubmissionGateway,
-  type CanvasAudioGenerationTaskGateway,
   type CanvasAudioPromptSource,
 } from "./generateCanvasAudio";
+import type { CanvasTaskResultGateway } from "./completeCanvasMediaGenerationTask";
 
 function audioData(
   patch: Partial<CanvasAudioPromptSource> = {},
@@ -24,15 +23,12 @@ function dependencies() {
     submitSpeech: vi.fn(),
     submitMusic: vi.fn(),
   };
-  const resultGateway: CanvasAudioGenerationResultGateway = {
+  const taskGateway: CanvasTaskResultGateway = {
+    awaitCompletion: vi.fn().mockResolvedValue({ result: null }),
     fetchResultUrl: vi.fn().mockResolvedValue("/audio/result.mp3"),
-  };
-  const taskGateway: CanvasAudioGenerationTaskGateway = {
-    awaitCompletion: vi.fn().mockResolvedValue(undefined),
   };
   return {
     submissionGateway,
-    resultGateway,
     taskGateway,
     onTaskSubmitted: vi.fn(),
   };
@@ -63,7 +59,7 @@ describe("Canvas audio generation", () => {
       task_key: "speech-task",
       task_type: "freezone_audio_speech",
       job_id: "speech-job",
-    };
+    } as const;
     vi.mocked(deps.submissionGateway.submitSpeech).mockResolvedValue(task);
 
     await expect(
@@ -91,7 +87,7 @@ describe("Canvas audio generation", () => {
       "speech-task",
       "project-1",
     );
-    expect(deps.resultGateway.fetchResultUrl).toHaveBeenCalledWith(
+    expect(deps.taskGateway.fetchResultUrl).toHaveBeenCalledWith(
       "project-1",
       "freezone_audio_speech",
       "speech-job",
@@ -104,7 +100,7 @@ describe("Canvas audio generation", () => {
       task_key: "music-task",
       task_type: "freezone_audio_music",
       job_id: "music-job",
-    };
+    } as const;
     vi.mocked(deps.submissionGateway.submitMusic).mockResolvedValue(task);
 
     await generateCanvasAudio(
@@ -125,10 +121,56 @@ describe("Canvas audio generation", () => {
         respectSectionsDurations: true,
       },
     );
-    expect(deps.resultGateway.fetchResultUrl).toHaveBeenCalledWith(
+    expect(deps.taskGateway.fetchResultUrl).toHaveBeenCalledWith(
       "project-2",
       "freezone_audio_music",
       "music-job",
     );
+  });
+
+  it("uses the completed task audio URL before the fallback endpoint", async () => {
+    const deps = dependencies();
+    const task = {
+      task_key: "music-inline-task",
+      task_type: "freezone_audio_music",
+      job_id: "music-inline-job",
+    } as const;
+    vi.mocked(deps.submissionGateway.submitMusic).mockResolvedValue(task);
+    vi.mocked(deps.taskGateway.awaitCompletion).mockResolvedValue({
+      result: { audio_url: "/audio/inline.mp3" },
+    });
+
+    await expect(
+      generateCanvasAudio(
+        {
+          kind: "music",
+          projectId: "project-1",
+          prompt: "Ambient score",
+        },
+        deps,
+      ),
+    ).resolves.toEqual({ task, audioUrl: "/audio/inline.mp3" });
+    expect(deps.taskGateway.fetchResultUrl).not.toHaveBeenCalled();
+  });
+
+  it("rejects a completed task without an audio URL", async () => {
+    const deps = dependencies();
+    vi.mocked(deps.submissionGateway.submitMusic).mockResolvedValue({
+      task_key: "music-task",
+      task_type: "freezone_audio_music",
+      job_id: "music-job",
+    });
+    vi.mocked(deps.taskGateway.fetchResultUrl).mockResolvedValue("");
+
+    await expect(
+      generateCanvasAudio(
+        {
+          kind: "music",
+          projectId: "project-1",
+          prompt: "Ambient score",
+        },
+        deps,
+      ),
+    ).rejects.toThrow("生成任务已完成，但没有返回可用的媒体地址");
   });
 });

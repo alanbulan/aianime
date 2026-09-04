@@ -1,13 +1,16 @@
 // Copyright (c) 2026 AI anime
-import { freezoneGenerationTaskGateway } from '../infrastructure/freezoneGenerationTaskGateway';
-import { prepareCanvasImageSource, prepareCanvasImageSources } from '../mediaOperationGenerationComposition';
-import { readEmbeddedCanvasGenerationOutputUrl, type CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
-import { type CanvasImageJobGateway, type CanvasImageJobPayload, type CanvasImageJobScope } from '../application/canvasImageJob';
-import { type CanvasImageGenerationCommand } from '../application/generateCanvasImage';
 import { apiCall } from "@/shared/api/client";
 
-
-
+import {
+  requireCanvasGenerationTaskRef,
+  type CanvasGenerationTaskRef,
+} from "../application/completeCanvasMediaGenerationTask";
+import type {
+  CanvasImageJobGateway,
+  CanvasImageJobPayload,
+  CanvasImageJobScope,
+} from "../application/canvasImageJob";
+import type { CanvasImageGenerationCommand } from "../application/generateCanvasImage";
 interface ComposedCapabilityJob {
   readonly prompt: string;
   readonly referenceUrls: string[];
@@ -45,6 +48,14 @@ export interface FreezoneAiGatewayDependencies {
     projectId: string,
     command: CanvasImageGenerationCommand,
   ) => Promise<CanvasGenerationTaskRef>;
+  readonly prepareImageSource: (
+    projectId: string,
+    rawUrl: string,
+  ) => Promise<string>;
+  readonly prepareImageSources: (
+    projectId: string,
+    rawUrls: readonly string[],
+  ) => Promise<string[]>;
 }
 
 interface ImageEditSubmission {
@@ -60,15 +71,6 @@ interface ImageEditSubmission {
   readonly extraParams?: Record<string, unknown>;
   readonly canvasId: string;
   readonly nodeId?: string;
-}
-
-interface JobRecord {
-  readonly ref: CanvasGenerationTaskRef;
-  readonly projectId: string;
-  readonly promise: Promise<string>;
-  status: "queued" | "running" | "succeeded" | "failed";
-  result?: string;
-  error?: string;
 }
 
 function readQuality(payload: CanvasImageJobPayload): string | null {
@@ -87,33 +89,44 @@ function toImageSize(payload: CanvasImageJobPayload): string {
 async function submitImageEdit(
   projectId: string,
   submission: ImageEditSubmission,
+  dependencies: Pick<
+    FreezoneAiGatewayDependencies,
+    "prepareImageSource" | "prepareImageSources"
+  >,
 ): Promise<CanvasGenerationTaskRef> {
-  const baseUrl = await prepareCanvasImageSource(projectId, submission.baseUrl);
-  const extraReferenceUrls = await prepareCanvasImageSources(
+  const baseUrl = await dependencies.prepareImageSource(
+    projectId,
+    submission.baseUrl,
+  );
+  const extraReferenceUrls = await dependencies.prepareImageSources(
     projectId,
     submission.extraReferenceUrls,
   );
-  return await apiCall<CanvasGenerationTaskRef>(
-    `projects/${encodeURIComponent(projectId)}/freezone/edit`,
-    {
-      method: "POST",
-      json: {
-        prompt: submission.prompt,
-        base_url: baseUrl,
-        extra_reference_urls: extraReferenceUrls,
-        aspect_ratio: submission.aspectRatio ?? "2:3",
-        image_size: submission.imageSize ?? "2K",
-        model: submission.model,
-        ...(submission.modelId ? { model_id: submission.modelId } : {}),
-        ...(submission.genMode ? { gen_mode: submission.genMode } : {}),
-        quality: submission.quality ?? null,
-        ...(submission.extraParams && Object.keys(submission.extraParams).length > 0
-          ? { extra_params: submission.extraParams }
-          : {}),
-        ...(submission.canvasId ? { canvas_id: submission.canvasId } : {}),
-        ...(submission.nodeId ? { node_id: submission.nodeId } : {}),
+  return requireCanvasGenerationTaskRef(
+    await apiCall<unknown>(
+      `projects/${encodeURIComponent(projectId)}/freezone/edit`,
+      {
+        method: "POST",
+        json: {
+          prompt: submission.prompt,
+          base_url: baseUrl,
+          extra_reference_urls: extraReferenceUrls,
+          aspect_ratio: submission.aspectRatio ?? "2:3",
+          image_size: submission.imageSize ?? "2K",
+          model: submission.model,
+          ...(submission.modelId ? { model_id: submission.modelId } : {}),
+          ...(submission.genMode ? { gen_mode: submission.genMode } : {}),
+          quality: submission.quality ?? null,
+          ...(submission.extraParams
+            && Object.keys(submission.extraParams).length > 0
+            ? { extra_params: submission.extraParams }
+            : {}),
+          ...(submission.canvasId ? { canvas_id: submission.canvasId } : {}),
+          ...(submission.nodeId ? { node_id: submission.nodeId } : {}),
+        },
       },
-    },
+    ),
+    "freezone_edit",
   );
 }
 
@@ -152,11 +165,34 @@ async function submitJob(
   } = dependencies.resolvePromptReferenceRoles(afterShotClean, rawRefs);
   const finalPrompt = `${cleanedPrompt}${shotSuffix}${roleSuffix}`;
   if (refs.length === 0) {
-    const ref = await dependencies.submitImageGeneration(projectId, {
+    const ref = requireCanvasGenerationTaskRef(
+      await dependencies.submitImageGeneration(projectId, {
+        prompt: finalPrompt,
+        aspectRatio: effectiveAspectRatio || toAspectRatio(payload),
+        imageSize: effectiveSize || toImageSize(payload),
+        referenceUrls: [],
+        model: effectiveModel,
+        modelId: payload.modelId,
+        genMode: payload.generationMode,
+        quality,
+        extraParams: payload.extraParams,
+        canvasId,
+        nodeId: payload.nodeId,
+      }),
+      "freezone_gen",
+    );
+    return { ref, projectId };
+  }
+
+  const [base, ...extras] = refs;
+  const ref = await submitImageEdit(
+    projectId,
+    {
       prompt: finalPrompt,
+      baseUrl: base,
+      extraReferenceUrls: extras,
       aspectRatio: effectiveAspectRatio || toAspectRatio(payload),
       imageSize: effectiveSize || toImageSize(payload),
-      referenceUrls: [],
       model: effectiveModel,
       modelId: payload.modelId,
       genMode: payload.generationMode,
@@ -164,98 +200,19 @@ async function submitJob(
       extraParams: payload.extraParams,
       canvasId,
       nodeId: payload.nodeId,
-    });
-    return { ref, projectId };
-  }
-
-  const [base, ...extras] = refs;
-  const ref = await submitImageEdit(projectId, {
-    prompt: finalPrompt,
-    baseUrl: base,
-    extraReferenceUrls: extras,
-    aspectRatio: effectiveAspectRatio || toAspectRatio(payload),
-    imageSize: effectiveSize || toImageSize(payload),
-    model: effectiveModel,
-    modelId: payload.modelId,
-    genMode: payload.generationMode,
-    quality,
-    extraParams: payload.extraParams,
-    canvasId,
-    nodeId: payload.nodeId,
-  });
+    },
+    dependencies,
+  );
   return { ref, projectId };
-}
-
-async function awaitJobAndFetchUrl(
-  ref: CanvasGenerationTaskRef,
-  projectId: string,
-): Promise<string> {
-  const completed = await freezoneGenerationTaskGateway.awaitCompletion(
-    ref.task_key,
-    projectId,
-  );
-  const directUrl = readEmbeddedCanvasGenerationOutputUrl(completed.result);
-  if (directUrl) return directUrl;
-  return await freezoneGenerationTaskGateway.fetchResultUrl(
-    projectId,
-    ref.task_type,
-    ref.job_id,
-  );
 }
 
 export function createFreezoneAiGateway(
   dependencies: FreezoneAiGatewayDependencies,
 ): CanvasImageJobGateway {
-  const jobs = new Map<string, JobRecord>();
-
   return {
-    async generateImage(scope, payload) {
-      const { ref, projectId } = await submitJob(scope, payload, dependencies);
-      return await awaitJobAndFetchUrl(ref, projectId);
-    },
-
     async submitGenerateImageJob(scope, payload) {
-      const { ref, projectId } = await submitJob(scope, payload, dependencies);
-      const promise = awaitJobAndFetchUrl(ref, projectId)
-        .then((url) => {
-          const record = jobs.get(ref.job_id);
-          if (record) {
-            record.status = "succeeded";
-            record.result = url;
-          }
-          return url;
-        })
-        .catch((error: Error) => {
-          const record = jobs.get(ref.job_id);
-          if (record) {
-            record.status = "failed";
-            record.error = error.message;
-          }
-          throw error;
-        });
-      jobs.set(ref.job_id, {
-        ref,
-        projectId,
-        promise,
-        status: "running",
-      });
-      return ref.job_id;
-    },
-
-    async getGenerateImageJob(jobId) {
-      const record = jobs.get(jobId);
-      if (!record) return { job_id: jobId, status: "not_found" };
-      if (record.status === "succeeded") {
-        return {
-          job_id: jobId,
-          status: "succeeded",
-          result: record.result,
-        };
-      }
-      if (record.status === "failed") {
-        return { job_id: jobId, status: "failed", error: record.error };
-      }
-      return { job_id: jobId, status: record.status };
+      const { ref } = await submitJob(scope, payload, dependencies);
+      return ref;
     },
   };
 }

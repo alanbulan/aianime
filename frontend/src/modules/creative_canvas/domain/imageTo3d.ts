@@ -48,24 +48,28 @@ export function resolveCanvasImageTo3dSourceKind(
     : "master";
 }
 
+const THREE_GS_EXT_RE = /\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i;
+
+function isThreeGsCandidate(value: string): boolean {
+  return THREE_GS_EXT_RE.test(value) || /scene_3gs|ply_fs|splat/i.test(value);
+}
+
 function collect3gsCandidates(
   value: unknown,
   depth: number,
   candidates: string[],
+  allowNamedFallback: boolean,
 ): void {
   if (depth > 4) return;
   if (typeof value === "string") {
-    if (
-      /\.(ply|sog|splat|ksplat|spz)(\?|#|$)/i.test(value) ||
-      /scene_3gs|ply_fs|splat/i.test(value)
-    ) {
+    if (isThreeGsCandidate(value)) {
       candidates.push(value);
     }
     return;
   }
   if (Array.isArray(value)) {
     for (const item of value) {
-      collect3gsCandidates(item, depth + 1, candidates);
+      collect3gsCandidates(item, depth + 1, candidates, allowNamedFallback);
     }
     return;
   }
@@ -91,20 +95,43 @@ function collect3gsCandidates(
   ];
   for (const key of preferredKeys) {
     const candidate = result[key];
-    if (typeof candidate === "string" && candidate.length > 0) {
+    if (
+      typeof candidate === "string"
+      && candidate.length > 0
+      && (allowNamedFallback || isThreeGsCandidate(candidate))
+    ) {
       candidates.push(candidate);
     }
   }
   for (const key in result) {
     if (!preferredKeys.includes(key)) {
-      collect3gsCandidates(result[key], depth + 1, candidates);
+      collect3gsCandidates(
+        result[key],
+        depth + 1,
+        candidates,
+        allowNamedFallback,
+      );
     }
   }
 }
 
-function pickCanvasImageTo3dResultUrl(result: unknown): string | null {
+export function pickCanvasImageTo3dResultUrl(result: unknown): string | null {
   const candidates: string[] = [];
-  collect3gsCandidates(result, 0, candidates);
+  collect3gsCandidates(result, 0, candidates, true);
+  return pickPreferred3gsCandidate(candidates);
+}
+
+export function pickStrictCanvasImageTo3dResultUrl(
+  result: unknown,
+): string | null {
+  const candidates: string[] = [];
+  collect3gsCandidates(result, 0, candidates, false);
+  return pickPreferred3gsCandidate(candidates);
+}
+
+function pickPreferred3gsCandidate(
+  candidates: readonly string[],
+): string | null {
   return (
     candidates.find((candidate) => /\.sog(\?|#|$)/i.test(candidate)) ??
     candidates.find((candidate) =>

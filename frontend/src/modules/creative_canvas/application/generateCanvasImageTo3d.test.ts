@@ -21,7 +21,7 @@ function dependencies(result: Record<string, unknown>) {
   };
   const taskGateway: CanvasTaskResultGateway = {
     awaitCompletion: vi.fn().mockResolvedValue({ result }),
-    fetchResultUrl: vi.fn(),
+    fetchResultUrl: vi.fn().mockResolvedValue(""),
   };
   return {
     task,
@@ -79,6 +79,24 @@ describe("generateCanvasImageTo3d", () => {
 
     await expect(generateCanvasImageTo3d(params, deps)).rejects.toThrow(
       "未能在 task.result 中找到 3D 世界地址",
+    );
+  });
+
+  it("recovers a 3D world URL from the durable result endpoint", async () => {
+    const deps = dependencies({ status: "completed" });
+    vi.mocked(deps.taskGateway.fetchResultUrl).mockResolvedValue(
+      "/static/world-from-artifact.sog",
+    );
+
+    const generated = await generateCanvasImageTo3d(params, deps);
+
+    expect(generated.source.ply_url).toBe(
+      "/static/world-from-artifact.sog",
+    );
+    expect(deps.taskGateway.fetchResultUrl).toHaveBeenCalledWith(
+      "project-1",
+      "freezone_image_to_3gs",
+      "job-1",
     );
   });
 });

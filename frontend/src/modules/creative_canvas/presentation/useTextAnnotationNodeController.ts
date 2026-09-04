@@ -43,7 +43,10 @@ import {
 } from '../domain/videoGenerationModel';
 import type { CanvasVideoModel } from '../application/generationCatalog';
 import { resolveGenerationOutputUrl } from '../application/generationOutputUrl';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type {
   CanvasGenerationTaskRef,
 } from '../application/completeCanvasMediaGenerationTask';
@@ -363,6 +366,7 @@ export function createUseTextAnnotationNodeController({
         isGenerating: true,
         generationStartedAt: Date.now(),
       });
+      let taskKey: string | null = null;
       try {
         const result = await generateCanvasReversePrompt(
           {
@@ -371,10 +375,14 @@ export function createUseTextAnnotationNodeController({
             canvasId,
             nodeId: id,
           },
-          (task) => updateNodeData(id, generationTaskDescriptor(task)),
+          (task) => {
+            taskKey = task.task_key;
+            updateNodeData(id, generationTaskDescriptor(task));
+          },
         );
         if (result.prompt && result.prompt.trim().length > 0) {
           updateNodeData(id, {
+            ...clearGenerationTaskDescriptor(taskKey),
             content: result.prompt,
             isGenerating: false,
             generationStartedAt: null,
@@ -384,6 +392,7 @@ export function createUseTextAnnotationNodeController({
             jobId: result.task.job_id,
           });
           updateNodeData(id, {
+            ...clearGenerationTaskDescriptor(taskKey),
             isGenerating: false,
             generationStartedAt: null,
           });
@@ -391,6 +400,7 @@ export function createUseTextAnnotationNodeController({
       } catch (error) {
         console.error('[text-node] reverse-prompt failed', error);
         updateNodeData(id, {
+          ...clearGenerationTaskDescriptor(taskKey),
           isGenerating: false,
           generationStartedAt: null,
         });
@@ -481,6 +491,7 @@ export function createUseTextAnnotationNodeController({
       }
 
       const runOne = async (videoNodeId: string) => {
+        let taskKey: string | null = null;
         try {
           const reference = await submitVideoGeneration({
             kind: 'text',
@@ -503,6 +514,7 @@ export function createUseTextAnnotationNodeController({
             canvasId,
             nodeId: videoNodeId,
           });
+          taskKey = reference.task_key;
           updateNodeData(videoNodeId, generationTaskDescriptor(reference));
           const completed = await awaitCanvasGenerationTaskCompletion(
             reference.task_key,
@@ -511,6 +523,7 @@ export function createUseTextAnnotationNodeController({
           const url = resolveGenerationOutputUrl(completed.result, 'video');
           if (url) {
             updateNodeData(videoNodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               videoUrl: url,
               isGenerating: false,
               generationStartedAt: null,
@@ -522,6 +535,7 @@ export function createUseTextAnnotationNodeController({
               completed,
             );
             updateNodeData(videoNodeId, {
+              ...clearGenerationTaskDescriptor(taskKey),
               isGenerating: false,
               generationStartedAt: null,
             });
@@ -529,6 +543,7 @@ export function createUseTextAnnotationNodeController({
         } catch (error) {
           console.error('[text-node] textToVideo failed', error);
           updateNodeData(videoNodeId, {
+            ...clearGenerationTaskDescriptor(taskKey),
             isGenerating: false,
             generationStartedAt: null,
           });

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 
@@ -11,8 +11,10 @@ import type {
 } from "@/modules/creative_canvas/public";
 
 import { useCanvasStore } from "@/modules/creative_canvas/public";
-import { generationTaskDescriptor } from "@/modules/creative_canvas/application/resumeGeneration";
-import { useTaskCenterStore, type TaskState } from "@/modules/task_execution/public";
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from "@/modules/creative_canvas/application/resumeGeneration";
 const generationMocks = vi.hoisted(() => ({
   pollExportImageGeneration: vi.fn(),
   resumeNodeGeneration: vi.fn(),
@@ -71,7 +73,6 @@ function deferred(): {
 describe("Canvas generation recovery composition", () => {
   beforeEach(() => {
     useCanvasStore.getState().setCanvasData([], []);
-    useTaskCenterStore.getState().reset();
     generationMocks.pollExportImageGeneration
       .mockReset()
       .mockResolvedValue(undefined);
@@ -80,7 +81,7 @@ describe("Canvas generation recovery composition", () => {
       .mockResolvedValue(undefined);
   });
 
-  it("reconciles a session-owned node when its task becomes terminal", async () => {
+  it("does not start a second writer for a task owned by the current submit flow", () => {
     const task = {
       task_key: "upscale-terminal-task",
       task_type: "freezone_video_upscale",
@@ -104,20 +105,7 @@ describe("Canvas generation recovery composition", () => {
     );
 
     expect(generationMocks.resumeNodeGeneration).not.toHaveBeenCalled();
-
-    act(() => {
-      useTaskCenterStore.getState().upsert({
-        task_id: "upscale-terminal-id",
-        task_key: task.task_key,
-        task_type: task.task_type,
-        status: "completed",
-        progress: 1,
-      } as TaskState);
-    });
-
-    await waitFor(() => {
-      expect(generationMocks.resumeNodeGeneration).toHaveBeenCalledOnce();
-    });
+    clearGenerationTaskDescriptor(task.task_key);
   });
 
   it("binds pending store nodes to the existing polling and resume use cases", () => {

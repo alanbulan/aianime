@@ -39,7 +39,10 @@ import {
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import { inheritMainlineFields } from '../domain/inheritMainlineFields';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasRedrawParams,
@@ -287,6 +290,7 @@ export function createRedrawOverlay({
         apiModel: string,
         modelSelector?: string,
       ) => {
+        let taskKey: string | null = null;
         try {
           const { url } = await generateCanvasRedraw(
             {
@@ -300,10 +304,12 @@ export function createRedrawOverlay({
               modelSelector,
             },
             (task) => {
+              taskKey = task.task_key;
               updateNodeData(nodeId, generationTaskDescriptor(task));
             },
           );
           updateNodeData(nodeId, {
+            ...clearGenerationTaskDescriptor(taskKey),
             imageUrl: url,
             previewImageUrl: url,
             isGenerating: false,
@@ -314,6 +320,7 @@ export function createRedrawOverlay({
           const message = err instanceof Error ? err.message : String(err);
           console.error('[redraw] generation failed', err);
           updateNodeData(nodeId, {
+            ...clearGenerationTaskDescriptor(taskKey),
             isGenerating: false,
             generationStartedAt: null,
             generationError: message,

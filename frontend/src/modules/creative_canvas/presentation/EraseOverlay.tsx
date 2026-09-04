@@ -39,7 +39,10 @@ import {
 } from '../domain/imageNodeLayout';
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
-import { generationTaskDescriptor } from '../application/resumeGeneration';
+import {
+  clearGenerationTaskDescriptor,
+  generationTaskDescriptor,
+} from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
 import type {
   GenerateCanvasRedrawParams,
@@ -337,6 +340,7 @@ export function createEraseOverlay({
             modelSelector,
           },
         });
+        let taskKey: string | null = null;
         try {
           const { url } = await generateCanvasRedraw(
             {
@@ -349,30 +353,26 @@ export function createEraseOverlay({
               modelSelector,
             },
             (task) => {
+              taskKey = task.task_key;
               updateNodeData(nodeId, generationTaskDescriptor(task));
             },
           );
           updateNodeData(nodeId, {
+            ...clearGenerationTaskDescriptor(taskKey),
             imageUrl: url,
             previewImageUrl: url,
             isGenerating: false,
             generationStartedAt: null,
             generationError: null,
-            // 清掉任务句柄,避免刷新后被 resume 扫描误判为「仍在生成」而重新轮询。
-            generationTaskKey: null,
-            generationTaskType: null,
-            generationTaskJobId: null,
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           console.error('[erase] generation failed', err);
           updateNodeData(nodeId, {
+            ...clearGenerationTaskDescriptor(taskKey),
             isGenerating: false,
             generationStartedAt: null,
             generationError: message,
-            generationTaskKey: null,
-            generationTaskType: null,
-            generationTaskJobId: null,
           });
         }
       },
