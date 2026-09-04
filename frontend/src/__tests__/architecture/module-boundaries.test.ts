@@ -23824,6 +23824,19 @@ describe("frontend architecture boundaries", () => {
       expect(viewSource).not.toContain(forbiddenViewLogic);
     }
     expect(viewSource).toContain("return storyboardGroupToolbar");
+    expect(viewSource).toContain(
+      '<ZoomScaledToolbar origin="bottom center">',
+    );
+    expect(viewSource).not.toContain('mode="counter"');
+    expect(
+      readFileSync(
+        resolve(
+          SRC_ROOT,
+          "modules/creative_canvas/presentation/canvasNodeActionToolbarStyles.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("[zoom:var(--ai-anime-canvas-zoom,1)]");
     const assemblyOrder = [
       "<NodeMainlineToolbarActions",
       "<ImageNodeToolbarActions",
@@ -24717,6 +24730,9 @@ describe("frontend architecture boundaries", () => {
     );
     expect(adapterSource).toContain("<StoryboardGroupToolbarView");
     expect(adapterSource).toContain("styles={toolbarStyles}");
+    expect(adapterSource).toContain(
+      "[zoom:var(--ai-anime-canvas-zoom,1)]",
+    );
     expect(importSpecifiers(toolbarPath)).toContain(
       "./CanvasStoryboardGroupToolbarAdapter",
     );
@@ -26300,6 +26316,9 @@ describe("frontend architecture boundaries", () => {
     expect(overlaySource).not.toContain("submitFreezoneRedraw");
     expect(overlaySource).not.toContain("fetchFreezoneJobResult");
     expect(overlaySource).not.toContain("awaitTaskCompletion");
+    expect(overlaySource).toContain("overflow-hidden bg-background p-4 pt-14");
+    expect(overlaySource).not.toContain("bg-media");
+    expect(overlaySource).not.toContain("text-text-dark");
     expect(retrySource).toContain("dependencies.generateRedraw");
     expect(retrySource).not.toContain("completeCanvasMediaGenerationTask(");
     expect(retrySource).not.toContain("CanvasRedrawTaskGateway");

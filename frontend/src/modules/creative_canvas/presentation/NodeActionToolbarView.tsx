@@ -35,7 +35,7 @@ export function NodeActionToolbarView({
       offset={NODE_TOOLBAR_OFFSET}
       className={NODE_TOOLBAR_CLASS}
     >
-      <ZoomScaledToolbar origin="bottom center" mode="counter" counterMax={1}>
+      <ZoomScaledToolbar origin="bottom center">
         <UiPanel className="flex animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 items-center gap-1.5 rounded-[18px] !border-border !bg-popover/95 px-2 py-1.5 text-sm shadow-xl backdrop-blur-2xl duration-200 ease-out motion-reduce:animate-none [&_svg]:h-4 [&_svg]:w-4">
           {actions}
         </UiPanel>

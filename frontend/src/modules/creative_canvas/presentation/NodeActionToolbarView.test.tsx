@@ -42,5 +42,10 @@ describe('NodeActionToolbarView', () => {
       'node-1',
     );
     expect(screen.getByText('regular-actions')).toBeInTheDocument();
+    const scaledToolbar = screen.getByText('regular-actions').parentElement?.parentElement;
+    expect(scaledToolbar?.getAttribute('style')).toContain(
+      'transform: scale(var(--ai-anime-canvas-zoom, 1))',
+    );
+    expect(scaledToolbar).toHaveStyle({ transformOrigin: 'bottom center' });
   });
 });

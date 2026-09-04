@@ -8,7 +8,7 @@ export const NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS =
   `h-9 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} px-3 text-sm ${NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS}`;
 
 export const NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS =
-  "z-[120] border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-3xl";
+  "z-[120] border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-3xl [zoom:var(--ai-anime-canvas-zoom,1)]";
 
 export const NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS =
   "gap-2 rounded-[10px] text-popover-foreground focus:bg-muted focus:text-popover-foreground";

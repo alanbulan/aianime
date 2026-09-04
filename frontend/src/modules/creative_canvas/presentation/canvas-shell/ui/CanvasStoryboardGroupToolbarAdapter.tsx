@@ -15,7 +15,7 @@ const toolbarStyles = {
   chip:
     'h-9 gap-1.5 rounded-[12px] !border-transparent !bg-transparent px-3 text-sm text-foreground hover:!bg-muted focus:!border-transparent focus:!shadow-none focus-visible:!ring-0',
   menuContent:
-    'z-[120] min-w-[120px] border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-3xl',
+    'z-[120] min-w-[120px] border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-3xl [zoom:var(--ai-anime-canvas-zoom,1)]',
   menuItem:
     'gap-2 rounded-[10px] text-popover-foreground focus:bg-muted focus:text-popover-foreground',
 };

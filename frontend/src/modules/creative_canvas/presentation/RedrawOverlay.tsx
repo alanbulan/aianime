@@ -434,7 +434,7 @@ export function createRedrawOverlay({
     const submitLabel = hasMask ? t('redraw.maskedSubmit') : t('redraw.fullSubmit');
     const brushPercent = ((brushSize - BRUSH_MIN) / (BRUSH_MAX - BRUSH_MIN)) * 100;
     const brushSliderStyle = {
-      background: `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) 100%)`,
+      background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${brushPercent}%, var(--ui-border-strong) ${brushPercent}%, var(--ui-border-strong) 100%)`,
     };
 
     const overlay = (
@@ -464,7 +464,7 @@ export function createRedrawOverlay({
                 </ToolBtn>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-text-dark/68">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="whitespace-nowrap">{t('redraw.brushSize')}</span>
                 <input
                   type="range"
@@ -476,7 +476,7 @@ export function createRedrawOverlay({
                   className={BRUSH_SLIDER_CLASS}
                   style={brushSliderStyle}
                 />
-                <span className="w-7 tabular-nums text-right text-text-dark/62">{brushSize}</span>
+                <span className="w-7 tabular-nums text-right text-muted-foreground">{brushSize}</span>
               </div>
             </div>
 
@@ -513,8 +513,8 @@ export function createRedrawOverlay({
             </div>
           </div>
 
-          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-media p-4 pt-14">
-            {!imageReady && <div className="text-sm text-text-muted">{t('redraw.loadingSource')}</div>}
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background p-4 pt-14">
+            {!imageReady && <div className="text-sm text-muted-foreground">{t('redraw.loadingSource')}</div>}
             <div
               className={`relative max-h-full max-w-full ${imageReady ? '' : 'hidden'}`}
               style={{ cursor }}
