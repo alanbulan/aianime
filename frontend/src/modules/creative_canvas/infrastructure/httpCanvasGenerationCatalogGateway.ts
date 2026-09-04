@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { apiCall } from "@/shared/api/client";
 import {
+  commercialModelRoles,
   loadCommercialModelCatalog,
   type CommercialModelCatalog,
 } from "@/modules/model_usage/public";
@@ -53,11 +54,10 @@ export function commercialImageModels(
   catalog: CommercialModelCatalog,
 ): CanvasImageModel[] {
   return catalog.items.map((item) => {
-    const imageModes = normalizeImageModes(
-      item.capabilities.supportedModes ??
-        item.capabilities.imageModes ??
-        item.capabilities.modes,
-    );
+    const roles = commercialModelRoles(item);
+    const imageModes: CanvasImageMode[] = [];
+    if (roles.includes("IMAGE_GENERATION")) imageModes.push("generation");
+    if (roles.includes("IMAGE_EDIT")) imageModes.push("edit");
     const routeSelector = pickString(item.capabilities, "routeSelector");
     return {
       id: routeSelector ?? item.code,
@@ -262,22 +262,6 @@ const VIDEO_MODE_BY_TOKEN: Record<string, VideoGenMode> = {
   videoedit: "videoEdit",
   multimodalreference: "allReference",
 };
-
-const IMAGE_MODE_BY_TOKEN: Record<string, CanvasImageMode> = {
-  texttoimage: "generation",
-  imagegeneration: "generation",
-  generate: "generation",
-  imageedit: "edit",
-  edit: "edit",
-};
-
-function normalizeImageModes(value: unknown): CanvasImageMode[] {
-  const modes = stringArray(value).flatMap((item) => {
-    const mode = IMAGE_MODE_BY_TOKEN[item.replace(/[\s_-]/g, "").toLowerCase()];
-    return mode ? [mode] : [];
-  });
-  return Array.from(new Set(modes));
-}
 
 function videoModes(value: unknown): VideoGenMode[] {
   const modes = stringArray(value).flatMap((item) => {

@@ -5,7 +5,8 @@ import { apiCall } from "@/shared/api/client";
 import { loadCommercialModelCatalog } from "@/modules/model_usage/public";
 
 vi.mock("@/shared/api/client", () => ({ apiCall: vi.fn() }));
-vi.mock("@/modules/model_usage/public", () => ({
+vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/model_usage/public")>()),
   loadCommercialModelCatalog: vi.fn(),
 }));
 
@@ -123,7 +124,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
     ]);
   });
 
-  it("projects explicit image generation and edit capabilities", () => {
+  it("projects the canonical image roles used by the commercial catalog", () => {
     const catalog = {
       catalogVersion: "image-roles-v1",
       items: [
@@ -136,11 +137,13 @@ describe("httpCanvasGenerationCatalogGateway", () => {
           parameterSchema: {},
         },
         {
-          id: "edit-only",
-          code: "cloud/image-edit",
-          displayName: "Edit",
+          id: "generation-and-edit",
+          code: "QWEN_IMAGE_2512",
+          displayName: "Qwen Image",
           operation: "IMAGE",
-          capabilities: { supportedModes: ["IMAGE_EDIT"] },
+          capabilities: {
+            supportedModes: ["TEXT_TO_IMAGE", "IMAGE_TO_IMAGE"],
+          },
           parameterSchema: {},
         },
       ],
@@ -153,7 +156,10 @@ describe("httpCanvasGenerationCatalogGateway", () => {
       })),
     ).toEqual([
       { apiModel: "cloud/image-generation", imageModes: ["generation"] },
-      { apiModel: "cloud/image-edit", imageModes: ["edit"] },
+      {
+        apiModel: "QWEN_IMAGE_2512",
+        imageModes: ["generation", "edit"],
+      },
     ]);
   });
 
@@ -193,6 +199,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
         id: "image-standard",
         apiModel: "image-standard",
         label: "Image Standard",
+        imageModes: ["generation"],
         capabilities: {},
         parameterSchema: {},
       },
