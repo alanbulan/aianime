@@ -37,10 +37,10 @@ describe("freezoneGridActionGenerationGateway", () => {
           source_url: "/static/source.png",
           mode: "storyboard_25_grid",
           prompt: "Storyboard 25-grid",
-          image_size: "2K",
           model: "cloud-image-standard",
         },
       },
     );
   });
+
 });

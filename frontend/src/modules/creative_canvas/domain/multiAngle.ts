@@ -17,9 +17,14 @@ export type MultiAngleZoomLevel =
   | "wide"
   | "extreme_wide";
 
-export const MULTI_ANGLE_IMAGE_SIZES = ["1K", "2K", "4K"] as const;
+export const MULTI_ANGLE_IMAGE_SIZES = [
+  "original",
+  "1K",
+  "2K",
+  "4K",
+] as const;
 export type MultiAngleImageSize = (typeof MULTI_ANGLE_IMAGE_SIZES)[number];
-export const DEFAULT_MULTI_ANGLE_IMAGE_SIZE: MultiAngleImageSize = "2K";
+export const DEFAULT_MULTI_ANGLE_IMAGE_SIZE: MultiAngleImageSize = "original";
 
 export type CanvasMultiViewPreset =
   | "custom"

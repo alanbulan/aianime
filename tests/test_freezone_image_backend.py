@@ -84,6 +84,7 @@ from ai_anime.modules.creative_canvas.domain.image_editing import (
 from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
     build_image_template_edit_prompt,
     resolve_image_template_aspect_ratio,
+    resolve_image_template_image_size,
 )
 from ai_anime.modules.creative_canvas.domain.image_prompts import (
     build_image_camera_prompt,
@@ -1471,6 +1472,13 @@ def test_template_edit_aspect_ratio_maps_modes() -> None:
     assert (
         resolve_image_template_aspect_ratio("cinematic_light_correction") == "original"
     )
+
+
+def test_template_edit_image_size_maps_source_preserving_modes() -> None:
+    assert resolve_image_template_image_size("cinematic_light_correction") == "original"
+    assert resolve_image_template_image_size("image_projection_after_3s") == "original"
+    assert resolve_image_template_image_size("image_projection_before_5s") == "original"
+    assert resolve_image_template_image_size("story_pitch_four_grid") == "2K"
 
 
 @pytest.mark.asyncio
@@ -6761,7 +6769,6 @@ async def test_template_edit_projection_preserves_source_aspect_ratio(
     body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="image_projection_after_3s",
-        image_size="2K",
         model="cloud-image-standard",
         quality="high",
     )
@@ -6775,6 +6782,8 @@ async def test_template_edit_projection_preserves_source_aspect_ratio(
     assert result["ok"] is True
     assert result["data"]["task_type"] == "freezone_edit"
     assert captured["aspect_ratio"] == "9:16"
+    assert captured["image_size"] == "original"
+    assert captured["preserve_source_dimensions"] is True
     assert captured["quality"] == "high"
     assert "Preserve the source image aspect ratio" in captured["prompt"]
     assert "Within the same frame size" in captured["prompt"]
@@ -6801,7 +6810,6 @@ async def test_template_edit_light_correction_preserves_source_aspect_ratio(
     body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="cinematic_light_correction",
-        image_size="2K",
         model="cloud-image-standard",
     )
 
@@ -6813,6 +6821,8 @@ async def test_template_edit_light_correction_preserves_source_aspect_ratio(
 
     assert result["ok"] is True
     assert captured["aspect_ratio"] == "9:16"
+    assert captured["image_size"] == "original"
+    assert captured["preserve_source_dimensions"] is True
     assert "Preserve the source image aspect ratio" in captured["prompt"]
     assert "black bars" in captured["prompt"]
 
@@ -6836,7 +6846,6 @@ async def test_template_edit_story_pitch_four_grid_preserves_source_aspect_ratio
     body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
         mode="story_pitch_four_grid",
-        image_size="2K",
         model="cloud-image-standard",
     )
 
@@ -6848,6 +6857,8 @@ async def test_template_edit_story_pitch_four_grid_preserves_source_aspect_ratio
 
     assert result["ok"] is True
     assert captured["aspect_ratio"] == "9:16"
+    assert captured["image_size"] == "2K"
+    assert captured["preserve_source_dimensions"] is False
     assert "Each cell must preserve the source image aspect ratio" in captured["prompt"]
 
 

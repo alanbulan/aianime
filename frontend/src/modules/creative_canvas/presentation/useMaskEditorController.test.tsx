@@ -194,7 +194,7 @@ describe("useMaskEditorController", () => {
         maskUrl: "https://media.example/mask.png",
         prompt: "移除路人",
         aspectRatio: "original",
-        imageSize: "2K",
+        imageSize: "original",
         model: "image-edit-v1",
       },
       expect.any(Function),

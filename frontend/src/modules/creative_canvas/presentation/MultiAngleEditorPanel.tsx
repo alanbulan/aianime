@@ -251,6 +251,8 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
   }, [isOpen]);
 
   const title = t('multiAngleEditor.qualityPicker.title');
+  const selectedLabel =
+    value === 'original' ? t('modelParams.originalSize') : value;
 
   return (
     <div className="relative">
@@ -263,7 +265,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
         <Sparkles className="h-3 w-3 text-muted-foreground" />
         <span className="font-medium">{title}</span>
         <span className="text-muted-foreground">·</span>
-        <span className="text-foreground">{value}</span>
+        <span className="text-foreground">{selectedLabel}</span>
         <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
       </button>
       {isOpen && (
@@ -291,7 +293,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
                   }`}
                 >
                   {isActive && <Check className="h-3 w-3" />}
-                  {size}
+                  {size === 'original' ? t('modelParams.originalSize') : size}
                 </button>
               );
             })}

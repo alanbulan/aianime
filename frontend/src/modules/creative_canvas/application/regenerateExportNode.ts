@@ -32,7 +32,8 @@ import { isGridActionKey, type GridActionKey } from "../domain/gridAction";
  */
 interface FreezoneRedrawRequest {
   sourceUrl: string;
-  maskUrl: string;
+  maskUrl?: string;
+  prompt?: string;
   aspectRatio: CanvasRedrawAspectRatio;
   imageSize: CanvasRedrawImageSize;
   model: string;
@@ -78,7 +79,6 @@ function readFreezoneRedrawRequest(
   if (
     !req
     || typeof req.sourceUrl !== "string"
-    || typeof req.maskUrl !== "string"
     || typeof req.model !== "string"
     || !req.model.trim()
   ) {
@@ -86,7 +86,10 @@ function readFreezoneRedrawRequest(
   }
   return {
     sourceUrl: req.sourceUrl,
-    maskUrl: req.maskUrl,
+    ...(typeof req.maskUrl === "string" && req.maskUrl.trim()
+      ? { maskUrl: req.maskUrl }
+      : {}),
+    ...(typeof req.prompt === "string" ? { prompt: req.prompt } : {}),
     aspectRatio: resolveCanvasRedrawAspectRatio(req.aspectRatio),
     imageSize: resolveCanvasRedrawImageSize(req.imageSize),
     model: req.model.trim(),
@@ -149,7 +152,8 @@ async function regenerateFreezoneRedrawNode(
       {
         projectId,
         sourceUrl: request.sourceUrl,
-        maskUrl: request.maskUrl,
+        maskUrl: request.maskUrl ?? null,
+        prompt: request.prompt,
         aspectRatio: request.aspectRatio,
         imageSize: request.imageSize,
         model: request.model,

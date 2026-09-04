@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveCanvasRedrawAspectRatio,
   resolveCanvasRedrawImageSize,
+  resolveCanvasRedrawOutputAspectRatio,
 } from "./redraw";
 
 describe("redraw domain", () => {
@@ -15,7 +16,17 @@ describe("redraw domain", () => {
 
   it("normalizes stored image sizes", () => {
     expect(resolveCanvasRedrawImageSize("4K")).toBe("4K");
-    expect(resolveCanvasRedrawImageSize("8K")).toBe("2K");
-    expect(resolveCanvasRedrawImageSize(null)).toBe("2K");
+    expect(resolveCanvasRedrawImageSize("original")).toBe("original");
+    expect(resolveCanvasRedrawImageSize("8K")).toBe("original");
+    expect(resolveCanvasRedrawImageSize(null)).toBe("original");
+  });
+
+  it("uses the source ratio only for the original request", () => {
+    expect(resolveCanvasRedrawOutputAspectRatio("original", "9:16")).toBe(
+      "9:16",
+    );
+    expect(resolveCanvasRedrawOutputAspectRatio("16:9", "9:16")).toBe(
+      "16:9",
+    );
   });
 });

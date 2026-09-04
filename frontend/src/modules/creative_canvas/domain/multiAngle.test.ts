@@ -2,12 +2,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
+  MULTI_ANGLE_IMAGE_SIZES,
   normalizeMultiAngleYaw,
   resolveMultiAngleGenerationPreset,
   type MultiAnglePresetKey,
 } from "./multiAngle";
 
 describe("multi-angle domain", () => {
+  it("preserves the source dimensions by default", () => {
+    expect(DEFAULT_MULTI_ANGLE_IMAGE_SIZE).toBe("original");
+    expect(MULTI_ANGLE_IMAGE_SIZES).toContain("original");
+  });
+
   it("maps editor presets to generation presets", () => {
     const expected: Record<MultiAnglePresetKey, string> = {
       custom: "custom",

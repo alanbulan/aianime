@@ -157,4 +157,35 @@ describe("freezoneAiGateway", () => {
       },
     );
   });
+
+  it("preserves source geometry when a reference edit omits both selectors", async () => {
+    vi.mocked(prepareCanvasImageSource).mockResolvedValue("/static/base.png");
+    vi.mocked(prepareCanvasImageSources).mockResolvedValue([]);
+    vi.mocked(apiCall).mockResolvedValue({
+      task_type: "freezone_edit",
+      task_key: "edit-task",
+      job_id: "edit-job",
+    });
+
+    await gateway().submitGenerateImageJob(
+      { projectId: "project-1", canvasId: "canvas-1" },
+      {
+        prompt: "Retouch only",
+        model: "cloud-image-standard",
+        size: "",
+        aspectRatio: "",
+        referenceImages: ["base-data"],
+      },
+    );
+
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project-1/freezone/edit",
+      expect.objectContaining({
+        json: expect.objectContaining({
+          aspect_ratio: "original",
+          image_size: "original",
+        }),
+      }),
+    );
+  });
 });

@@ -125,6 +125,7 @@ describe('GridActionConfirmOverlay', () => {
         user_spawned: true,
         gridActionRequest: expect.objectContaining({
           actionKey: 'multiCameraGrid',
+          requestAspectRatio: 'original',
           catalogModelId: 'image-2',
           model: 'cloud-image-two',
           modelSelector: 'edit-route-two',

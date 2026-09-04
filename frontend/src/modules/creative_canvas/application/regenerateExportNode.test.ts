@@ -114,6 +114,37 @@ describe('regenerateExportImageNode', () => {
     );
   });
 
+  it('replays a full redraw with its prompt and no mask', async () => {
+    generateRedraw.mockResolvedValue({
+      task: {
+        job_id: 'redraw-job',
+        task_key: 'freezone_redraw:redraw-job',
+        task_type: 'freezone_redraw',
+      },
+      url: '/static/proj/redraw.png',
+    });
+
+    await regenerate({
+      freezoneRedrawRequest: {
+        aspectRatio: 'original',
+        imageSize: 'original',
+        model: 'cloud-image-standard',
+        prompt: '只调整服装颜色',
+        sourceUrl: '/static/proj/source.png',
+      },
+    });
+
+    expect(generateRedraw).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aspectRatio: 'original',
+        imageSize: 'original',
+        maskUrl: null,
+        prompt: '只调整服装颜色',
+      }),
+      expect.any(Function),
+    );
+  });
+
   it('replays a stored grid action with its original prompt and selected model', async () => {
     const task = {
       job_id: 'grid-job',

@@ -21,6 +21,7 @@ import {
 import { CANVAS_NODE_INPUT_PLACEHOLDER_CLASS } from './canvasNodeFrameStyles';
 import { ProviderModelPicker } from './ProviderModelPicker';
 import { DEFAULT_ASPECT_RATIO } from '../domain/aspectRatio';
+import { reduceAspectRatio } from '../domain/imageData';
 import {
   EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
@@ -32,6 +33,7 @@ import {
   DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
   DEFAULT_CANVAS_REDRAW_NUM_IMAGES,
+  resolveCanvasRedrawOutputAspectRatio,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
   type CanvasRedrawNumImages,
@@ -155,6 +157,9 @@ export function createRedrawOverlay({
     const [tool, setTool] = useState<MaskPaintingTool>('brush');
     const [brushSize, setBrushSize] = useState(DEFAULT_BRUSH);
     const [imageReady, setImageReady] = useState(false);
+    const [imageDims, setImageDims] = useState<{ w: number; h: number } | null>(
+      null,
+    );
     const [hasMask, setHasMask] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -192,6 +197,7 @@ export function createRedrawOverlay({
           c.height = h;
         });
         baseCanvas.getContext('2d')?.drawImage(img, 0, 0);
+        setImageDims({ w, h });
         setImageReady(true);
       };
       img.onerror = () => setError(t('redraw.sourceLoadFailed'));
@@ -290,6 +296,17 @@ export function createRedrawOverlay({
         apiModel: string,
         modelSelector?: string,
       ) => {
+        updateNodeData(nodeId, {
+          freezoneRedrawRequest: {
+            sourceUrl,
+            ...(maskUrl ? { maskUrl } : {}),
+            prompt,
+            aspectRatio,
+            imageSize,
+            model: apiModel,
+            modelSelector,
+          },
+        });
         let taskKey: string | null = null;
         try {
           const { url } = await generateCanvasRedraw(
@@ -343,10 +360,16 @@ export function createRedrawOverlay({
       setError(null);
       setSubmitting(true);
 
-      const sourceAspectRatio =
-        typeof (node.data as { aspectRatio?: unknown }).aspectRatio === 'string'
-          ? ((node.data as { aspectRatio?: string }).aspectRatio ?? DEFAULT_ASPECT_RATIO)
+      const storedAspectRatio = (node.data as { aspectRatio?: unknown }).aspectRatio;
+      const sourceAspectRatio = imageDims
+        ? reduceAspectRatio(imageDims.w, imageDims.h)
+        : typeof storedAspectRatio === 'string' && storedAspectRatio.includes(':')
+          ? storedAspectRatio
           : DEFAULT_ASPECT_RATIO;
+      const resultAspectRatio = resolveCanvasRedrawOutputAspectRatio(
+        aspectRatio,
+        sourceAspectRatio,
+      );
       const base = findNodePosition(
         node.id,
         EXPORT_RESULT_NODE_DEFAULT_WIDTH,
@@ -357,7 +380,7 @@ export function createRedrawOverlay({
       // 蒙版只上传一次、多张共用，再各自发起 N 次单图请求、独立轮询/回填/报错。
       const count = Math.max(1, numImages);
       const nodeIds = Array.from({ length: count }, (_unused, i) =>
-        createRedrawNode(sourceAspectRatio, hasMask, {
+        createRedrawNode(resultAspectRatio, hasMask, {
           x: base.x,
           y: base.y + i * (EXPORT_RESULT_NODE_LAYOUT_HEIGHT + RESULT_STACK_GAP),
         }),
@@ -411,6 +434,7 @@ export function createRedrawOverlay({
       createRedrawNode,
       findNodePosition,
       hasMask,
+      imageDims,
       node,
       numImages,
       onClose,
@@ -571,11 +595,19 @@ export function createRedrawOverlay({
                   disabled={submitting}
                 >
                   <SelectTrigger size="sm" className="min-w-20 border-transparent bg-transparent px-0 text-xs">
-                    <SelectValue />
+                    <SelectValue>
+                      {() =>
+                        imageSize === 'original'
+                          ? t('modelParams.originalSize')
+                          : imageSize
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent side="top" align="start">
                     {CANVAS_REDRAW_IMAGE_SIZES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                      <SelectItem key={s} value={s}>
+                        {s === 'original' ? t('modelParams.originalSize') : s}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

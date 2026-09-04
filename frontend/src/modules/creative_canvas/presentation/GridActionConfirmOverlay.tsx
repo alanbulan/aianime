@@ -16,6 +16,10 @@ import type {
   GridActionKey,
   GridActionRequest,
 } from '../domain/gridAction';
+import {
+  resolveGridActionAspectRatio,
+  resolveGridActionTemplateMode,
+} from '../domain/gridAction';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 import { inheritMainlineFields } from '../domain/inheritMainlineFields';
 import {
@@ -39,7 +43,7 @@ export interface GridActionSubmitPayload {
   prompt: string;
   cost: number;
   generationMode: 'image_reference';
-  requestAspectRatio: 'auto';
+  requestAspectRatio: 'original' | '3:2' | '16:9';
   catalogModelId: string;
   model: string;
   modelSelector?: string;
@@ -120,6 +124,13 @@ export function createGridActionConfirmOverlay({
           typeof (node.data as { aspectRatio?: unknown }).aspectRatio === 'string'
             ? ((node.data as { aspectRatio?: string }).aspectRatio ?? DEFAULT_ASPECT_RATIO)
             : DEFAULT_ASPECT_RATIO;
+        const requestAspectRatio = resolveGridActionAspectRatio(
+          resolveGridActionTemplateMode(request.key),
+        );
+        const resultAspectRatio =
+          requestAspectRatio === 'original'
+            ? sourceAspectRatio
+            : requestAspectRatio;
         const position = findNodePosition(
           node.id,
           EXPORT_RESULT_NODE_DEFAULT_WIDTH,
@@ -134,7 +145,7 @@ export function createGridActionConfirmOverlay({
           prompt: request.prompt,
           cost: request.cost,
           generationMode: 'image_reference',
-          requestAspectRatio: 'auto',
+          requestAspectRatio,
           catalogModelId: selectedModel.id,
           model: selectedModel.apiModel,
           modelSelector: selectedModel.routeSelector,
@@ -146,7 +157,7 @@ export function createGridActionConfirmOverlay({
             displayName: request.label,
             imageUrl: null,
             previewImageUrl: null,
-            aspectRatio: sourceAspectRatio,
+            aspectRatio: resultAspectRatio,
             resultKind: 'generic' as const,
             isGenerating: true,
             generationStartedAt,

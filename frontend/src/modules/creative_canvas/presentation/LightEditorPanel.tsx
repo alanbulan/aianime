@@ -106,9 +106,9 @@ const KELVIN_GRADIENT = `linear-gradient(to right, ${[
   .map((k) => kelvinToHex(k))
   .join(", ")})`;
 
-export const LIGHT_IMAGE_SIZES = ["1K", "2K", "4K"] as const;
+export const LIGHT_IMAGE_SIZES = ["original", "1K", "2K", "4K"] as const;
 export type LightImageSize = (typeof LIGHT_IMAGE_SIZES)[number];
-const DEFAULT_LIGHT_IMAGE_SIZE: LightImageSize = "2K";
+const DEFAULT_LIGHT_IMAGE_SIZE: LightImageSize = "original";
 
 export interface LightMainLightDescriptor {
   vector: { x: number; y: number };
@@ -774,6 +774,8 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
   }, [isOpen]);
 
   const title = t("lightEditor.qualityPicker.title");
+  const selectedLabel =
+    value === "original" ? t("modelParams.originalSize") : value;
 
   return (
     <div className="relative">
@@ -781,12 +783,12 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-7 w-[86px] items-center justify-center gap-1 rounded-full border border-border bg-muted px-2 text-[11px] text-foreground transition-colors hover:bg-accent"
+        className="inline-flex h-7 min-w-[86px] items-center justify-center gap-1 rounded-full border border-border bg-muted px-2 text-[11px] text-foreground transition-colors hover:bg-accent"
       >
         <Sparkles className="h-3 w-3 text-muted-foreground" />
         <span className="whitespace-nowrap font-medium">{title}</span>
         <span className="text-border">·</span>
-        <span className="text-muted-foreground">{value}</span>
+        <span className="text-muted-foreground">{selectedLabel}</span>
         <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
       </button>
       {isOpen && (
@@ -816,7 +818,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
                   }`}
                 >
                   {isActive && <Check className="h-3 w-3" />}
-                  {size}
+                  {size === "original" ? t("modelParams.originalSize") : size}
                 </button>
               );
             })}

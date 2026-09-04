@@ -68,6 +68,7 @@ from ai_anime.modules.creative_canvas.domain.image_editing_prompts import (
     build_image_relight_prompt,
     build_image_template_edit_prompt,
     resolve_image_template_aspect_ratio,
+    resolve_image_template_image_size,
 )
 from ai_anime.modules.creative_canvas.domain.media import (
     CreativeCanvasScreenshotTooLarge,
@@ -212,6 +213,7 @@ __all__ = [
     "plan_outpaint_canvas",
     "resolve_original_image_aspect_ratio",
     "resolve_image_template_aspect_ratio",
+    "resolve_image_template_image_size",
     "resolve_requested_image_aspect_ratio",
     "safe_creative_canvas_identifier_fragment",
     "remove_projected_preset_canvas",

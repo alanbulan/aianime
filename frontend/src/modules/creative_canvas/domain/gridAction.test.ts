@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  resolveGridActionAspectRatio,
   resolveGridActionTemplateMode,
   type GridActionKey,
 } from "./gridAction";
@@ -23,5 +24,18 @@ describe("grid-action domain", () => {
     for (const [key, mode] of Object.entries(expected)) {
       expect(resolveGridActionTemplateMode(key as GridActionKey)).toBe(mode);
     }
+  });
+
+  it("matches the backend output aspect ratio contract", () => {
+    expect(resolveGridActionAspectRatio("multi_camera_nine_grid")).toBe(
+      "original",
+    );
+    expect(resolveGridActionAspectRatio("character_face_three_view")).toBe(
+      "3:2",
+    );
+    expect(resolveGridActionAspectRatio("product_three_view")).toBe("3:2");
+    expect(resolveGridActionAspectRatio("character_three_view_generation")).toBe(
+      "16:9",
+    );
   });
 });

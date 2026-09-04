@@ -36,6 +36,13 @@ CREATIVE_CANVAS_IMAGE_MASK_EDIT_TASK_TYPE = "freezone_mask_edit"
 CreativeCanvasImageEditOperation = Literal["upscale", "outpaint", "redraw"]
 
 
+def _preserves_source_dimensions(aspect_ratio: str, image_size: str) -> bool:
+    return (
+        str(aspect_ratio or "").strip().lower() == "original"
+        and str(image_size or "").strip().lower() == "original"
+    )
+
+
 class InvalidCreativeCanvasImageEditingRequest(ValueError):
     pass
 
@@ -169,6 +176,10 @@ class CreativeCanvasImageEditingUseCases:
             source_path,
             command.requested_aspect_ratio,
         )
+        preserve_source_dimensions = _preserves_source_dimensions(
+            command.requested_aspect_ratio,
+            command.image_size,
+        )
 
         task_type = CREATIVE_CANVAS_IMAGE_EDIT_TASK_TYPE
         base_path = source_path
@@ -197,6 +208,7 @@ class CreativeCanvasImageEditingUseCases:
                 "prompt": prompt,
                 "aspect_ratio": aspect_ratio,
                 "image_size": command.image_size,
+                "preserve_source_dimensions": preserve_source_dimensions,
                 "quality": command.quality or "medium",
                 "model_id": command.model_id or "",
             }
@@ -207,6 +219,7 @@ class CreativeCanvasImageEditingUseCases:
                 "extra_reference_paths": [],
                 "aspect_ratio": aspect_ratio,
                 "image_size": command.image_size,
+                "preserve_source_dimensions": preserve_source_dimensions,
                 "quality": command.quality or "medium",
                 "model_id": command.model_id or "",
             }
@@ -243,6 +256,10 @@ class CreativeCanvasImageEditingUseCases:
             command.extra_reference_urls,
         )
         aspect_ratio = self.resolve_aspect_ratio(base_path, command.aspect_ratio)
+        preserve_source_dimensions = _preserves_source_dimensions(
+            command.aspect_ratio,
+            command.image_size,
+        )
         job_id = self._job_ids.new_id()
         try:
             model = self._models.resolve(command.model)
@@ -268,6 +285,7 @@ class CreativeCanvasImageEditingUseCases:
                     ],
                     "aspect_ratio": aspect_ratio,
                     "image_size": command.image_size,
+                    "preserve_source_dimensions": preserve_source_dimensions,
                     "model": model,
                     "quality": command.quality,
                     "extra_params": extra_params,

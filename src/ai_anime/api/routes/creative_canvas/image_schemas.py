@@ -66,8 +66,8 @@ class FreezoneEditRequest(BaseModel):
     prompt: str
     base_url: str
     extra_reference_urls: list[str] = Field(default_factory=list)
-    aspect_ratio: str = "2:3"
-    image_size: str = "2K"
+    aspect_ratio: str = "original"
+    image_size: str = "original"
     canvas_id: str = Field(
         default="",
         description="可选来源画布 id。用于后端按节点记录生成历史；为空时不记录节点历史。",
@@ -155,7 +155,10 @@ class FreezoneCharacterMultiViewRequest(BaseModel):
         description="景别档位：大特写 / 特写 / 近景 / 中景 / 全身 / 远景 / 大远景",
     )
     prompt: str = Field(default="", description="用户补充提示词，可为空")
-    image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
+    image_size: str = Field(
+        default="original",
+        description="输出分辨率档位；original 表示保持源图像素尺寸",
+    )
     camera: Optional[FreezoneImageCameraConfig] = Field(
         default=None,
         description="可选摄像机参数，用于补充镜头语言和摄影机规格",
@@ -199,7 +202,10 @@ class FreezoneTemplateEditRequest(BaseModel):
         )
     )
     prompt: str = Field(default="", description="用户补充提示词，可为空")
-    image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
+    image_size: Optional[str] = Field(
+        default=None,
+        description="可选输出分辨率档位；省略时由模板模式决定是否保持源图尺寸",
+    )
     camera: Optional[FreezoneImageCameraConfig] = Field(
         default=None,
         description="可选摄像机参数，用于补充镜头语言和摄影机规格",
@@ -319,7 +325,10 @@ class FreezoneRedrawRequest(BaseModel):
         default=None,
         description="可选风格模板参数，用于把内置风格模板注入图片提示词",
     )
-    image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
+    image_size: str = Field(
+        default="original",
+        description="输出分辨率档位；original 表示保持源图像素尺寸",
+    )
     model: str = Field(
         min_length=1,
         description="登录后 IMAGE 模型目录返回的平台 SKU",
@@ -369,7 +378,10 @@ class FreezoneRelightRequest(BaseModel):
         default="original",
         description="输出画幅；original 表示保持源图比例",
     )
-    image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
+    image_size: str = Field(
+        default="original",
+        description="输出分辨率档位；original 表示保持源图像素尺寸",
+    )
     model: str = Field(
         min_length=1,
         description="登录后 IMAGE 模型目录返回的平台 SKU",

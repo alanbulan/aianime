@@ -3170,6 +3170,7 @@
     "providerKeyRequiredDesc": "当前尚未配置 {{provider}} 的 API Key，请先到设置中完成配置后再使用该供应商。",
     "goConfigure": "去配置",
     "autoAspectRatio": "自动",
+    "originalSize": "原图尺寸",
     "quality": "画质",
     "aspectRatio": "比例",
     "enableWebSearch": "启用联网搜索",

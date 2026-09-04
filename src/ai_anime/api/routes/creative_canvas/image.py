@@ -57,6 +57,7 @@ from ai_anime.modules.creative_canvas.public import (
     creative_canvas_reverse_prompt_use_cases,
     generation_catalog_queries,
     resolve_image_template_aspect_ratio,
+    resolve_image_template_image_size,
 )
 
 logger = logging.getLogger("ai_anime.api.freezone")
@@ -187,8 +188,8 @@ async def freezone_multi_view(
         ),
         base_url=body.source_url,
         extra_reference_urls=(),
-        aspect_ratio="16:9",
-        image_size=body.image_size or "2K",
+        aspect_ratio="original",
+        image_size=body.image_size or "original",
         camera=body.camera,
         style=body.style,
         model=body.model,
@@ -227,7 +228,7 @@ async def freezone_relight(
             (body.lighting_reference_url,) if body.lighting_reference_url else ()
         ),
         aspect_ratio=body.aspect_ratio,
-        image_size=body.image_size or "2K",
+        image_size=body.image_size or "original",
         camera=None,
         style=None,
         model=body.model,
@@ -258,7 +259,7 @@ async def freezone_template_edit(
         base_url=body.source_url,
         extra_reference_urls=(),
         aspect_ratio=resolve_image_template_aspect_ratio(body.mode),
-        image_size=body.image_size or "2K",
+        image_size=body.image_size or resolve_image_template_image_size(body.mode),
         camera=body.camera,
         style=body.style,
         model=body.model,

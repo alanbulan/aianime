@@ -26,10 +26,14 @@ import {
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from './canvasNodeControlStyles';
 import { NODE_TOOLBAR_CLASS } from './canvasNodeToolbarConfig';
+import { DEFAULT_ASPECT_RATIO } from '../domain/aspectRatio';
 import { DEFAULT_CANVAS_NODE_WIDTH } from '../domain/canvasGeometry';
+import { reduceAspectRatio } from '../domain/imageData';
 import {
   CANVAS_REDRAW_IMAGE_SIZES,
+  DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
+  resolveCanvasRedrawOutputAspectRatio,
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
 } from '../domain/redraw';
@@ -100,6 +104,7 @@ export type EraseOverlayUploadCanvasAsset = (
 ) => Promise<{ filename: string; url: string }>;
 
 const ASPECT_RATIO_OPTIONS: readonly CanvasRedrawAspectRatio[] = [
+  'original',
   '16:9',
   '9:16',
   '1:1',
@@ -172,9 +177,17 @@ export function createEraseOverlay({
       DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
     );
     const [numImages, setNumImages] = useState<number>(1);
-    const [aspectRatio, setAspectRatio] = useState<CanvasRedrawAspectRatio>('16:9');
+    const [aspectRatio, setAspectRatio] = useState<CanvasRedrawAspectRatio>(
+      DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
+    );
     const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
+    const sourceAspectRatio = useMemo(() => {
+      if (imageDims) return reduceAspectRatio(imageDims.w, imageDims.h);
+      const stored = (node.data as { aspectRatio?: unknown }).aspectRatio;
+      if (typeof stored === 'string' && stored.includes(':')) return stored;
+      return DEFAULT_ASPECT_RATIO;
+    }, [imageDims, node.data]);
 
     // 节点在画布坐标系里的尺寸（flow 单位）。蒙版画布要按当前缩放贴合到节点上的图。
     const nodeWidth =
@@ -325,7 +338,7 @@ export function createEraseOverlay({
         nodeId: string,
         sourceUrl: string,
         maskUrl: string,
-        resultAspectRatio: CanvasRedrawAspectRatio,
+        requestAspectRatio: CanvasRedrawAspectRatio,
         model: string,
         modelSelector?: string,
       ) => {
@@ -334,7 +347,7 @@ export function createEraseOverlay({
           freezoneRedrawRequest: {
             sourceUrl,
             maskUrl,
-            aspectRatio: resultAspectRatio,
+            aspectRatio: requestAspectRatio,
             imageSize,
             model,
             modelSelector,
@@ -347,7 +360,7 @@ export function createEraseOverlay({
               projectId: project,
               sourceUrl,
               maskUrl,
-              aspectRatio: resultAspectRatio,
+              aspectRatio: requestAspectRatio,
               imageSize,
               model,
               modelSelector,
@@ -392,7 +405,11 @@ export function createEraseOverlay({
       setError(null);
       setSubmitting(true);
 
-      const resultAspectRatio = aspectRatio;
+      const requestAspectRatio = aspectRatio;
+      const resultAspectRatio = resolveCanvasRedrawOutputAspectRatio(
+        requestAspectRatio,
+        sourceAspectRatio,
+      );
       const base = findNodePosition(
         node.id,
         EXPORT_RESULT_NODE_DEFAULT_WIDTH,
@@ -429,7 +446,7 @@ export function createEraseOverlay({
             id,
             sourceUrl,
             maskUrl,
-            resultAspectRatio,
+            requestAspectRatio,
             selectedModel.apiModel,
             selectedModel.routeSelector,
           ),
@@ -461,6 +478,7 @@ export function createEraseOverlay({
       runEraseGeneration,
       selectedModel,
       setSelectedNode,
+      sourceAspectRatio,
       submitting,
       updateNodeData,
     ]);
@@ -600,14 +618,24 @@ export function createEraseOverlay({
               label="比例"
               value={aspectRatio}
               options={ASPECT_RATIO_OPTIONS}
-              renderLabel={(v) => ASPECT_RATIO_LABELS[v]}
+              renderLabel={(v) =>
+                v === 'original'
+                  ? `${ASPECT_RATIO_LABELS[v]} ${sourceAspectRatio}`
+                  : ASPECT_RATIO_LABELS[v]
+              }
               onChange={setAspectRatio}
             />
             <EraseDropdown<CanvasRedrawImageSize>
               label="分辨率"
               value={imageSize}
               options={CANVAS_REDRAW_IMAGE_SIZES}
-              renderLabel={(v) => v}
+              renderLabel={(v) =>
+                v === 'original'
+                  ? imageDims
+                    ? `原图 ${imageDims.w}×${imageDims.h}`
+                    : '原图尺寸'
+                  : v
+              }
               onChange={setImageSize}
             />
             <EraseDropdown<number>

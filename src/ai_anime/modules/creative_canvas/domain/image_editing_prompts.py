@@ -261,6 +261,16 @@ def resolve_image_template_aspect_ratio(mode: str) -> str:
     return ratios.get(mode, "16:9")
 
 
+def resolve_image_template_image_size(mode: str) -> str:
+    if mode in {
+        "cinematic_light_correction",
+        "image_projection_after_3s",
+        "image_projection_before_5s",
+    }:
+        return "original"
+    return "2K"
+
+
 def _describe_color_temperature(kelvin: int | None) -> str | None:
     if kelvin is None:
         return None

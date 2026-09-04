@@ -3170,6 +3170,7 @@
     "providerKeyRequiredDesc": "{{provider}} is not configured yet. Please add its API key in Settings before using it.",
     "goConfigure": "Go configure",
     "autoAspectRatio": "Auto",
+    "originalSize": "Original size",
     "quality": "Quality",
     "aspectRatio": "Aspect Ratio",
     "enableWebSearch": "Enable web search",

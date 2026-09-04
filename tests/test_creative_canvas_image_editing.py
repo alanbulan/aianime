@@ -8,8 +8,11 @@ from fastapi import HTTPException
 from PIL import Image
 
 from ai_anime.api.routes.creative_canvas.image_schemas import (
+    FreezoneCharacterMultiViewRequest,
+    FreezoneEditRequest,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
+    FreezoneRelightRequest,
     FreezoneUpscaleRequest,
 )
 from ai_anime.api.routes.creative_canvas import image as image_editing_routes
@@ -92,6 +95,87 @@ def _receipt(
         queue="inline",
         task_id="task-1",
     )
+
+
+def test_source_preserving_edit_requests_default_to_original_geometry() -> None:
+    assert FreezoneEditRequest(
+        prompt="edit",
+        base_url="source.png",
+        model="image-model",
+    ).model_dump(include={"aspect_ratio", "image_size"}) == {
+        "aspect_ratio": "original",
+        "image_size": "original",
+    }
+    assert FreezoneRedrawRequest(
+        source_url="source.png",
+        model="image-model",
+    ).model_dump(include={"aspect_ratio", "image_size"}) == {
+        "aspect_ratio": "original",
+        "image_size": "original",
+    }
+    assert FreezoneRelightRequest(
+        source_url="source.png",
+        model="image-model",
+    ).model_dump(include={"aspect_ratio", "image_size"}) == {
+        "aspect_ratio": "original",
+        "image_size": "original",
+    }
+    assert FreezoneCharacterMultiViewRequest(
+        source_url="source.png",
+        model="image-model",
+    ).image_size == "original"
+    assert FreezoneUpscaleRequest(
+        source_url="source.png",
+        model="image-model",
+    ).image_size == "2K"
+    assert FreezoneOutpaintRequest(
+        source_url="source.png",
+        model="image-model",
+    ).image_size == "2K"
+
+
+@pytest.mark.asyncio
+async def test_multi_view_route_keeps_source_geometry_by_default(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+    captured: dict[str, StartCreativeCanvasReferenceImageEditingCommand] = {}
+
+    async def fake_resolve_project_scope(*_args: object, **_kwargs: object):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class CapturingUseCases:
+        async def start_reference_edit(
+            self,
+            command: StartCreativeCanvasReferenceImageEditingCommand,
+        ) -> CreativeCanvasTaskReceipt:
+            captured["command"] = command
+            return _receipt("freezone_edit", "multi-view")
+
+    monkeypatch.setattr(
+        image_editing_routes,
+        "resolve_project_scope",
+        fake_resolve_project_scope,
+    )
+    monkeypatch.setattr(
+        image_editing_routes,
+        "creative_canvas_reference_image_editing_use_cases",
+        lambda: CapturingUseCases(),
+    )
+
+    await image_editing_routes.freezone_multi_view(
+        project="project-1",
+        body=FreezoneCharacterMultiViewRequest(
+            source_url="source.png",
+            model="image-model",
+        ),
+        user={"username": "alice"},
+    )
+
+    command = captured["command"]
+    assert command.aspect_ratio == "original"
+    assert command.image_size == "original"
 
 
 class _FixedJobIds:
@@ -300,6 +384,7 @@ async def test_image_upscale_enqueues_exact_freezone_edit_payload(tmp_path: Path
             "extra_reference_paths": [],
             "aspect_ratio": "16:9",
             "image_size": "2K",
+            "preserve_source_dimensions": False,
             "quality": "low",
             "model_id": "",
             "model": "gpt-image-2",
@@ -346,6 +431,7 @@ async def test_image_outpaint_enqueues_padded_freezone_edit_payload(tmp_path: Pa
             "extra_reference_paths": [],
             "aspect_ratio": "16:9",
             "image_size": "4K",
+            "preserve_source_dimensions": False,
             "quality": "medium",
             "model_id": "",
             "model": "gpt-image-2",
@@ -387,6 +473,7 @@ async def test_image_redraw_without_mask_enqueues_freezone_edit_payload(
             "extra_reference_paths": [],
             "aspect_ratio": "16:9",
             "image_size": "2K",
+            "preserve_source_dimensions": False,
             "quality": "high",
             "model_id": "",
             "model": "gpt-image-2",
@@ -409,8 +496,8 @@ async def test_masked_redraw_uses_erase_prompt_and_mask_edit_payload(tmp_path: P
             source_url="freezone/_uploads/source.png",
             mask_url="freezone/_uploads/mask.png",
             prompt="   ",
-            requested_aspect_ratio="1:1",
-            image_size="2K",
+            requested_aspect_ratio="original",
+            image_size="original",
             model="",
             quality=None,
         )
@@ -427,8 +514,9 @@ async def test_masked_redraw_uses_erase_prompt_and_mask_edit_payload(tmp_path: P
             "base_path": source.as_posix(),
             "mask_path": mask.as_posix(),
             "prompt": "composed prompt",
-            "aspect_ratio": "1:1",
-            "image_size": "2K",
+            "aspect_ratio": "16:9",
+            "image_size": "original",
+            "preserve_source_dimensions": True,
             "quality": "medium",
             "model_id": "",
             "model": "gpt-image-2",
@@ -458,7 +546,7 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
             base_url="freezone/_uploads/base.png",
             extra_reference_urls=("freezone/_uploads/reference.png",),
             aspect_ratio="original",
-            image_size="4K",
+            image_size="original",
             camera=camera,
             style=style,
             model="image-model-b",
@@ -483,7 +571,8 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
             "base_path": base.as_posix(),
             "extra_reference_paths": [reference.as_posix()],
             "aspect_ratio": "9:16",
-            "image_size": "4K",
+            "image_size": "original",
+            "preserve_source_dimensions": True,
             "model": "gpt-image-2",
             "quality": "high",
             "extra_params": {},

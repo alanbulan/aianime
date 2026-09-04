@@ -258,7 +258,10 @@ async def _run_freezone_edit_async(
                         payload.get("extra_reference_paths") or ()
                     ),
                     aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
-                    image_size=str(payload.get("image_size") or "2K"),
+                    image_size=str(payload.get("image_size") or "original"),
+                    preserve_source_dimensions=bool(
+                        payload.get("preserve_source_dimensions", False)
+                    ),
                     model=payload.get("model"),
                     model_selector=str(payload.get("model_id") or "") or None,
                     extra_params=payload.get("extra_params") or {},
@@ -320,7 +323,10 @@ async def _run_freezone_mask_edit_async(
             mask_path=str(payload["mask_path"]),
             prompt=str(payload.get("prompt") or ""),
             aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
-            image_size=str(payload.get("image_size") or "2K"),
+            image_size=str(payload.get("image_size") or "original"),
+            preserve_source_dimensions=bool(
+                payload.get("preserve_source_dimensions", False)
+            ),
             quality=str(payload.get("quality") or "medium"),
             model=str(payload.get("model") or ""),
             model_selector=str(payload.get("model_id") or "") or None,

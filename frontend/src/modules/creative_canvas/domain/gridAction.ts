@@ -21,6 +21,8 @@ export type CanvasTemplateEditMode =
   | "image_projection_after_3s"
   | "image_projection_before_5s";
 
+export type CanvasTemplateEditAspectRatio = "original" | "3:2" | "16:9";
+
 const GRID_ACTION_TEMPLATE_MODE: Record<
   GridActionKey,
   CanvasTemplateEditMode
@@ -55,4 +57,17 @@ export function resolveGridActionTemplateMode(
   key: GridActionKey,
 ): CanvasTemplateEditMode {
   return GRID_ACTION_TEMPLATE_MODE[key];
+}
+
+export function resolveGridActionAspectRatio(
+  mode: CanvasTemplateEditMode,
+): CanvasTemplateEditAspectRatio {
+  if (
+    mode === "character_face_three_view"
+    || mode === "product_three_view"
+  ) {
+    return "3:2";
+  }
+  if (mode === "character_three_view_generation") return "16:9";
+  return "original";
 }

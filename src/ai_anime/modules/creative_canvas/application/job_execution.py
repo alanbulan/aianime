@@ -32,9 +32,10 @@ class EditCreativeCanvasImageJobCommand:
     job_id: str
     prompt: str
     base_path: str
+    aspect_ratio: str
+    image_size: str
     extra_reference_paths: tuple[str, ...] = ()
-    aspect_ratio: str = "2:3"
-    image_size: str = "2K"
+    preserve_source_dimensions: bool = False
     model: str | None = None
     model_selector: str | None = None
     extra_params: Mapping[str, object] | None = None
@@ -49,8 +50,9 @@ class MaskEditCreativeCanvasImageJobCommand:
     base_path: str
     mask_path: str
     prompt: str
-    aspect_ratio: str = "1:1"
-    image_size: str = "2K"
+    aspect_ratio: str
+    image_size: str
+    preserve_source_dimensions: bool = False
     quality: str = "medium"
     model: str | None = None
     model_selector: str | None = None

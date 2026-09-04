@@ -55,7 +55,7 @@ describe('LightEditorPanel', () => {
         catalogModelId: 'image-2',
         apiModel: 'cloud-image-two',
         modelSelector: 'edit-route-two',
-        imageSize: '2K',
+        imageSize: 'original',
       }),
     );
   });

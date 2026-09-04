@@ -12,10 +12,16 @@ export type CanvasRedrawAspectRatio =
 export const DEFAULT_CANVAS_REDRAW_ASPECT_RATIO: CanvasRedrawAspectRatio =
   "original";
 
-export const CANVAS_REDRAW_IMAGE_SIZES = ["1K", "2K", "4K"] as const;
+export const CANVAS_REDRAW_IMAGE_SIZES = [
+  "original",
+  "1K",
+  "2K",
+  "4K",
+] as const;
 export type CanvasRedrawImageSize =
   (typeof CANVAS_REDRAW_IMAGE_SIZES)[number];
-export const DEFAULT_CANVAS_REDRAW_IMAGE_SIZE: CanvasRedrawImageSize = "2K";
+export const DEFAULT_CANVAS_REDRAW_IMAGE_SIZE: CanvasRedrawImageSize =
+  "original";
 
 export const CANVAS_REDRAW_NUM_IMAGES = [1, 2, 3, 4] as const;
 export type CanvasRedrawNumImages =
@@ -38,4 +44,11 @@ export function resolveCanvasRedrawImageSize(
     (CANVAS_REDRAW_IMAGE_SIZES as readonly string[]).includes(value)
     ? (value as CanvasRedrawImageSize)
     : DEFAULT_CANVAS_REDRAW_IMAGE_SIZE;
+}
+
+export function resolveCanvasRedrawOutputAspectRatio(
+  requested: CanvasRedrawAspectRatio,
+  sourceAspectRatio: string,
+): string {
+  return requested === "original" ? sourceAspectRatio : requested;
 }
