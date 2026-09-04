@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import base64
+import io
+
 import pytest
+from PIL import Image
 from pydantic_ai.models.test import TestModel
 
 from ai_anime.modules.model_usage import public as config
@@ -10,7 +14,9 @@ from ai_anime.modules.creative_canvas.application.vision_analysis import (
     creative_canvas_image_media_type,
 )
 from ai_anime.modules.creative_canvas.infrastructure.vision_model import (
+    CREATIVE_CANVAS_VISION_MAX_RAW_IMAGE_BYTES,
     call_creative_canvas_vision_model,
+    compact_creative_canvas_vision_inputs,
 )
 
 
@@ -98,3 +104,45 @@ async def test_vision_model_ignores_task_environment_and_uses_router_assignment(
 )
 def test_image_media_type(path: str, expected: str) -> None:
     assert creative_canvas_image_media_type(path) == expected
+
+
+@pytest.mark.asyncio
+async def test_vision_inputs_are_compacted_below_json_relay_budget() -> None:
+    images: list[CreativeCanvasVisionInput] = []
+    for offset in (0, 40):
+        source = Image.effect_noise((960, 540), 100).convert("RGB")
+        source = source.point(lambda value: min(255, value + offset))
+        with io.BytesIO() as buffer:
+            source.save(buffer, format="PNG")
+            images.append(
+                CreativeCanvasVisionInput(
+                    data=buffer.getvalue(),
+                    media_type="image/png",
+                )
+            )
+        source.close()
+
+    compacted = await compact_creative_canvas_vision_inputs(
+        tuple(images),
+        max_total_bytes=80_000,
+    )
+
+    assert len(compacted) == 2
+    assert sum(len(image.data) for image in compacted) <= 80_000
+    assert all(image.media_type == "image/jpeg" for image in compacted)
+    assert all(image.data.startswith(b"\xff\xd8") for image in compacted)
+
+    encoded_bytes = sum(
+        len(base64.b64encode(image.data)) for image in compacted
+    )
+    assert encoded_bytes < 4 * 1024 * 1024
+
+
+@pytest.mark.asyncio
+async def test_vision_inputs_below_budget_are_not_reencoded() -> None:
+    images = (CreativeCanvasVisionInput(data=b"small-image"),)
+
+    compacted = await compact_creative_canvas_vision_inputs(images)
+
+    assert compacted is images
+    assert CREATIVE_CANVAS_VISION_MAX_RAW_IMAGE_BYTES < 4 * 1024 * 1024
