@@ -336,6 +336,10 @@ def _normalize_api_path(path: str) -> str:
     current_project = _default_project_id()
     parts = raw.split("/")
     if current_project and len(parts) >= 5 and parts[1:4] == ["api", "v1", "projects"]:
+        if parts[4] == "summaries":
+            raise ValueError(
+                "project summaries are unavailable inside a project-bound assistant session"
+            )
         parts[4] = current_project
         raw = "/".join(parts)
     if any(part == ".." for part in raw.split("/")):
@@ -564,7 +568,7 @@ def _handle_question(args: dict[str, Any], **_: Any) -> str:
             "questions": _normalize_decision_questions(args.get("questions")),
         }
         project_id = str(
-            args.get("project_id") or _default_project_id() or ""
+            _default_project_id() or args.get("project_id") or ""
         ).strip()
         if project_id:
             body["project_id"] = project_id
@@ -2185,14 +2189,15 @@ def _handle_start_ingest(args: dict[str, Any], **_: Any) -> str:
 def _handle_build_characters(args: dict[str, Any], **_: Any) -> str:
     """Trigger character extraction from the project's knowledge graph.
 
-    Runs only the ``characters`` node in the canonical graph. Requires ingest
-    to be complete and reports that prerequisite if it is missing. Wait with
+    Uses the same character-build endpoint as the character panel. Requires
+    ingest to be complete and reports that prerequisite if it is missing. Wait with
     ``ai_anime_wait_task(task_key=<returned task_key>)`` and read
     results with ``ai_anime_get(path="/projects/{project}/characters")``.
     """
     try:
+        project = _project_from_args(args)
         return tool_result(
-            _start_script_workflow(args, mode="single", target="characters")
+            _request("POST", f"/api/v1/projects/{project}/characters/build")
         )
     except Exception as exc:
         return tool_error(str(exc))
@@ -3354,6 +3359,7 @@ def _schema(name: str, description: str, properties: dict[str, Any], required: l
             "type": "object",
             "properties": bound_properties,
             "required": [key for key in (required or []) if key in bound_properties],
+            "additionalProperties": False,
         },
     }
 
@@ -3876,9 +3882,9 @@ TOOLS = (
         "ai_anime_build_characters",
         _schema(
             "ai_anime_build_characters",
-            "Run only the character-extraction node in the canonical script-production graph. "
-            "It reports a missing ingest prerequisite instead of bypassing the graph. Wait for "
-            "the returned workflow task_key, then read /projects/{project}/characters.",
+            "Use the same character-build operation as the character panel. It reports a missing "
+            "ingest prerequisite. Wait for the returned task_key, then read "
+            "/projects/{project}/characters.",
             {
                 "project_id": {
                     "type": "string",
@@ -4491,7 +4497,11 @@ TOOLS = (
                     "type": "boolean",
                     "description": "Generate and mix episode background music. Backend default: false.",
                 },
-                "resolution": {"type": "string", "description": "Output resolution. Backend default: 720x1280."},
+                "resolution": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*x[1-9][0-9]*$",
+                    "description": "Exact even-pixel output size as WIDTHxHEIGHT. Backend default: 720x1280.",
+                },
             },
             ["episode"],
         ),

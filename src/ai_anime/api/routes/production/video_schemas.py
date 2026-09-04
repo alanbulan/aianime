@@ -1,8 +1,9 @@
 """Inbound schemas for production episode video endpoints."""
 
+import re
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class VideoReferenceAssetDeleteRequest(BaseModel):
@@ -37,6 +38,18 @@ class VideoComposeRequest(BaseModel):
     add_subtitles: bool = True
     add_bgm: bool = False
     resolution: str = "720x1280"
+
+    @field_validator("resolution")
+    @classmethod
+    def validate_resolution(cls, value: str) -> str:
+        normalized = str(value).strip().lower().replace("×", "x")
+        match = re.fullmatch(r"([1-9]\d*)x([1-9]\d*)", normalized)
+        if not match:
+            raise ValueError("resolution must use WIDTHxHEIGHT, for example 720x1280")
+        width, height = (int(part) for part in match.groups())
+        if width % 2 or height % 2:
+            raise ValueError("resolution width and height must both be even")
+        return f"{width}x{height}"
 
 
 class SingleVideoRequest(BaseModel):

@@ -702,7 +702,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         {
           json: {
             beat_indices: command.beatIndices,
-            mode_key: command.modeKey ?? "1x1_2-3_sketch",
+            ...(command.modeKey !== undefined ? { mode_key: command.modeKey } : {}),
             ...renderGenerationSettingsJson(command),
           },
         },

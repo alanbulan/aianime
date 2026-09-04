@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
 
 from ai_anime.api.routes.narrative_planning.episodes_schemas import EpisodeUpdate
 from ai_anime.modules.narrative_planning.public import NovelEpisode
@@ -28,6 +29,14 @@ def test_episode_asset_task_scope_is_stable_per_episode_and_kind():
     assert EpisodeAssetPlanningTask(4, "prop").scope == "prop_run_ep004"
     assert EpisodeAssetPlanningTask(4, "scene").scope == "scene_run_ep004"
     assert EpisodeAssetPlanningTask(5, "prop").scope == "prop_run_ep005"
+
+
+def test_episode_update_has_one_canonical_summary_input() -> None:
+    assert EpisodeUpdate(summary="新摘要").model_dump(exclude_none=True) == {
+        "summary": "新摘要"
+    }
+    with pytest.raises(ValidationError, match="content_summary"):
+        EpisodeUpdate.model_validate({"content_summary": "旧字段"})
 
 
 class _EpisodeStore:
@@ -270,6 +279,26 @@ async def test_patch_episode_source_fields_persists_and_returns_detail(tmp_path,
             },
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_patch_episode_maps_public_summary_to_storage_field(tmp_path, monkeypatch):
+    from ai_anime.api.routes.narrative_planning import episodes
+
+    episode = NovelEpisode(number=1, title="第一集")
+    store = _EpisodeStore(episode)
+    _patch_project_and_store(monkeypatch, episodes, tmp_path, store)
+
+    response = await episodes.update_episode(
+        project="demo",
+        episode_num=1,
+        body=EpisodeUpdate(summary="新摘要"),
+        user={"username": "admin"},
+    )
+
+    assert response["ok"] is True
+    assert response["data"]["summary"] == "新摘要"
+    assert store.updates == [(1, {"content_summary": "新摘要"})]
 
 
 @pytest.mark.asyncio

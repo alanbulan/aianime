@@ -38,7 +38,6 @@ export type NarrativeTaskStartResult =
 export interface EpisodeUpdatePayload {
   title?: string;
   summary?: string;
-  content_summary?: string;
   character_names?: string[];
   key_events?: string[];
   cliffhanger?: string;

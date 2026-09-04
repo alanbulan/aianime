@@ -145,6 +145,40 @@ def test_question_tool_blocks_on_canonical_decision_endpoint(
     ]
 
 
+def test_question_tool_keeps_bound_project_authoritative(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-bound")
+    bodies: list[dict] = []
+
+    def fake_request(method: str, path: str, *, body=None, **_kwargs):
+        assert (method, path) == ("POST", "/api/v1/chat/decisions")
+        bodies.append(body)
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_question(
+        {
+            "project_id": "project-other",
+            "questions": [
+                {
+                    "header": "范围",
+                    "question": "使用当前项目吗？",
+                    "options": [
+                        {"label": "当前项目", "description": "使用已绑定项目。"},
+                        {"label": "取消", "description": "停止当前操作。"},
+                    ],
+                }
+            ],
+        }
+    )
+
+    assert result["ok"] is True
+    assert bodies[0]["project_id"] == "project-bound"
+
+
 def test_question_tool_rejects_ambiguous_or_unstructured_input(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
@@ -265,6 +299,27 @@ def test_start_ingest_schema_only_requires_filename(ai_anime_plugin) -> None:
     )
 
     assert parameters["required"] == ["filename"]
+
+
+def test_build_characters_uses_same_endpoint_as_character_panel(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "task_type": "build_characters", "task_id": "task-1"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_build_characters({})
+
+    assert result["ok"] is True
+    assert calls == [
+        ("POST", "/api/v1/projects/project-1/characters/build", None),
+    ]
 
 
 def test_generic_post_rejects_ingest_start(
@@ -1385,7 +1440,18 @@ def test_bound_project_rewrites_generic_paths_and_hides_project_schema_field(
         "type": "object",
         "properties": {"episode": {"type": "integer"}},
         "required": ["episode"],
+        "additionalProperties": False,
     }
+
+
+def test_bound_project_rejects_global_project_summaries_collection(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-bound")
+
+    with pytest.raises(ValueError, match="project-bound assistant session"):
+        ai_anime_plugin._normalize_api_path("/projects/summaries")
 
 
 def test_normalize_api_path_encodes_unicode_segments_without_double_encoding(

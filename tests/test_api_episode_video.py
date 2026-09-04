@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
 
 from ai_anime.api.routes.production.video_schemas import VideoComposeRequest
 from ai_anime.modules.production.public import (
@@ -11,6 +12,14 @@ from ai_anime.modules.production.public import (
     EpisodeBeatsMissing,
     FinalEpisodeVideoStatus,
 )
+
+
+def test_compose_video_normalizes_and_rejects_invalid_resolution() -> None:
+    assert VideoComposeRequest(resolution="1080×1920").resolution == "1080x1920"
+    with pytest.raises(ValidationError, match="WIDTHxHEIGHT"):
+        VideoComposeRequest(resolution="1080p")
+    with pytest.raises(ValidationError, match="must both be even"):
+        VideoComposeRequest(resolution="721x1280")
 
 
 @pytest.mark.asyncio

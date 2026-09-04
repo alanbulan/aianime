@@ -176,7 +176,7 @@ describe("sketch generation query", () => {
 });
 
 describe("selected sketch regeneration query", () => {
-  it("maps selected beats and the default sketch mode to the backend request", async () => {
+  it("maps selected beats and lets the backend own the default sketch mode", async () => {
     let requestedPath = "";
     let receivedBody: unknown = undefined;
     server.use(
@@ -209,7 +209,6 @@ describe("selected sketch regeneration query", () => {
     );
     expect(receivedBody).toEqual({
       beat_indices: [2, 4],
-      mode_key: "1x1_2-3_sketch",
       image_generation_selection: "cloud:image-model-current",
     });
   });

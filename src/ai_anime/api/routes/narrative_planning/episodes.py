@@ -269,6 +269,8 @@ async def update_episode(
     )
 
     updates = body.model_dump(exclude_none=True)
+    if "summary" in updates:
+        updates["content_summary"] = updates.pop("summary")
     try:
         data = await update_episode_metadata(
             store,

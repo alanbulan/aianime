@@ -24,7 +24,7 @@ class BeatsRegenerateRequest(BaseModel):
 class SketchRegenerateRequest(BaseModel):
     beat_indices: list[int]
     style: Optional[str] = None
-    mode_key: str = "1x1_2-3"
+    mode_key: str = "1x1_2-3_sketch"
     image_generation_selection: Optional[str] = None
 
 

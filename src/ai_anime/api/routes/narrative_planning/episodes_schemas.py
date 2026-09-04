@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from ai_anime.modules.narrative_planning.public import SceneRef
 
@@ -27,14 +27,10 @@ class InsertManualShotRequest(BaseModel):
 
 
 class EpisodeUpdate(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(extra="forbid")
 
     title: Optional[str] = None
-    content_summary: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices("summary", "content_summary"),
-        serialization_alias="summary",
-    )
+    summary: Optional[str] = None
     character_names: Optional[list[str]] = None
     key_events: Optional[list[str]] = None
     cliffhanger: Optional[str] = None
