@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, beforeAll, afterAll } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { TaskList } from "@/components/task-center/task-list";
@@ -54,6 +55,8 @@ beforeAll(async () => {
         translation: {
           taskCenter: {
             panel: {
+              projectFilter: "Filter tasks by project",
+              allProjects: "All projects",
               filters: { all: "All", running: "Running", failed: "Failed", done: "Done" },
               empty: "No tasks yet. Trigger a generation action to see them here.",
               emptyFiltered: "No {{filter}} tasks.",
@@ -85,6 +88,27 @@ beforeEach(() => {
 });
 
 describe("TaskList", () => {
+  it("uses the app select and updates the project filter", async () => {
+    const user = userEvent.setup();
+    useTaskCenterStore.getState().setProjects([
+      { id: "project-a", name: "Project A" },
+      { id: "project-b", name: "Project B" },
+    ]);
+
+    const { container } = renderList();
+    expect(container.querySelector("select")).toBeNull();
+
+    const trigger = screen.getByRole("combobox", {
+      name: "Filter tasks by project",
+    });
+    expect(trigger).toHaveTextContent("All projects");
+    await user.click(trigger);
+    await user.click(await screen.findByRole("option", { name: "Project B" }));
+
+    expect(useTaskCenterStore.getState().projectFilter).toBe("project-b");
+    expect(trigger).toHaveTextContent("Project B");
+  });
+
   it("renders empty state when no tasks", () => {
     renderList();
     expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument();

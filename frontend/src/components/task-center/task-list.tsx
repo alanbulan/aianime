@@ -8,12 +8,20 @@ import {
   type Filter,
 } from "@/modules/task_execution/public";
 import type { TaskState } from "@/modules/task_execution/public";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TaskRow } from "./task-row";
 import { EmptyState } from "./empty-state";
 import { cn } from "@/lib/utils";
 
 const FILTERS: Filter[] = ["all", "running", "failed", "done"];
 const TASK_ROW_HEIGHT = 52;
+const ALL_PROJECTS = "__task_center_all_projects__";
 
 function filterTasks(arr: TaskState[], filter: Filter): TaskState[] {
   switch (filter) {
@@ -91,22 +99,30 @@ export function TaskList() {
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-border px-3 py-2">
-        <label htmlFor="task-center-project-filter" className="sr-only">
-          {t("taskCenter.panel.projectFilter")}
-        </label>
-        <select
-          id="task-center-project-filter"
-          value={projectFilter ?? ""}
-          onChange={(event) => setProjectFilter(event.target.value || null)}
-          className="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground outline-none focus:border-primary"
+        <Select
+          value={projectFilter ?? ALL_PROJECTS}
+          onValueChange={(value) =>
+            setProjectFilter(value === ALL_PROJECTS ? null : (value ?? null))
+          }
         >
-          <option value="">{t("taskCenter.panel.allProjects")}</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            size="sm"
+            className="w-full bg-background px-2 text-xs"
+            aria-label={t("taskCenter.panel.projectFilter")}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start" className="w-(--anchor-width)">
+            <SelectItem value={ALL_PROJECTS}>
+              {t("taskCenter.panel.allProjects")}
+            </SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div
         role="tablist"
