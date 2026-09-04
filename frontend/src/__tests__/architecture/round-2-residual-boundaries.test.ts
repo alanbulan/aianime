@@ -2746,7 +2746,6 @@ describe("round 2 residual architecture boundaries", () => {
       "presentation/useTaskController.ts",
       "presentation/useTaskProgress.ts",
       "presentation/useTaskProgress.test.tsx",
-      "presentation/useStageTask.ts",
       "presentation/useScopedTaskBatchInvalidation.ts",
       "presentation/useTaskStream.ts",
       "presentation/useEpisodeImageTaskInvalidation.ts",

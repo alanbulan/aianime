@@ -127,12 +127,9 @@ export interface TaskRegistryEntry {
   readonly serializedKey: string;
   // Current owner of the stream for this key (or null if unowned).
   ownerInstanceId: string | null;
-  // All active subscribers (including the owner). When 0, entry is removed.
+  // All active subscribers, including the owner. Entries remain for the
+  // provider lifetime so StrictMode cleanup cannot orphan a live consumer.
   readonly subscribers: Set<string>;
-  // Whether the owner has already reconciled the /tasks list for this key.
-  // Reconcile happens once and survives owner transfer, so a re-mount of the
-  // owner after an owner-transfer gap does not reset status.
-  reconciled: boolean;
   // External-store shape.
   getSnapshot(): TaskControllerSnapshot;
   setSnapshot(next: TaskControllerSnapshot): void;
@@ -179,7 +176,6 @@ function createEntry(key: TaskKey): TaskRegistryEntry {
     serializedKey,
     ownerInstanceId: null,
     subscribers: new Set(),
-    reconciled: false,
     getSnapshot: () => snapshot,
     setSnapshot(next) {
       snapshot = next;
@@ -213,9 +209,8 @@ export function useTaskRegistry(): RegistryHandle {
   return ctx;
 }
 
-// Exported for tests that need an ambient provider identity (e.g. same project
-// + episode). In production the provider is mounted exactly once per
-// episode view inside `episodes.tsx`.
+// Exported for tests and workbench composition. A provider owns one registry
+// scope; individual TaskKeys still carry the exact project and episode.
 export function TaskControllerProvider({
   project,
   episode,

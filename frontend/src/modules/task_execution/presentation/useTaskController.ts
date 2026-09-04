@@ -14,13 +14,12 @@ import {
   type TaskStreamState,
 } from "./task-controller-provider";
 import { useTaskStream } from "./useTaskStream";
-import { useCancelTask, useTasks } from "../public";
+import { useCancelTask, useTasks } from "../composition";
 import { mergeTaskLogs } from "@/lib/script-feedback";
 import { queryKeys } from "@/lib/query-keys";
 
 /**
- * Public handle returned by `useTaskController`. Mirrors `useStageTask`'s
- * surface plus the `logs` rolling buffer so migration is mechanical.
+ * Public handle returned by `useTaskController`.
  */
 export interface TaskControllerHandle {
   started: boolean;
@@ -37,7 +36,7 @@ export interface TaskControllerHandle {
 
 export interface UseTaskControllerOptions {
   key: TaskKey;
-  /** Extra task types to auto-resume on mount (see `useStageTask`). */
+  /** Extra task types accepted while reconciling the live task list. */
   alsoReconcile?: string[];
   invalidateKeys?: QueryKey[];
   onComplete?: (result: unknown) => void;
@@ -56,7 +55,7 @@ const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
  * with the same key share the owner's state via the registry's external store
  * (see `task-controller-provider.tsx`).
  *
- * Return value: same shape as `useStageTask` so migration is drop-in.
+ * The returned handle owns start, cancellation, progress, result, and logs.
  */
 export function useTaskController(
   opts: UseTaskControllerOptions,
@@ -138,7 +137,7 @@ export function useTaskController(
     claimOwnership(entry, instanceId);
   }, [snapshot.hasOwner, entry, instanceId]);
 
-  // ─── Reconcile once against /tasks list (owner-only) ─────────────────────
+  // ─── Reconcile against the live /tasks list (owner-only) ─────────────────
   // Scope the /tasks subscription to this controller's episode so unrelated
   // task churn doesn't re-fire the effect.
   const { data: tasksRes } = useTasks({
@@ -162,8 +161,10 @@ export function useTaskController(
 
   useEffect(() => {
     if (!isOwner) return;
-    if (entry.reconciled) return;
+    if (snapshot.started) return;
     if (tasksRes === undefined) return;
+    const current = entry.getSnapshot();
+    if (current.started) return;
     const tasks = tasksRes.data ?? [];
     const candidates = [key.taskType, ...(alsoReconcile ?? [])];
     // Reconcile must filter by scope when the caller is scope-aware —
@@ -175,34 +176,44 @@ export function useTaskController(
     const match = tasks.find(
       (t) =>
         candidates.includes(t.task_type) &&
+        t.task_id !== current.activeTaskId &&
         (key.beatNum === undefined || t.beat_num === key.beatNum) &&
         (key.scope === undefined || (t.scope ?? null) === (key.scope ?? null)) &&
         isActiveStatus(t.status),
     );
     if (match) {
       entry.setSnapshot({
-        ...entry.getSnapshot(),
+        ...current,
         started: true,
         activeTaskType: match.task_type,
         activeTaskId: match.task_id,
+        runVersion: current.runVersion + 1,
         // Capture the scope the BE assigned to this matched task so the stream
         // URL below hits the correct (scoped) endpoint. Without this the per-
         // task SSE endpoint returns "Task not found" and completion events
         // never reach the FE, so callers' invalidateKeys never fire.
         activeScope: match.scope ?? null,
       });
+      if (invalidateKeys) {
+        invalidateKeys.forEach((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        );
+      }
     }
-    entry.reconciled = true;
   }, [
     isOwner,
     entry,
     tasksRes,
+    snapshot.started,
+    snapshot.activeTaskId,
     key.taskType,
     key.project,
     key.episode,
     key.beatNum,
     key.scope,
     alsoReconcile,
+    invalidateKeys,
+    queryClient,
   ]);
 
   // ─── Stream (owner-only) ─────────────────────────────────────────────────
@@ -389,9 +400,6 @@ export function useTaskController(
   const start = useCallback(
     (override?: { scope?: string; taskId?: string }) => {
       logsRef.current = [];
-      // Do not reconcile a new submission against the previous run's cached
-      // row. If no ID was returned, the live SSE event establishes the ID.
-      entry.reconciled = true;
       entry.setSnapshot({
         ...entry.getSnapshot(),
         started: true,

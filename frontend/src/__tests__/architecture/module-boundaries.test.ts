@@ -3585,7 +3585,6 @@ describe("frontend architecture boundaries", () => {
         "@/modules/task_execution/presentation/useTaskSubscribe",
         "@/modules/task_execution/presentation/task-controller-provider",
         "@/modules/task_execution/presentation/useTaskController",
-        "@/modules/task_execution/presentation/useStageTask",
         "@/modules/task_execution/presentation/useScopedTaskBatchInvalidation",
         "@/modules/task_execution/presentation/useTaskStream",
         "@/modules/task_execution/presentation/useEpisodeImageTaskInvalidation",

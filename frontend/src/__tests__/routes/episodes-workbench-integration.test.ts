@@ -41,7 +41,7 @@ describe("episodes workbench integration", () => {
     expect(itemControllerSource).toContain("queries.usePlanIdentities");
     expect(itemControllerSource).toContain("queries.usePlanEpisodeScenes");
     expect(itemControllerSource).toContain("queries.usePlanEpisodeProps");
-    expect(itemControllerSource).toContain('taskType: "identity_planner"');
+    expect(itemControllerSource).toContain("TASK_TYPES.IDENTITY_PLANNER");
     expect(viewSource).toContain("onClick={handlePlanScenes}");
     expect(viewSource).toContain("onClick={handlePlanProps}");
     expect(viewSource).toContain("episode.list.planIdentities");
@@ -93,6 +93,17 @@ describe("episodes workbench integration", () => {
     );
     expect(itemControllerSource).toContain(
       "propTask.start({ scope: response.scope, taskId: response.task_id })",
+    );
+    expect(itemControllerSource).toContain(
+      "identityTask.start({",
+    );
+    expect(pageControllerSource).toContain("TASK_TYPES.BUILD_EPISODES");
+    expect(pageControllerSource).toContain(
+      "planTask.start({ scope: response.scope, taskId: response.task_id })",
+    );
+    expect(workspaceCompositionSource).toContain("TaskControllerProvider");
+    expect(viewSource).not.toContain(
+      '<TaskControllerProvider project={project} episode={0}>',
     );
   });
 

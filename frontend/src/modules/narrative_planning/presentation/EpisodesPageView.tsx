@@ -713,14 +713,9 @@ export function EpisodesPageView({
                   </Button>
                 </div>
               ) : (
-                // 卡片内的场景/道具规划由单卡 controller 订阅任务，需要一个
-                // 注册表宿主。列表不绑定单集，用 episode=0 作为宿主 scope；每张卡
-                // 片的 key 里带自己的集数，彼此互不干扰。
-                <TaskControllerProvider project={project} episode={0}>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
-                    {displayEpisodes.map(renderEpisodeListItem)}
-                  </div>
-                </TaskControllerProvider>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
+                  {displayEpisodes.map(renderEpisodeListItem)}
+                </div>
               )}
             </div>
           </div>

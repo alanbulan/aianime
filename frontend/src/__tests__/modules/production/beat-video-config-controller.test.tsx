@@ -212,6 +212,64 @@ describe("VideoReference config controller", () => {
     });
   });
 
+  it("rehydrates parameters and prompt text from an externally saved beat config", () => {
+    const selectedModel = makeModel({
+      durationOptions: [5, 8, 12],
+      ratioOptions: ["9:16", "16:9"],
+      resolutionOptions: ["720p", "1080p"],
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <TaskControllerProvider project="demo" episode={1}>
+          {children}
+        </TaskControllerProvider>
+      </QueryClientProvider>
+    );
+    const { result, rerender } = renderHook(
+      ({ beat }: { beat: Beat }) =>
+        useController({
+          model: selectedModel.value,
+          beat,
+          episode: 1,
+          project: "demo",
+          projectAspect: "2:3",
+          selectedModel,
+          showAdvancedVideoConfig: true,
+          showReferenceVideoConfig: false,
+          refetchStatus: vi.fn(),
+          updateBeat: vi.fn().mockResolvedValue(undefined),
+        }),
+      { initialProps: { beat: makeBeat() }, wrapper },
+    );
+
+    rerender({
+      beat: makeBeat({
+        video_config_json: JSON.stringify({
+          mode: "multimodal_reference",
+          duration: 8,
+          resolution: "1080p",
+          ratio: "16:9",
+          generate_audio: true,
+          prompt_guidance: "保持人物动作连续，镜头缓慢推进",
+          final_prompt: "人物向镜头走近，背景灯光逐渐变亮",
+        }),
+      }),
+    });
+
+    expect(result.current.draft).toMatchObject({
+      mode: "multimodal_reference",
+      duration: 8,
+      resolution: "1080p",
+      ratio: "16:9",
+      generate_audio: true,
+      prompt_guidance: "保持人物动作连续，镜头缓慢推进",
+      final_prompt: "人物向镜头走近，背景灯光逐渐变亮",
+    });
+  });
+
   it("keeps H3 quality and ratio as independent visible controls", () => {
     const h3 = makeModel({
       value: "cloud:video-model-c",

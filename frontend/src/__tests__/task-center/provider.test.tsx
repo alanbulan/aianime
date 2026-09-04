@@ -620,7 +620,7 @@ describe("TaskCenterProvider", () => {
     });
   });
 
-  it("invalidates beats when a beat video prompt task completes", async () => {
+  it("invalidates beat and pipeline data when a beat video prompt task completes", async () => {
     server.use(
       http.get("*/api/v1/projects/demo/tasks", () =>
         HttpResponse.json({
@@ -661,7 +661,76 @@ describe("TaskCenterProvider", () => {
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.beats("demo", 1) });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.pipelineStatus("demo") });
   });
+
+  it.each([
+    {
+      taskType: "video_prompt_optimization",
+      taskId: "optimized-prompt-run-1",
+      expectedKeys: [
+        queryKeys.beats("demo", 1),
+        queryKeys.pipelineStatus("demo"),
+        queryKeys.videoReferenceBeatStatus("demo", 1, 3),
+      ],
+    },
+    {
+      taskType: "single_video",
+      taskId: "single-video-run-1",
+      expectedKeys: [
+        queryKeys.beats("demo", 1),
+        queryKeys.videoPool("demo", 1),
+        queryKeys.pipelineStatus("demo"),
+        queryKeys.videoReferenceBeatStatus("demo", 1, 3),
+      ],
+    },
+  ])(
+    "refreshes video-panel data when a $taskType task completes",
+    async ({ taskType, taskId, expectedKeys }) => {
+      server.use(
+        http.get("*/api/v1/projects/demo/tasks", () =>
+          HttpResponse.json({
+            ok: true,
+            data: [
+              sampleTask({
+                task_id: taskId,
+                task_key: `task:${taskType}:project:demo:1:beat:3`,
+                task_type: taskType,
+                episode: 1,
+                beat_num: 3,
+                status: "running",
+              }),
+            ],
+          }),
+        ),
+      );
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+      render(<Harness queryClient={queryClient} />);
+      await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+
+      act(() => {
+        MockEventSource.instances[0].dispatch(
+          "task_updated",
+          sampleTask({
+            task_id: taskId,
+            task_key: `task:${taskType}:project:demo:1:beat:3`,
+            task_type: taskType,
+            episode: 1,
+            beat_num: 3,
+            status: "completed",
+            completed_at: new Date().toISOString(),
+          }),
+        );
+      });
+
+      for (const queryKey of expectedKeys) {
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey });
+      }
+    },
+  );
 
   it.each(["script_writer", "literal_script_writer"])(
     "invalidates script data when a %s task completes",

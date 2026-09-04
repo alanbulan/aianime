@@ -8,6 +8,8 @@ describe("episodeRouteSegmentForTaskType", () => {
     ["script_writer", "/script"],
     ["sketch_regen", "/sketches"],
     ["audio_generation", "/audio"],
+    ["beat_video_prompt", "/video"],
+    ["video_prompt_optimization", "/video"],
     ["single_video", "/video"],
     ["compose_episode", "/compose"],
   ])("maps %s to its episode route", (taskType, route) => {

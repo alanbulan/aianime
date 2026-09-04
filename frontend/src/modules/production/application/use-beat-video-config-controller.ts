@@ -181,6 +181,7 @@ export function createUseBeatVideoConfigController(
       },
       invalidateKeys: [
         queryKeys.beats(options.project, options.episode),
+        queryKeys.pipelineStatus(options.project),
         queryKeys.videoReferenceBeatStatus(
           options.project,
           options.episode,

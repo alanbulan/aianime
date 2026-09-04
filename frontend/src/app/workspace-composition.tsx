@@ -27,6 +27,7 @@ import {
 } from "@/modules/narrative_planning/presentation/EpisodesPageView";
 import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
 import { NarratorVoicePanel } from "@/modules/production/public";
+import { TaskControllerProvider } from "@/modules/task_execution/public";
 
 const assetWorldCanvasNavigation: AssetWorldCanvasNavigation = {
   openCharacter: (project, characterName) =>
@@ -102,19 +103,21 @@ function EpisodeListItemContent({
   return createElement(EpisodeListItemView, { controller });
 }
 
-export function EpisodesPageContent({
-  episodeContent,
-  onBackToEpisodes,
-  onSelectEpisode,
-  project,
-  selectedEpisodeNumber,
-}: {
+interface EpisodesPageContentProps {
   episodeContent: ReactNode;
   onBackToEpisodes(): void;
   onSelectEpisode(episodeNumber: number): void;
   project: string;
   selectedEpisodeNumber: number | null;
-}) {
+}
+
+function EpisodesPageControllerContent({
+  episodeContent,
+  onBackToEpisodes,
+  onSelectEpisode,
+  project,
+  selectedEpisodeNumber,
+}: EpisodesPageContentProps) {
   const controller = useEpisodesPageController({
     onBackToEpisodes,
     onSelectEpisode,
@@ -134,6 +137,17 @@ export function EpisodesPageContent({
     episodeContent,
     renderEpisodeListItem,
   });
+}
+
+export function EpisodesPageContent(props: EpisodesPageContentProps) {
+  return createElement(
+    TaskControllerProvider,
+    {
+      project: props.project,
+      episode: 0,
+      children: createElement(EpisodesPageControllerContent, props),
+    },
+  );
 }
 
 export function ScriptPageContent({

@@ -54,6 +54,8 @@ export const TASK_EPISODE_STAGES: Readonly<
   video: {
     routeSegment: "/video",
     taskTypes: [
+      TASK_TYPES.BEAT_VIDEO_PROMPT,
+      TASK_TYPES.VIDEO_PROMPT_OPTIMIZATION,
       TASK_TYPES.SINGLE_VIDEO,
       TASK_TYPES.GLOBAL_OPTIMIZE_VIDEO,
       TASK_TYPES.SELECTED_REGEN,

@@ -2,10 +2,8 @@
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useStageTask } from "@/modules/task_execution/public";
-import { useTaskController } from "@/modules/task_execution/public";
+import { TASK_TYPES, useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
-import { TASK_TYPES } from "@/modules/task_execution/public";
 import {
   isPlanEpisodeAssetsResult,
   type NarrativePlanningQueryHooks,
@@ -32,16 +30,19 @@ export function createUseEpisodeListItemController(
       episode.number,
     );
     const planIdentities = queries.usePlanIdentities(project);
-    const identityTask = useStageTask({
-      taskType: "identity_planner",
-      project,
-      episode: episode.number,
+    const identityTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.IDENTITY_PLANNER,
+        project,
+        episode: episode.number,
+      },
       invalidateKeys: [
         queryKeys.episodes(project),
         queryKeys.episodeDetail(project, episode.number),
         queryKeys.characters(project),
         queryKeys.pipelineStatus(project),
       ],
+      showCompleteToast: false,
       onComplete: (result) => {
         const data = (result ?? {}) as {
           new_count?: number;
@@ -116,7 +117,10 @@ export function createUseEpisodeListItemController(
           toast.error(backendErrorToastMessage(response.error, t));
           return;
         }
-        identityTask.start();
+        identityTask.start({
+          scope: response.scope,
+          taskId: response.task_id,
+        });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }

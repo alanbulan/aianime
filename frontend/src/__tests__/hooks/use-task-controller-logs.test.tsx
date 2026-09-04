@@ -22,8 +22,7 @@ vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
   }),
 }));
 
-vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
+vi.mock("@/modules/task_execution/composition", () => ({
   useTasks: () => ({ data: { ok: true, data: state.tasks } }),
   useCancelTask: () => ({
     mutateAsync: vi.fn().mockResolvedValue({ ok: true, data: null }),

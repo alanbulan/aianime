@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
-import { act, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode, useMemo, useState, type ReactNode } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   claimOwnership,
@@ -17,6 +17,7 @@ import {
 } from "@/modules/task_execution/presentation/task-controller-provider";
 import { useTaskController } from "@/modules/task_execution/presentation/useTaskController";
 import { selectionScope } from "@/modules/task_execution/domain/taskScope";
+import { queryKeys } from "@/lib/query-keys";
 
 // ─── Module mocks ───────────────────────────────────────────────────────────
 //
@@ -43,8 +44,7 @@ vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
     useTaskStreamMock(opts),
 }));
 
-vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
+vi.mock("@/modules/task_execution/composition", () => ({
   useTasks: () => ({ data: taskQueryMockState.data }),
   useCancelTask: () => ({
     mutateAsync: vi.fn().mockResolvedValue({ ok: true, data: null }),
@@ -146,7 +146,6 @@ function makeStubEntry() {
   return {
     ownerInstanceId: null as string | null,
     subscribers: new Set<string>(),
-    reconciled: false,
     key: {} as TaskKey,
     serializedKey: "",
     getSnapshot: () => ({}) as never,
@@ -227,7 +226,6 @@ describe("ownership transitions emit snapshot updates", () => {
       serializedKey: "k",
       ownerInstanceId: null,
       subscribers: new Set(),
-      reconciled: false,
       getSnapshot: () => snap,
       setSnapshot(next) {
         snap = next;
@@ -343,10 +341,13 @@ function RegistryInspector({
   return null;
 }
 
-function renderWithProvider(children: ReactNode, strict = true) {
-  const client = new QueryClient({
+function renderWithProvider(
+  children: ReactNode,
+  strict = true,
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
-  });
+  }),
+) {
   const tree = (
     <QueryClientProvider client={client}>
       <TaskControllerProvider project="demo" episode={1}>
@@ -359,14 +360,19 @@ function renderWithProvider(children: ReactNode, strict = true) {
 
 describe("TaskControllerProvider + useTaskController integration", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     useTaskStreamMock.mockClear();
     taskQueryMockState.data = undefined;
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it.each([
     ["sketch_regen", "1x1_2-3_sketch"],
     ["selected_regen", "1x1_2-3"],
-  ])("isolates %s beat cards while another batch keeps running", (taskType, modeKey) => {
+  ])("isolates %s beat cards while another batch keeps running", async (taskType, modeKey) => {
     const keyFor = (beatNumber: number): TaskKey => ({
       taskType,
       project: "demo",
@@ -408,8 +414,8 @@ describe("TaskControllerProvider + useTaskController integration", () => {
       </>,
     );
 
+    await waitFor(() => expect(handles.get(4)?.started).toBe(true));
     expect(handles.get(1)?.started).toBe(false);
-    expect(handles.get(4)?.started).toBe(true);
     expect(mapLookup!(keyFor(4)).getSnapshot().activeTaskId).toBe("beat-4-run");
     expect(mapLookup!(keyFor(1))).not.toBe(mapLookup!(keyFor(4)));
 
@@ -418,12 +424,71 @@ describe("TaskControllerProvider + useTaskController integration", () => {
     };
     act(() => { force?.(); });
 
-    expect(handles.get(4)?.started).toBe(false);
+    await waitFor(() => expect(handles.get(4)?.started).toBe(false));
     expect(handles.get(4)?.stream.status).toBe("completed");
     expect(handles.get(1)?.started).toBe(false);
   });
 
-  it("does not carry the previous beat's active task into the next card", () => {
+  it("adopts an assistant-started task after the panel controller is already mounted", async () => {
+    const key: TaskKey = {
+      taskType: "single_video",
+      project: "demo",
+      episode: 1,
+      beatNum: 4,
+    };
+    taskQueryMockState.data = { data: [] };
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(client, "invalidateQueries");
+    let handle: ReturnType<typeof useTaskController> | null = null;
+    let force: (() => void) | null = null;
+    let mapLookup: ((candidate: TaskKey) => TaskRegistryEntry) | null = null;
+
+    function Probe() {
+      const [, setTick] = useState(0);
+      force = () => setTick((tick) => tick + 1);
+      handle = useTaskController({
+        key,
+        invalidateKeys: [queryKeys.beats("demo", 1)],
+      });
+      return null;
+    }
+
+    renderWithProvider(
+      <>
+        <Probe />
+        <RegistryInspector onReady={(get) => { mapLookup = get; }} />
+      </>,
+      false,
+      client,
+    );
+
+    expect(handle!.started).toBe(false);
+
+    taskQueryMockState.data = {
+      data: [{
+        task_id: "assistant-video-run",
+        task_type: "single_video",
+        episode: 1,
+        beat_num: 4,
+        scope: null,
+        status: "running",
+        progress: 0.2,
+      }],
+    };
+    act(() => { force?.(); });
+
+    await waitFor(() => expect(handle!.started).toBe(true));
+    expect(mapLookup!(key).getSnapshot().activeTaskId).toBe(
+      "assistant-video-run",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.beats("demo", 1),
+    });
+  });
+
+  it("does not carry the previous beat's active task into the next card", async () => {
     const scope = selectionScope("1x1_2-3_sketch", [4]);
     taskQueryMockState.data = {
       data: [{
@@ -453,11 +518,11 @@ describe("TaskControllerProvider + useTaskController integration", () => {
     }
 
     renderWithProvider(<Probe />);
-    expect(handle!.started).toBe(true);
+    await waitFor(() => expect(handle!.started).toBe(true));
     act(() => { setBeat?.(1); });
-    expect(handle!.started).toBe(false);
+    await waitFor(() => expect(handle!.started).toBe(false));
     act(() => { setBeat?.(4); });
-    expect(handle!.started).toBe(true);
+    await waitFor(() => expect(handle!.started).toBe(true));
   });
 
   it("keeps one registry entry per key under StrictMode (C1 regression guard)", () => {
@@ -532,7 +597,7 @@ describe("TaskControllerProvider + useTaskController integration", () => {
 
   it(
     "promotes the remaining subscriber to owner when the current owner unmounts (C2 regression guard)",
-    () => {
+    async () => {
       // Pre-fix: `useTaskController`'s claim effect had deps
       // `[entry, instanceId, registry]`. When the owner unmounted, none of
       // those changed for the observer's hook instance, so its effect never
@@ -580,10 +645,13 @@ describe("TaskControllerProvider + useTaskController integration", () => {
         // calls we can inspect cleanly.
         bEntry.setSnapshot({ ...bEntry.getSnapshot() });
       });
-      const preEnabled = useTaskStreamMock.mock.calls.filter(
-        ([opts]) => opts.enabled === true,
-      );
-      expect(preEnabled.length).toBeGreaterThanOrEqual(1);
+      await waitFor(() => {
+        expect(
+          useTaskStreamMock.mock.calls.filter(
+            ([opts]) => opts.enabled === true,
+          ).length,
+        ).toBeGreaterThanOrEqual(1);
+      });
 
       // Unmount ConsumerA. Sibling effect ordering means ConsumerA ran its
       // claim effect first and therefore owns the entry. Unmounting it must
@@ -605,14 +673,17 @@ describe("TaskControllerProvider + useTaskController integration", () => {
       expect(remaining).toEqual([bEntry.ownerInstanceId]);
       // And `useTaskStream` for the surviving consumer is enabled — the
       // stream continues without needing an external prod.
-      const postEnabled = useTaskStreamMock.mock.calls.filter(
-        ([opts]) => opts.enabled === true,
-      );
-      expect(postEnabled.length).toBeGreaterThanOrEqual(1);
+      await waitFor(() => {
+        expect(
+          useTaskStreamMock.mock.calls.filter(
+            ([opts]) => opts.enabled === true,
+          ).length,
+        ).toBeGreaterThanOrEqual(1);
+      });
     },
   );
 
-  it("clears started state when the tasks list shows the scoped task completed", () => {
+  it("clears started state when the tasks list shows the scoped task completed", async () => {
     const key: TaskKey = {
       taskType: "stage_asset",
       project: "demo",
@@ -660,6 +731,9 @@ describe("TaskControllerProvider + useTaskController integration", () => {
       force?.();
     });
 
+    await waitFor(() => {
+      expect(renders[renders.length - 1].started).toBe(false);
+    });
     const latest = renders[renders.length - 1];
     expect(latest.started).toBe(false);
     expect(latest.stream.status).toBe("completed");

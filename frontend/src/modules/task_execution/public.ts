@@ -65,7 +65,6 @@ export type {
   TaskControllerHandle,
   UseTaskControllerOptions,
 } from "@/modules/task_execution/presentation/useTaskController";
-export { useStageTask } from "@/modules/task_execution/presentation/useStageTask";
 export { useScopedTaskBatchInvalidation } from "@/modules/task_execution/presentation/useScopedTaskBatchInvalidation";
 export { useTaskStream } from "@/modules/task_execution/presentation/useTaskStream";
 export { useEpisodeImageTaskInvalidation } from "@/modules/task_execution/presentation/useEpisodeImageTaskInvalidation";

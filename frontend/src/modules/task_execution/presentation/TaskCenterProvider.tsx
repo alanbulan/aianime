@@ -83,11 +83,53 @@ function invalidateCompletedAssetQueries(
     return;
   }
 
-  if (task.task_type === TASK_TYPES.BEAT_VIDEO_PROMPT) {
+  if (
+    task.task_type === TASK_TYPES.BEAT_VIDEO_PROMPT ||
+    task.task_type === TASK_TYPES.VIDEO_PROMPT_OPTIMIZATION
+  ) {
     if (task.episode > 0) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.beats(projectId, task.episode),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelineStatus(projectId),
+      });
+      if (
+        task.task_type === TASK_TYPES.VIDEO_PROMPT_OPTIMIZATION &&
+        task.beat_num != null
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.videoReferenceBeatStatus(
+            projectId,
+            task.episode,
+            task.beat_num,
+          ),
+        });
+      }
+    }
+    return;
+  }
+
+  if (task.task_type === TASK_TYPES.SINGLE_VIDEO) {
+    if (task.episode > 0) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.beats(projectId, task.episode),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.videoPool(projectId, task.episode),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelineStatus(projectId),
+      });
+      if (task.beat_num != null) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.videoReferenceBeatStatus(
+            projectId,
+            task.episode,
+            task.beat_num,
+          ),
+        });
+      }
     }
     return;
   }

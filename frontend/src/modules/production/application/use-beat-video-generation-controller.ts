@@ -78,6 +78,12 @@ export function createUseBeatVideoGenerationController(
       invalidateKeys: [
         queryKeys.beats(options.project, options.episode),
         queryKeys.videoPool(options.project, options.episode),
+        queryKeys.pipelineStatus(options.project),
+        queryKeys.videoReferenceBeatStatus(
+          options.project,
+          options.episode,
+          options.beatNumber,
+        ),
       ],
     });
     const [confirmationOpen, setConfirmationOpen] = useState(false);

@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useStageTask } from "@/modules/task_execution/public";
+import { TASK_TYPES, useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { NarrativePlanningQueryHooks } from "@/modules/narrative_planning/application/query-hooks";
 import {
@@ -120,10 +120,12 @@ export function createUseEpisodesPageController(
     );
 
     const planEpisodes = queries.usePlanEpisodes(project);
-    const planTask = useStageTask({
-      taskType: "build_episodes",
-      project,
-      episode: 0,
+    const planTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.BUILD_EPISODES,
+        project,
+        episode: 0,
+      },
       invalidateKeys: [
         queryKeys.episodes(project),
         queryKeys.pipelineStatus(project),
@@ -137,7 +139,7 @@ export function createUseEpisodesPageController(
           toast.error(backendErrorResponseToastMessage(response, t));
           return;
         }
-        planTask.start();
+        planTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }
