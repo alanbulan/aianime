@@ -14,6 +14,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18next from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
+import { TaskControllerProvider } from "@/modules/task_execution/public";
 import {
   afterEach,
   beforeAll,
@@ -229,7 +230,9 @@ describe("styles page CE workflow", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <Component />
+          <TaskControllerProvider>
+            <Component />
+          </TaskControllerProvider>
         </I18nextProvider>
       </QueryClientProvider>,
     );
@@ -253,7 +256,9 @@ describe("styles page CE workflow", () => {
     const { container } = render(
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <Component />
+          <TaskControllerProvider>
+            <Component />
+          </TaskControllerProvider>
         </I18nextProvider>
       </QueryClientProvider>,
     );
@@ -294,7 +299,9 @@ describe("styles page CE workflow", () => {
     const { container } = render(
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <Component />
+          <TaskControllerProvider>
+            <Component />
+          </TaskControllerProvider>
         </I18nextProvider>
       </QueryClientProvider>,
     );
@@ -342,7 +349,9 @@ describe("styles page CE workflow", () => {
     const { container } = render(
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <Component />
+          <TaskControllerProvider>
+            <Component />
+          </TaskControllerProvider>
         </I18nextProvider>
       </QueryClientProvider>,
     );
@@ -413,7 +422,9 @@ describe("styles page CE workflow", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <Component />
+          <TaskControllerProvider>
+            <Component />
+          </TaskControllerProvider>
         </I18nextProvider>
       </QueryClientProvider>,
     );
@@ -452,7 +463,9 @@ describe("styles page CE workflow", () => {
     const { container } = render(
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
-          <Component />
+          <TaskControllerProvider>
+            <Component />
+          </TaskControllerProvider>
         </I18nextProvider>
       </QueryClientProvider>,
     );
