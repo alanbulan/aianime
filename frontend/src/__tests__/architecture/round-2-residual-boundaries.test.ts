@@ -2820,7 +2820,7 @@ describe("round 2 residual architecture boundaries", () => {
     );
     expect(queryHooksSource).not.toContain("@/shared/api/");
     expect(providerSource).not.toContain("@/shared/api/transport");
-    expect(providerSource).toContain("gateway.listProjectTasks(projectId, signal)");
+    expect(providerSource).toContain("gateway.listProjectTasks(project.id, signal)");
     expect(gatewaySource).toContain("@/shared/api/transport");
 
     const privateBypasses = sourceFiles(SRC_ROOT)

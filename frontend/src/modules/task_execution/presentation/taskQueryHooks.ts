@@ -18,12 +18,12 @@ export interface UseTasksFilter {
 export function createTaskQueryHooks(gateway: TaskQueryGateway) {
   function useTasks(filter?: UseTasksFilter) {
     const project = filter?.project;
-    const taskCenterProjectId = useTaskCenterStore((state) => state.projectId);
-    const streamHealth = useTaskCenterStore((state) => state.streamHealth);
+    const taskCenterProjects = useTaskCenterStore((state) => state.projects);
+    const taskCenterHydrated = useTaskCenterStore((state) => state.isHydrated);
     const taskCenterOwnsProject =
       !!project &&
-      taskCenterProjectId === project &&
-      (streamHealth === "connected" || streamHealth === "polling");
+      taskCenterHydrated &&
+      taskCenterProjects.some((candidate) => candidate.id === project);
 
     return useQuery({
       queryKey: queryKeys.tasks(project),

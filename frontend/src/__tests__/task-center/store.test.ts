@@ -32,6 +32,28 @@ describe("store.hydrate + upsert + remove", () => {
     expect(useTaskCenterStore.getState().tasks.get("k")!.progress).toBe(0.9);
   });
 
+  it("hydrateProject replaces one project without dropping tasks from another", () => {
+    const store = useTaskCenterStore.getState();
+    store.setProjects([
+      { id: "alpha", name: "Alpha" },
+      { id: "beta", name: "Beta" },
+    ]);
+    store.hydrateProject("alpha", [
+      sampleTask({ task_key: "alpha-old", project: "alpha", project_id: "alpha" }),
+    ]);
+    store.hydrateProject("beta", [
+      sampleTask({ task_key: "beta-task", project: "beta", project_id: "beta" }),
+    ]);
+    store.hydrateProject("alpha", [
+      sampleTask({ task_key: "alpha-new", project: "alpha", project_id: "alpha" }),
+    ]);
+
+    expect(Array.from(useTaskCenterStore.getState().tasks.keys()).sort()).toEqual([
+      "alpha-new",
+      "beta-task",
+    ]);
+  });
+
   it("upsert is idempotent by task_key", () => {
     useTaskCenterStore.getState().upsert(sampleTask({ task_id: "a1", task_key: "k", progress: 0.1 }));
     useTaskCenterStore.getState().upsert(sampleTask({ task_id: "a2", task_key: "k", progress: 0.5 }));
@@ -165,6 +187,29 @@ describe("store selectors", () => {
       sampleTask({ task_id: "4", task_key: "task:4", status: "completed" }),
     ]);
     expect(selectCountByStatus(useTaskCenterStore.getState())).toEqual({ all: 6, running: 4, failed: 1, done: 1 });
+  });
+
+  it("project filter scopes both task rows and status counts", () => {
+    const store = useTaskCenterStore.getState();
+    store.setProjects([
+      { id: "alpha", name: "Alpha" },
+      { id: "beta", name: "Beta" },
+    ]);
+    store.hydrate([
+      sampleTask({ task_key: "alpha", project: "alpha", project_id: "alpha", status: "running" }),
+      sampleTask({ task_key: "beta", project: "beta", project_id: "beta", status: "failed" }),
+    ]);
+    store.setProjectFilter("beta");
+
+    expect(selectFilteredTasks(useTaskCenterStore.getState()).map((task) => task.task_key)).toEqual([
+      "beta",
+    ]);
+    expect(selectCountByStatus(useTaskCenterStore.getState())).toEqual({
+      all: 1,
+      running: 0,
+      failed: 1,
+      done: 0,
+    });
   });
 });
 

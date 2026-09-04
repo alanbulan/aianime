@@ -1471,6 +1471,8 @@
     "panel": {
       "open": "打开任务中心",
       "close": "关闭",
+      "projectFilter": "按项目筛选任务",
+      "allProjects": "所有项目",
       "filters": {
         "all": "全部",
         "running": "运行中",

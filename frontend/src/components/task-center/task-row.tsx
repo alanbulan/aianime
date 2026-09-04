@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   displayLabel,
   isActive,
+  taskProjectName,
   type TaskState,
 } from "@/modules/task_execution/public";
 import { TaskProgress } from "@/components/task-progress";
@@ -51,6 +52,7 @@ export function TaskRow({
 }) {
   const { t } = useTranslation();
   const label = displayLabel(task, t);
+  const projectName = taskProjectName(task);
   return (
     <button
       type="button"
@@ -65,9 +67,9 @@ export function TaskRow({
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate">{label}</span>
-        {task.current_task ? (
+        {projectName || task.current_task ? (
           <span className="truncate text-[10px] text-muted-foreground">
-            {task.current_task}
+            {[projectName, task.current_task].filter(Boolean).join(" · ")}
           </span>
         ) : null}
       </span>

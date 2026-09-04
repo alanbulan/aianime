@@ -15,8 +15,17 @@ import type {
   TaskStreamClientFactory,
 } from "@/modules/task_execution/application/taskStreamPorts";
 import { createTaskEventBus } from "@/modules/task_execution/application/taskEventBus";
-import type { TaskState } from "@/modules/task_execution/domain/contracts";
-import { displayLabel, isTerminal } from "@/modules/task_execution/domain/taskState";
+import type {
+  StreamHealth,
+  TaskCenterProject,
+  TaskState,
+} from "@/modules/task_execution/domain/contracts";
+import {
+  displayLabel,
+  isActive,
+  isTerminal,
+  taskProjectId,
+} from "@/modules/task_execution/domain/taskState";
 import { TaskEventBusContext } from "@/modules/task_execution/presentation/taskEventBusContext";
 import { taskErrorMessage } from "@/modules/task_execution/presentation/taskErrorMessage";
 import { useTaskCenterStore } from "@/modules/task_execution/presentation/taskCenterStore";
@@ -25,7 +34,8 @@ import type { OkResponse } from "@/types/api";
 
 const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
 const POLLING_FALLBACK_INTERVAL_MS = 5000;
-const POLLING_FALLBACK_MAX_INTERVAL_MS = 30_000;
+const GLOBAL_DISCOVERY_INTERVAL_MS = 30_000;
+const MAX_LIVE_PROJECT_STREAMS = 4;
 // A terminal task whose completion is older than this is treated as a replay,
 // not a fresh transition — no toast, no auto-expand. Covers the case where
 // the user returns from a long idle / sleep and the stream replays or the
@@ -182,7 +192,8 @@ function isHydrateCancelledError(error: unknown): boolean {
 
 export interface TaskCenterProviderProps {
   children: ReactNode;
-  projectId: string | null;
+  projects: TaskCenterProject[];
+  activeProjectId: string | null;
 }
 
 export interface TaskCenterProviderViewProps extends TaskCenterProviderProps {
@@ -193,7 +204,8 @@ export interface TaskCenterProviderViewProps extends TaskCenterProviderProps {
 
 export function TaskCenterProviderView({
   children,
-  projectId,
+  projects,
+  activeProjectId,
   completionSourceRegistrar,
   gateway,
   streamClientFactory,
@@ -205,10 +217,16 @@ export function TaskCenterProviderView({
   const username = useAuthStore((s) => s.username);
   const queryClient = useQueryClient();
   const bus = useMemo(createTaskEventBus, []);
-  const pollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeSessionRef = useRef<{ username: string; projectId: string } | null>(null);
+  const activeUsernameRef = useRef<string | null>(null);
+  const activeProjectIdRef = useRef(activeProjectId);
+  const reconcileStreamsRef = useRef<(() => void) | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
+
+  useEffect(() => {
+    activeProjectIdRef.current = activeProjectId;
+    reconcileStreamsRef.current?.();
+  }, [activeProjectId]);
 
   // Keyboard shortcut ⌘J / Ctrl+J
   useEffect(() => {
@@ -229,233 +247,281 @@ export function TaskCenterProviderView({
     return () => clearInterval(id);
   }, []);
 
-  // Main lifecycle: hydrate-first, then open stream with snapshot=false.
-  // Deps exclude `t` so language change doesn't tear down the connection.
+  // Main lifecycle: hydrate every accessible project, then keep the most
+  // relevant projects on SSE while polling the remainder. The backend remains
+  // project-scoped so OpenResty can route every request to the project's home
+  // node; aggregation belongs here in the global desktop shell.
   useEffect(() => {
-    if (!username || !projectId) {
-      const previous = activeSessionRef.current;
-      activeSessionRef.current = null;
+    if (!username) {
+      const previousProjectIds = useTaskCenterStore
+        .getState()
+        .projects.map((project) => project.id);
+      activeUsernameRef.current = null;
       useTaskCenterStore.getState().reset();
       queryClient.removeQueries({ queryKey: queryKeys.tasks() });
-      if (previous) {
-        queryClient.removeQueries({ queryKey: queryKeys.tasks(previous.projectId) });
+      for (const projectId of previousProjectIds) {
+        queryClient.removeQueries({ queryKey: queryKeys.tasks(projectId) });
       }
       return;
     }
 
-    const previous = activeSessionRef.current;
-    if (previous && previous.username !== username) {
-      queryClient.removeQueries({ queryKey: queryKeys.tasks(previous.projectId) });
+    if (activeUsernameRef.current && activeUsernameRef.current !== username) {
+      const previousProjectIds = useTaskCenterStore
+        .getState()
+        .projects.map((project) => project.id);
+      queryClient.removeQueries({ queryKey: queryKeys.tasks() });
+      for (const projectId of previousProjectIds) {
+        queryClient.removeQueries({ queryKey: queryKeys.tasks(projectId) });
+      }
+      useTaskCenterStore.getState().reset();
     }
-    activeSessionRef.current = { username, projectId };
-    useTaskCenterStore.getState().setProject(projectId);
-    const completionSource = completionSourceRegistrar(projectId);
+    activeUsernameRef.current = username;
+    useTaskCenterStore.getState().setProjects(projects);
+
+    if (projects.length === 0) {
+      useTaskCenterStore.getState().setHealth("idle");
+      useTaskCenterStore.getState().markHydrated();
+      return;
+    }
 
     let cancelled = false;
-    let client: TaskStreamClient | null = null;
-    let hydrateInFlight: Promise<boolean> | null = null;
-    let pollingActive = false;
-    let pollingFailureCount = 0;
+    let initialHydrationComplete = false;
+    let discoveryTimer: ReturnType<typeof setInterval> | null = null;
+    let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+    const clients = new Map<string, TaskStreamClient>();
+    const completionSources = new Map(
+      projects.map((project) => [
+        project.id,
+        completionSourceRegistrar(project.id),
+      ]),
+    );
+    const hydrateInFlight = new Map<string, Promise<boolean>>();
+    const streamHealth = new Map<string, StreamHealth>();
+    const pollingProjects = new Set<string>();
+    const projectById = new Map(projects.map((project) => [project.id, project]));
 
-    const runHydrate = async (): Promise<boolean> => {
+    const normalizeTask = (project: TaskCenterProject, task: TaskState): TaskState => ({
+      ...task,
+      project_id: project.id,
+      project_name: task.project_name || project.name,
+    });
+
+    const updateAggregateHealth = () => {
+      if (cancelled) return;
+      const values = Array.from(streamHealth.values());
+      const hasPollingCoverage = clients.size < projects.length || pollingProjects.size > 0;
+      let health: StreamHealth = "idle";
+      if (hasPollingCoverage) health = "polling";
+      else if (values.includes("failed")) health = "failed";
+      else if (values.includes("polling")) health = "polling";
+      else if (values.includes("reconnecting")) health = "reconnecting";
+      else if (values.includes("connecting")) health = "connecting";
+      else if (values.length > 0 && values.every((value) => value === "connected")) {
+        health = "connected";
+      }
+      useTaskCenterStore.getState().setHealth(health);
+    };
+
+    const runHydrate = async (project: TaskCenterProject): Promise<boolean> => {
       try {
         const res = await queryClient.fetchQuery({
-          queryKey: queryKeys.tasks(projectId),
+          queryKey: queryKeys.tasks(project.id),
+          staleTime: 0,
           queryFn: async ({ signal }) => ({
             ok: true as const,
-            data: await gateway.listProjectTasks(projectId, signal),
+            data: await gateway.listProjectTasks(project.id, signal),
           }),
         });
         if (!cancelled) {
-          useTaskCenterStore.getState().hydrate(res.data);
+          const tasks = res.data.map((task) => normalizeTask(project, task));
+          useTaskCenterStore.getState().hydrateProject(project.id, tasks);
           useTaskCenterStore.getState().setLastEventAt(Date.now());
-          const tasks = Array.from(useTaskCenterStore.getState().tasks.values());
-          queryClient.setQueryData(queryKeys.tasks(projectId), { ok: true, data: tasks });
+          queryClient.setQueryData(queryKeys.tasks(project.id), { ok: true, data: tasks });
           for (const task of tasks) {
-            completionSource.onTask(task);
+            completionSources.get(project.id)?.onTask(task);
           }
         }
         return true;
       } catch (err) {
         if (isHydrateCancelledError(err)) return false;
-        console.error("[task-center] hydrate failed", err);
+        console.error(`[task-center] hydrate failed for project ${project.id}`, err);
         return false;
       }
     };
 
-    const hydrate = (): Promise<boolean> => {
-      if (hydrateInFlight) return hydrateInFlight;
-      const pending = runHydrate();
-      hydrateInFlight = pending;
+    const hydrate = (project: TaskCenterProject): Promise<boolean> => {
+      const existing = hydrateInFlight.get(project.id);
+      if (existing) return existing;
+      const pending = runHydrate(project);
+      hydrateInFlight.set(project.id, pending);
       const clear = () => {
-        if (hydrateInFlight === pending) hydrateInFlight = null;
+        if (hydrateInFlight.get(project.id) === pending) {
+          hydrateInFlight.delete(project.id);
+        }
       };
       void pending.then(clear, clear);
       return pending;
     };
 
-    const schedulePolling = (delayMs: number) => {
-      if (!pollingActive || cancelled || pollIntervalRef.current) return;
-      pollIntervalRef.current = setTimeout(() => {
-        pollIntervalRef.current = null;
-        void (async () => {
-          const succeeded = await hydrate();
-          if (!pollingActive || cancelled) return;
-          pollingFailureCount = succeeded
-            ? 0
-            : Math.min(pollingFailureCount + 1, 3);
-          const nextDelay = succeeded
-            ? POLLING_FALLBACK_INTERVAL_MS
-            : Math.min(
-                POLLING_FALLBACK_INTERVAL_MS * 2 ** pollingFailureCount,
-                POLLING_FALLBACK_MAX_INTERVAL_MS,
-              );
-          schedulePolling(nextDelay);
-        })();
-      }, delayMs);
-    };
+    const pushTask = (
+      project: TaskCenterProject,
+      taskValue: TaskState,
+      source: "live" | "snapshot",
+    ) => {
+      const task = normalizeTask(project, taskValue);
+      const prev = useTaskCenterStore.getState().upsert(task);
+      if (useTaskCenterStore.getState().tasks.get(task.task_key) !== task) return;
+      completionSources.get(project.id)?.onTask(task);
 
-    const startPolling = () => {
-      if (pollingActive) return;
-      pollingActive = true;
-      pollingFailureCount = 0;
-      schedulePolling(0);
-    };
-    const stopPolling = () => {
-      pollingActive = false;
-      pollingFailureCount = 0;
-      if (pollIntervalRef.current) {
-        clearTimeout(pollIntervalRef.current);
-        pollIntervalRef.current = null;
+      queryClient.setQueryData<OkResponse<TaskState[]>>(
+        queryKeys.tasks(project.id),
+        (old) => {
+          const list = old?.data ?? [];
+          const idx = list.findIndex((item) => item.task_key === task.task_key);
+          const next = idx >= 0
+            ? [...list.slice(0, idx), task, ...list.slice(idx + 1)]
+            : [...list, task];
+          return { ok: true as const, data: next };
+        },
+      );
+
+      bus.emit({ type: "task_updated", task, previous: prev });
+      const completedAt = task.completed_at ? Date.parse(task.completed_at) : NaN;
+      const isFresh = Number.isNaN(completedAt) || Date.now() - completedAt < TOAST_FRESHNESS_MS;
+      const sawRunning = prev !== null && prev.task_id === task.task_id && !isTerminal(prev);
+      const firstFreshObservation = isFresh && (prev === null || prev.task_id !== task.task_id);
+
+      if (firstFreshObservation || sawRunning) {
+        invalidateCompletedAssetQueries(queryClient, project.id, task);
+        if (isTerminal(task)) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.commercialQuota() });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.commercialInvocations() });
+        }
+      }
+
+      if (source === "snapshot" || !useTaskCenterStore.getState().isHydrated || !isFresh || !sawRunning) {
+        return;
+      }
+
+      const label = `${project.name} · ${displayLabel(task, tRef.current)}`;
+      if (task.status === "completed") {
+        bus.emit({ type: "task_complete", task, previous: prev });
+        toast.success(tRef.current("taskCenter.toast.completed", { label }));
+      } else if (task.status === "failed") {
+        bus.emit({ type: "task_failed", task, previous: prev });
+        toast.error(
+          tRef.current("taskCenter.toast.failed", {
+            label,
+            error: taskErrorMessage(task, tRef.current),
+          }),
+        );
       }
     };
 
-    (async () => {
-      await hydrate();
-      if (cancelled) return;
-      useTaskCenterStore.getState().markHydrated();
-
-      client = streamClientFactory({
-        streamPath: `/api/v1/projects/${encodeURIComponent(projectId)}/tasks/stream`,
+    const openStream = (project: TaskCenterProject) => {
+      if (clients.has(project.id) || cancelled) return;
+      const client = streamClientFactory({
+        streamPath: `/api/v1/projects/${encodeURIComponent(project.id)}/tasks/stream`,
         snapshotQueryParam: true,
         onUnrecoverable: () => {
-          // Cold-start SSE failure (likely auth). Force one hydrate via ky so
-          // the global 401 handler observes the rejected credential and
-          // triggers logout + redirect to /login. If the failure was actually
-          // network-level the hydrate will also fail but at least we stop
-          // hammering the SSE endpoint every 15s.
-          void hydrate();
+          void hydrate(project);
         },
-        onAuthRevoked: () => completionSource.onAuthRevoked(),
-        onEvent: (task, source) => {
-          const prev = useTaskCenterStore.getState().upsert(task);
-          if (useTaskCenterStore.getState().tasks.get(task.task_key) !== task) return;
-          completionSource.onTask(task);
-
-          // Push-through cache update (not invalidate) to keep legacy `useTasks()` consumers
-          // in sync without hammering the backend.
-          queryClient.setQueryData<OkResponse<TaskState[]>>(
-            queryKeys.tasks(projectId),
-            (old) => {
-              const list = old?.data ?? [];
-              const idx = list.findIndex((x) => x.task_key === task.task_key);
-              const next =
-                idx >= 0
-                  ? [...list.slice(0, idx), task, ...list.slice(idx + 1)]
-                  : [...list, task];
-              return { ok: true as const, data: next };
-            },
-          );
-
-          bus.emit({ type: "task_updated", task, previous: prev });
-
-          // Belt-and-suspenders: if the BE's completed_at is old, treat it
-          // as a replay even if we happened to observe it running once. A
-          // genuine transition will always be within a few seconds.
-          const completedAt = task.completed_at
-            ? Date.parse(task.completed_at)
-            : NaN;
-          const isFresh =
-            Number.isNaN(completedAt) ||
-            Date.now() - completedAt < TOAST_FRESHNESS_MS;
-          const sawRunning = prev !== null && prev.task_id === task.task_id && !isTerminal(prev);
-          const firstFreshObservation = isFresh && (prev === null || prev.task_id !== task.task_id);
-
-          // Invalidate asset queries for any genuinely-new completion, even
-          // when it arrives via a reconnect/hydration snapshot — otherwise an
-          // async planner finishing while the stream is down leaves the asset
-          // pages stale until a manual reload. Replays stay guarded: an old
-          // completed_at on a task we never saw running is skipped, and a
-          // duplicate terminal event for an already-terminal row is ignored.
-          if (firstFreshObservation || sawRunning) {
-            invalidateCompletedAssetQueries(queryClient, projectId, task);
-            if (isTerminal(task)) {
-              void queryClient.invalidateQueries({
-                queryKey: queryKeys.commercialQuota(),
-              });
-              void queryClient.invalidateQueries({
-                queryKey: queryKeys.commercialInvocations(),
-              });
-            }
-          }
-
-          if (source === "snapshot") return;
-          if (!useTaskCenterStore.getState().isHydrated) return;
-          if (!isFresh) return;
-
-          // Only toast on a *real* transition that happened in this session:
-          //   prev must exist AND have been non-terminal.
-          // Previous guard (`!wasTerminal` with prev=null → false) fired
-          // toasts for any first-time-seen terminal task, which is exactly
-          // what shows up after reconnect-replay or post-idle hydration.
-          if (!sawRunning) return;
-
-          if (task.status === "completed") {
-            bus.emit({ type: "task_complete", task, previous: prev });
-            toast.success(
-              tRef.current("taskCenter.toast.completed", {
-                label: displayLabel(task, tRef.current),
-              }),
-            );
-          } else if (task.status === "failed") {
-            bus.emit({ type: "task_failed", task, previous: prev });
-            toast.error(
-              tRef.current("taskCenter.toast.failed", {
-                label: displayLabel(task, tRef.current),
-                error: taskErrorMessage(task, tRef.current),
-              }),
-            );
-          }
-        },
+        onAuthRevoked: () => completionSources.get(project.id)?.onAuthRevoked(),
+        onEvent: (task, source) => pushTask(project, task, source),
         onDelete: (key) => {
           useTaskCenterStore.getState().remove(key);
           bus.emit({ type: "task_removed", taskKey: key });
-          queryClient.invalidateQueries({ queryKey: queryKeys.tasks(projectId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.tasks(project.id) });
         },
         onHealth: (h) => {
-          useTaskCenterStore.getState().setHealth(h);
-          if (h === 'connected') useTaskCenterStore.getState().setLastEventAt(Date.now());
+          streamHealth.set(project.id, h);
+          updateAggregateHealth();
+          if (h === "connected") useTaskCenterStore.getState().setLastEventAt(Date.now());
         },
         onReconnected: () => {
-          void hydrate();
+          void hydrate(project);
         },
-        onPollingStart: startPolling,
-        onPollingStop: stopPolling,
+        onPollingStart: () => {
+          pollingProjects.add(project.id);
+          updateAggregateHealth();
+          void hydrate(project);
+        },
+        onPollingStop: () => {
+          pollingProjects.delete(project.id);
+          updateAggregateHealth();
+        },
       });
-
+      clients.set(project.id, client);
       client.start();
+    };
+
+    const reconcileStreams = () => {
+      if (cancelled || !initialHydrationComplete) return;
+      const activeTaskProjects = new Set(
+        Array.from(useTaskCenterStore.getState().tasks.values())
+          .filter(isActive)
+          .map(taskProjectId),
+      );
+      const ordered = projects.slice().sort((left, right) => {
+        const leftPriority = left.id === activeProjectIdRef.current ? 0 : activeTaskProjects.has(left.id) ? 1 : 2;
+        const rightPriority = right.id === activeProjectIdRef.current ? 0 : activeTaskProjects.has(right.id) ? 1 : 2;
+        return leftPriority - rightPriority;
+      });
+      const desired = new Set(
+        ordered.slice(0, MAX_LIVE_PROJECT_STREAMS).map((project) => project.id),
+      );
+      for (const [projectId, client] of clients) {
+        if (desired.has(projectId)) continue;
+        client.close();
+        clients.delete(projectId);
+        streamHealth.delete(projectId);
+        pollingProjects.delete(projectId);
+      }
+      for (const projectId of desired) {
+        const project = projectById.get(projectId);
+        if (project) openStream(project);
+      }
+      updateAggregateHealth();
+    };
+    reconcileStreamsRef.current = reconcileStreams;
+
+    void (async () => {
+      await Promise.all(projects.map(hydrate));
+      if (cancelled) return;
+      initialHydrationComplete = true;
+      useTaskCenterStore.getState().markHydrated();
+      reconcileStreams();
+
+      discoveryTimer = setInterval(() => {
+        void Promise.all(projects.map(hydrate)).then(reconcileStreams);
+      }, GLOBAL_DISCOVERY_INTERVAL_MS);
+      fallbackTimer = setInterval(() => {
+        const targets = projects.filter(
+          (project) => !clients.has(project.id) || pollingProjects.has(project.id),
+        );
+        if (targets.length > 0) {
+          void Promise.all(targets.map(hydrate)).then(reconcileStreams);
+        }
+      }, POLLING_FALLBACK_INTERVAL_MS);
     })();
 
     return () => {
       cancelled = true;
-      client?.close();
-      completionSource.close();
-      stopPolling();
-      useTaskCenterStore.getState().reset();
+      if (discoveryTimer) clearInterval(discoveryTimer);
+      if (fallbackTimer) clearInterval(fallbackTimer);
+      for (const client of clients.values()) client.close();
+      for (const completionSource of completionSources.values()) completionSource.close();
+      clients.clear();
+      completionSources.clear();
+      streamHealth.clear();
+      pollingProjects.clear();
+      if (reconcileStreamsRef.current === reconcileStreams) {
+        reconcileStreamsRef.current = null;
+      }
     };
   }, [
     username,
-    projectId,
+    projects,
     queryClient,
     bus,
     completionSourceRegistrar,

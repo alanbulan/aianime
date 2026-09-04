@@ -1471,6 +1471,8 @@
     "panel": {
       "open": "Open Task Center",
       "close": "Close",
+      "projectFilter": "Filter tasks by project",
+      "allProjects": "All projects",
       "filters": {
         "all": "All",
         "running": "Running",

@@ -16,6 +16,9 @@ export interface TaskState {
   username: string;
   project: string;
   project_id?: string;
+  project_name?: string;
+  owner_username?: string;
+  requester_user_id?: string;
   episode: number;
   beat_num: number | null;
   scope: string | null;
@@ -66,3 +69,8 @@ export type TaskEvent =
 
 export type TaskEventType = TaskEvent["type"];
 export type TaskEventListener = (e: TaskEvent) => void;
+
+export interface TaskCenterProject {
+  id: string;
+  name: string;
+}

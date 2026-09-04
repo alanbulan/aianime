@@ -2,7 +2,11 @@
 import { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
-import { useTaskCenterStore, type Filter } from "@/modules/task_execution/public";
+import {
+  taskProjectId,
+  useTaskCenterStore,
+  type Filter,
+} from "@/modules/task_execution/public";
 import type { TaskState } from "@/modules/task_execution/public";
 import { TaskRow } from "./task-row";
 import { EmptyState } from "./empty-state";
@@ -50,7 +54,10 @@ function countByStatus(arr: TaskState[]) {
 export function TaskList() {
   const { t } = useTranslation();
   const tasksMap = useTaskCenterStore((s) => s.tasks);
+  const projects = useTaskCenterStore((s) => s.projects);
+  const projectFilter = useTaskCenterStore((s) => s.projectFilter);
   const filter = useTaskCenterStore((s) => s.filter);
+  const setProjectFilter = useTaskCenterStore((s) => s.setProjectFilter);
   const setFilter = useTaskCenterStore((s) => s.setFilter);
   const setSelected = useTaskCenterStore((s) => s.setSelected);
   const selectedTaskKey = useTaskCenterStore((s) => s.selectedTaskKey);
@@ -59,7 +66,9 @@ export function TaskList() {
     // Newest first. Prefer `updated_at` so a task that just advanced bubbles
     // up; fall back to `created_at` when updates haven't landed yet. Both
     // are ISO-8601 strings, so lexicographic compare is correct.
-    const arr = Array.from(tasksMap.values());
+    const arr = Array.from(tasksMap.values()).filter(
+      (task) => !projectFilter || taskProjectId(task) === projectFilter,
+    );
     arr.sort((a, b) => {
       const ta = a.updated_at || a.created_at || "";
       const tb = b.updated_at || b.created_at || "";
@@ -67,7 +76,7 @@ export function TaskList() {
       return ta < tb ? 1 : -1;
     });
     return arr;
-  }, [tasksMap]);
+  }, [projectFilter, tasksMap]);
   const counts = useMemo(() => countByStatus(allTasks), [allTasks]);
   const tasks = useMemo(() => filterTasks(allTasks, filter), [allTasks, filter]);
 
@@ -81,6 +90,24 @@ export function TaskList() {
 
   return (
     <div className="flex h-full flex-col">
+      <div className="shrink-0 border-b border-border px-3 py-2">
+        <label htmlFor="task-center-project-filter" className="sr-only">
+          {t("taskCenter.panel.projectFilter")}
+        </label>
+        <select
+          id="task-center-project-filter"
+          value={projectFilter ?? ""}
+          onChange={(event) => setProjectFilter(event.target.value || null)}
+          className="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground outline-none focus:border-primary"
+        >
+          <option value="">{t("taskCenter.panel.allProjects")}</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </div>
       <div
         role="tablist"
         className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-2"

@@ -2,14 +2,21 @@
 import { create } from "zustand";
 import type {
   StreamHealth,
+  TaskCenterProject,
   TaskState,
 } from "@/modules/task_execution/domain/contracts";
-import { isActive, isStaleTaskSnapshot, isTerminal } from "@/modules/task_execution/domain/taskState";
+import {
+  isActive,
+  isStaleTaskSnapshot,
+  isTerminal,
+  taskProjectId,
+} from "@/modules/task_execution/domain/taskState";
 
 export type Filter = "all" | "running" | "failed" | "done";
 
 export interface TaskCenterState {
-  projectId: string | null;
+  projects: TaskCenterProject[];
+  projectFilter: string | null;
   tasks: Map<string, TaskState>;
   streamHealth: StreamHealth;
   lastEventAt: number | null;
@@ -17,17 +24,17 @@ export interface TaskCenterState {
   filter: Filter;
   autoExpandedThisSession: boolean;
   /**
-   * True once the initial `GET /tasks` hydration has landed AND the stream has
-   * delivered at least one heartbeat/task_updated — i.e., we're in the "live" phase.
-   * Before this flips, provider MUST NOT fire toasts or auto-expand for any
-   * observed task (prevents false positives for preexisting terminal tasks).
+   * True once the initial snapshots for all accessible projects have settled.
+   * Before this flips, the provider must not notify for observed terminal tasks.
    */
   isHydrated: boolean;
 
   hydrate(tasks: TaskState[]): void;
+  hydrateProject(projectId: string, tasks: TaskState[]): void;
   upsert(task: TaskState): TaskState | null;
   remove(taskKey: string): void;
-  setProject(projectId: string | null): void;
+  setProjects(projects: TaskCenterProject[]): void;
+  setProjectFilter(projectId: string | null): void;
   setHealth(h: StreamHealth): void;
   setLastEventAt(ts: number): void;
   setSelected(k: string | null): void;
@@ -41,7 +48,8 @@ export interface TaskCenterState {
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
-  projectId: null,
+  projects: [],
+  projectFilter: null,
   tasks: new Map(),
   streamHealth: "idle",
   lastEventAt: null,
@@ -66,6 +74,26 @@ export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
     }
     set({ tasks: next });
   },
+  hydrateProject: (projectId, tasks) => {
+    const existing = get().tasks;
+    const next = new Map<string, TaskState>();
+    for (const [key, task] of existing) {
+      if (taskProjectId(task) !== projectId) next.set(key, task);
+    }
+    for (const task of tasks) {
+      const prev = existing.get(task.task_key);
+      next.set(
+        task.task_key,
+        !prev || !isStaleTaskSnapshot(task, prev) ? task : prev,
+      );
+    }
+    const selectedTaskKey = get().selectedTaskKey;
+    set({
+      tasks: next,
+      selectedTaskKey:
+        selectedTaskKey && next.has(selectedTaskKey) ? selectedTaskKey : null,
+    });
+  },
   upsert: (task) => {
     const prev = get().tasks.get(task.task_key) ?? null;
     if (prev && isStaleTaskSnapshot(task, prev)) return prev;
@@ -79,7 +107,22 @@ export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
     next.delete(taskKey);
     set({ tasks: next });
   },
-  setProject: (projectId) => set({ projectId }),
+  setProjects: (projects) => {
+    const ids = new Set(projects.map((project) => project.id));
+    const next = new Map(
+      Array.from(get().tasks).filter(([, task]) => ids.has(taskProjectId(task))),
+    );
+    const projectFilter = get().projectFilter;
+    const selectedTaskKey = get().selectedTaskKey;
+    set({
+      projects,
+      projectFilter: projectFilter && ids.has(projectFilter) ? projectFilter : null,
+      tasks: next,
+      selectedTaskKey:
+        selectedTaskKey && next.has(selectedTaskKey) ? selectedTaskKey : null,
+    });
+  },
+  setProjectFilter: (projectFilter) => set({ projectFilter }),
   setHealth: (h) => set({ streamHealth: h }),
   setLastEventAt: (ts) => set({ lastEventAt: ts }),
   setSelected: (k) => set({ selectedTaskKey: k }),
@@ -102,7 +145,8 @@ export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
   },
   reset: () =>
     set({
-      projectId: null,
+      projects: [],
+      projectFilter: null,
       tasks: new Map(),
       streamHealth: "idle",
       lastEventAt: null,
@@ -150,7 +194,9 @@ export const selectLastCompletion = (
 };
 
 export const selectFilteredTasks = (s: TaskCenterState): TaskState[] => {
-  const arr = tasksArray(s);
+  const arr = tasksArray(s).filter(
+    (task) => !s.projectFilter || taskProjectId(task) === s.projectFilter,
+  );
   switch (s.filter) {
     case "running":
       return arr.filter(isActive);
@@ -164,7 +210,9 @@ export const selectFilteredTasks = (s: TaskCenterState): TaskState[] => {
 };
 
 export const selectCountByStatus = (s: TaskCenterState) => {
-  const arr = tasksArray(s);
+  const arr = tasksArray(s).filter(
+    (task) => !s.projectFilter || taskProjectId(task) === s.projectFilter,
+  );
   return {
     all: arr.length,
     running: arr.filter(isActive).length,

@@ -11,6 +11,7 @@ import {
 import { useAppStore } from "@/modules/project_workspace/public";
 import {
   displayLabel,
+  taskProjectName,
   useTaskProgress,
   type StreamHealth,
 } from "@/modules/task_execution/public";
@@ -117,7 +118,9 @@ export function TaskStatusBar() {
               <Zap className="size-3" />
               {running.length}
             </span>
-            <span className="truncate">{displayLabel(leading, t)}</span>
+            <span className="truncate">
+              {taskProjectName(leading)} · {displayLabel(leading, t)}
+            </span>
           </span>
         ) : lastDone ? (
           <span
@@ -127,7 +130,9 @@ export function TaskStatusBar() {
             )}
           >
             {lastDone.status === "failed" ? "✗" : "✓"}{" "}
-            <span className="truncate">{displayLabel(lastDone, t)}</span>
+            <span className="truncate">
+              {taskProjectName(lastDone)} · {displayLabel(lastDone, t)}
+            </span>
             <span className="shrink-0 text-muted-foreground/70">
               · {relativeLabel(lastDone.completed_at)}
             </span>

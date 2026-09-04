@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   displayLabel,
   isActive,
+  taskProjectName,
   type TaskState,
 } from "@/modules/task_execution/public";
 import { taskErrorMessage } from "@/modules/task_execution/public";
@@ -172,6 +173,7 @@ export function TaskDetail() {
     );
   }
   const providerId = providerTaskId(task);
+  const projectName = taskProjectName(task);
   const displayResult = task.result ? sanitizeResultForDisplay(task.result) : null;
   const sourceLabel = metadataField(task, "source_label");
   const targetLabel = metadataField(task, "target_label");
@@ -204,6 +206,11 @@ export function TaskDetail() {
             <h3 className="text-sm font-semibold">{displayLabel(task, t)}</h3>
             <Badge>{t(`taskCenter.status.${task.status}`)}</Badge>
           </div>
+          {projectName ? (
+            <div className="mt-1 truncate text-[11px] text-muted-foreground">
+              {t("taskCenter.detail.meta.project")}: {projectName}
+            </div>
+          ) : null}
           {(sourceLabel || targetLabel) ? (
             <div className="mt-1 truncate text-[11px] text-muted-foreground">
               {[sourceLabel, targetLabel].filter(Boolean).join(" → ")}

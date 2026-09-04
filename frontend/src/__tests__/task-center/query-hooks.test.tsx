@@ -69,7 +69,8 @@ describe("Task Center query hooks", () => {
       }),
     );
 
-    useTaskCenterStore.getState().setProject("demo");
+    useTaskCenterStore.getState().setProjects([{ id: "demo", name: "Demo" }]);
+    useTaskCenterStore.getState().markHydrated();
     useTaskCenterStore.getState().setHealth("connected");
 
     renderHook(() => useTasks({ project: "demo" }), { wrapper });
@@ -84,7 +85,7 @@ describe("Task Center query hooks", () => {
     expect(requestCount).toBe(1);
   });
 
-  it("keeps polling active tasks when Task Center owns another project", async () => {
+  it("keeps polling active tasks outside Task Center's accessible projects", async () => {
     let requestCount = 0;
     server.use(
       http.get("*/api/v1/projects/demo/tasks", () => {
@@ -96,7 +97,8 @@ describe("Task Center query hooks", () => {
       }),
     );
 
-    useTaskCenterStore.getState().setProject("other");
+    useTaskCenterStore.getState().setProjects([{ id: "other", name: "Other" }]);
+    useTaskCenterStore.getState().markHydrated();
     useTaskCenterStore.getState().setHealth("connected");
 
     renderHook(() => useTasks({ project: "demo" }), { wrapper });

@@ -11,6 +11,12 @@ export const isActive = (t: TaskState): boolean =>
   t.status === "starting" ||
   t.status === "running";
 
+export const taskProjectId = (task: TaskState): string =>
+  String(task.project_id || task.project || "").trim();
+
+export const taskProjectName = (task: TaskState): string =>
+  String(task.project_name || task.project || task.project_id || "").trim();
+
 export function isStaleTaskSnapshot(incoming: TaskState, current: TaskState): boolean {
   if (incoming.task_id !== current.task_id) {
     return Date.parse(incoming.created_at) < Date.parse(current.created_at);

@@ -94,9 +94,13 @@ afterEach(() => {
 function Harness({
   children,
   queryClient,
+  projects = [{ id: "demo", name: "Demo" }],
+  activeProjectId = "demo",
 }: {
   children?: React.ReactNode;
   queryClient?: QueryClient;
+  projects?: Array<{ id: string; name: string }>;
+  activeProjectId?: string | null;
 }) {
   const qc =
     queryClient ??
@@ -104,7 +108,12 @@ function Harness({
   return (
     <QueryClientProvider client={qc}>
       <I18nextProvider i18n={i18n}>
-        <TaskCenterProvider projectId="demo">{children ?? <div />}</TaskCenterProvider>
+        <TaskCenterProvider
+          projects={projects}
+          activeProjectId={activeProjectId}
+        >
+          {children ?? <div />}
+        </TaskCenterProvider>
       </I18nextProvider>
     </QueryClientProvider>
   );
@@ -138,6 +147,87 @@ describe("TaskCenterProvider", () => {
     expect(useTaskCenterStore.getState().tasks.size).toBe(1);
   });
 
+  it("hydrates every accessible project on the dashboard without an active project", async () => {
+    server.use(
+      http.get("*/api/v1/projects/:project/tasks", ({ params }) => {
+        const projectId = String(params.project);
+        return HttpResponse.json({
+          ok: true,
+          data: [
+            sampleTask({
+              task_key: `task:${projectId}`,
+              project: projectId,
+              project_id: projectId,
+              status: projectId === "alpha" ? "running" : "completed",
+            }),
+          ],
+        });
+      }),
+    );
+
+    render(
+      <Harness
+        projects={[
+          { id: "alpha", name: "Alpha" },
+          { id: "beta", name: "Beta" },
+        ]}
+        activeProjectId={null}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(useTaskCenterStore.getState().isHydrated).toBe(true);
+      expect(MockEventSource.instances).toHaveLength(2);
+    });
+    expect(Array.from(useTaskCenterStore.getState().tasks.values())).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ task_key: "task:alpha", project_name: "Alpha" }),
+        expect.objectContaining({ task_key: "task:beta", project_name: "Beta" }),
+      ]),
+    );
+  });
+
+  it("reprioritizes bounded project streams without rehydrating on route changes", async () => {
+    let requests = 0;
+    server.use(
+      http.get("*/api/v1/projects/:project/tasks", () => {
+        requests += 1;
+        return HttpResponse.json({ ok: true, data: [] });
+      }),
+    );
+    const projects = ["one", "two", "three", "four", "five"].map((id) => ({
+      id,
+      name: id,
+    }));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const rendered = render(
+      <Harness
+        queryClient={queryClient}
+        projects={projects}
+        activeProjectId="one"
+      />,
+    );
+
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(4));
+    expect(requests).toBe(5);
+
+    rendered.rerender(
+      <Harness
+        queryClient={queryClient}
+        projects={projects}
+        activeProjectId="five"
+      />,
+    );
+
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(5));
+    expect(MockEventSource.instances[MockEventSource.instances.length - 1]?.url).toContain(
+      "/projects/five/tasks/stream",
+    );
+    expect(requests).toBe(5);
+  });
+
   it("ignores failures from an older run and late failures after current-run success", async () => {
     const running = sampleTask({
       task_key: "portrait-scope", task_id: "retry-run", task_type: "character_portrait",
@@ -165,7 +255,10 @@ describe("TaskCenterProvider", () => {
       ...completed, status: "failed", error: "late failure", updated_at: "2026-09-02T10:05:00Z",
     }));
     expect(useTaskCenterStore.getState().tasks.get(running.task_key)?.status).toBe("completed");
-    expect(queryClient.getQueryData(queryKeys.tasks("demo"))).toEqual({ ok: true, data: [completed] });
+    expect(queryClient.getQueryData(queryKeys.tasks("demo"))).toEqual({
+      ok: true,
+      data: [{ ...completed, project_id: "demo", project_name: "Demo" }],
+    });
     expect(errorToast).not.toHaveBeenCalled();
     errorToast.mockRestore();
   });
@@ -213,7 +306,8 @@ describe("TaskCenterProvider", () => {
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
           <TaskCenterProviderView
-            projectId="demo"
+            projects={[{ id: "demo", name: "Demo" }]}
+            activeProjectId="demo"
             completionSourceRegistrar={() => ({
               onTask: vi.fn(),
               onAuthRevoked: vi.fn(),

@@ -14,6 +14,8 @@ export {
   displayLabel,
   isActive,
   isTerminal,
+  taskProjectId,
+  taskProjectName,
   taskProgressPercent,
   taskProgressRatio,
 } from "@/modules/task_execution/domain/taskState";
@@ -22,6 +24,7 @@ export type {
   TaskEvent,
   TaskEventListener,
   TaskEventType,
+  TaskCenterProject,
   TaskState,
   TaskStatus,
   TaskStreamEvent,

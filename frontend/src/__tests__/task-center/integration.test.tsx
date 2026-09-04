@@ -95,7 +95,12 @@ function Harness({ qc, children }: { qc: QueryClient; children?: React.ReactNode
   return (
     <QueryClientProvider client={qc}>
       <I18nextProvider i18n={i18n}>
-        <TaskCenterProvider projectId="demo">{children ?? <div />}</TaskCenterProvider>
+        <TaskCenterProvider
+          projects={[{ id: "demo", name: "Demo" }]}
+          activeProjectId="demo"
+        >
+          {children ?? <div />}
+        </TaskCenterProvider>
       </I18nextProvider>
     </QueryClientProvider>
   );
@@ -134,7 +139,7 @@ describe("task-center integration (AC-1 + AC-2)", () => {
     });
     const t1 = performance.now();
     expect(t1 - t0).toBeLessThan(100);
-    // Store keys by task_id now.
+    // Store rows remain keyed by the stable task key.
     expect(useTaskCenterStore.getState().tasks.get("a")!.progress).toBe(0.5);
   });
 

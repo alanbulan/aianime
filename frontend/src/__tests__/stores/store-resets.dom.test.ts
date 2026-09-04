@@ -72,7 +72,7 @@ describe("per-store reset() actions", () => {
       .getState()
       .upsert(makeTask({ task_id: "t2", task_key: "k2", status: "completed" }));
     useTaskCenterStore.getState().setHealth("connected");
-    useTaskCenterStore.getState().setProject("p1");
+    useTaskCenterStore.getState().setProjects([{ id: "p1", name: "Project 1" }]);
     useTaskCenterStore.getState().setLastEventAt(999);
     useTaskCenterStore.getState().setSelected("t1");
     useTaskCenterStore.getState().setFilter("running");
@@ -82,7 +82,9 @@ describe("per-store reset() actions", () => {
     // Sanity — we actually populated the store.
     expect(useTaskCenterStore.getState().tasks.size).toBe(2);
     expect(useTaskCenterStore.getState().streamHealth).toBe("connected");
-    expect(useTaskCenterStore.getState().projectId).toBe("p1");
+    expect(useTaskCenterStore.getState().projects).toEqual([
+      { id: "p1", name: "Project 1" },
+    ]);
     expect(useTaskCenterStore.getState().selectedTaskKey).toBe("t1");
     expect(useTaskCenterStore.getState().filter).toBe("running");
     expect(useTaskCenterStore.getState().autoExpandedThisSession).toBe(true);
@@ -95,7 +97,8 @@ describe("per-store reset() actions", () => {
     expect(s.tasks).toBeInstanceOf(Map);
     expect(s.tasks.size).toBe(0);
     expect(s.streamHealth).toBe("idle");
-    expect(s.projectId).toBeNull();
+    expect(s.projects).toEqual([]);
+    expect(s.projectFilter).toBeNull();
     expect(s.lastEventAt).toBeNull();
     expect(s.selectedTaskKey).toBeNull();
     expect(s.filter).toBe("all");

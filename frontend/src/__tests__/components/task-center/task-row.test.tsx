@@ -26,12 +26,16 @@ function renderRow(props: Parameters<typeof TaskRow>[0]) {
 describe("TaskRow", () => {
   it("renders running icon + progress bar", () => {
     renderRow({
-      task: sampleTask({ status: "running", progress: 0.45 }),
+      task: sampleTask({
+        status: "running",
+        progress: 0.45,
+        project_name: "Project Alpha",
+      }),
       selected: false,
       onClick: vi.fn(),
     });
     expect(screen.getByRole("button")).toBeInTheDocument();
-    expect(screen.getByText("Writing beats...")).toBeInTheDocument();
+    expect(screen.getByText(/Project Alpha · Writing beats/)).toBeInTheDocument();
   });
 
   it("fires onClick", () => {

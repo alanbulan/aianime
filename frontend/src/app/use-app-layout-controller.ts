@@ -3,7 +3,7 @@ import {
   useParams,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
 import { clusterConfig } from "@/shared/cluster-config";
@@ -31,6 +31,16 @@ export function useAppLayoutController() {
   const canonicalProject = routeProject
     ? canonicalProjectRouteParam(routeProject, projectSummaries.data)
     : null;
+  const taskCenterProjects = useMemo(
+    () =>
+      (projectSummaries.data ?? [])
+        .filter((project) => project.status !== "deleted")
+        .map((project) => ({
+          id: project.id,
+          name: project.displayName || project.name,
+        })),
+    [projectSummaries.data],
+  );
   const reducedMotion = useReducedMotion();
   const routeMatch = pathname.match(/^\/projects\/([^/]+)(?:\/([^/]+))?/);
   const routeTransitionKey = routeMatch
@@ -118,6 +128,7 @@ export function useAppLayoutController() {
 
   return {
     canonicalProject,
+    taskCenterProjects,
     isAssistantPage,
     loading:
       Boolean(routeProject && projectSummaries.isLoading) ||
