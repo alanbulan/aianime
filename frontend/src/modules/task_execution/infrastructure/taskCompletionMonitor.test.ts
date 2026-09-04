@@ -79,6 +79,29 @@ describe("task completion monitor", () => {
     }
   });
 
+  it("resolves every waiter attached to the same task key", async () => {
+    const source = registerTaskCompletionSource("project-shared");
+
+    try {
+      const first = awaitTaskCompletion("task-shared", "project-shared");
+      const second = awaitTaskCompletion("task-shared", "project-shared");
+      const completed = {
+        task_key: "task-shared",
+        status: "completed",
+        result: { output_url: "/static/shared.mp4" },
+      } as TaskState;
+
+      source.onTask(completed);
+
+      await expect(Promise.all([first, second])).resolves.toEqual([
+        completed,
+        completed,
+      ]);
+    } finally {
+      source.close();
+    }
+  });
+
   it("times out even while every polling request fails", async () => {
     vi.useFakeTimers();
     vi.mocked(apiCall).mockRejectedValue(new Error("offline"));

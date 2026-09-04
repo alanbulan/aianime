@@ -53,10 +53,10 @@ export interface GenerationTaskDescriptor {
   [key: string]: unknown;
 }
 
-// Task keys whose awaitTaskCompletion promise is already owned by an in-session
-// submit flow. The resume scanner must skip these — re-calling awaitTaskCompletion
-// for the same key would overwrite the original resolver and strand that promise.
-// This set is empty on a fresh page load, so persisted-but-orphaned tasks resume.
+// Task keys whose completion is already handled by an in-session submit flow.
+// The resume scanner skips these while they are running so the originating flow
+// remains the single writer. This set is empty after a page reload, allowing
+// persisted-but-orphaned tasks to resume.
 const sessionOwnedTaskKeys = new Set<string>();
 
 /**
@@ -326,6 +326,11 @@ export async function resumeNodeGeneration(
     return;
   }
 
+  // Recovery now owns result reconciliation for this task. Removing the
+  // session marker here keeps store selectors pure and permits a later retry if
+  // this recovery attempt is interrupted before it updates the node.
+  sessionOwnedTaskKeys.delete(taskKey);
+
   const readLatestNodeData = () =>
     getNodeData
       ? getNodeData(node.id)
@@ -398,11 +403,12 @@ export async function resumeNodeGeneration(
 
 /**
  * Whether a node restored from storage needs {@link resumeNodeGeneration}. Returns
- * false for tasks already being awaited by an in-session flow (see
- * {@link sessionOwnedTaskKeys}).
+ * false for tasks already being handled by an in-session flow, unless the task
+ * center has observed a terminal state and the node still needs reconciliation.
  */
 export function nodeNeedsGenerationResume(
   node: CanvasGenerationRecoveryNode,
+  taskSettled = false,
 ): boolean {
   const data = node.data as Record<string, unknown>;
   const taskKey =
@@ -410,6 +416,6 @@ export function nodeNeedsGenerationResume(
   return (
     data.isGenerating === true
     && taskKey.length > 0
-    && !sessionOwnedTaskKeys.has(taskKey)
+    && (taskSettled || !sessionOwnedTaskKeys.has(taskKey))
   );
 }

@@ -15104,9 +15104,11 @@ describe("frontend architecture boundaries", () => {
     );
     expect(composition).toContain("useShallow(selectPendingExportImageNodeIds)");
     expect(composition).toContain(
-      "useShallow(selectPendingGenerationResumeNodeIds)",
+      "selectPendingGenerationResumeNodeIds(state, terminalTaskKeys)",
     );
-    expect(composition).toContain("nodeNeedsGenerationResume(node)");
+    expect(composition).toContain(
+      "nodeNeedsGenerationResume(node, taskSettled)",
+    );
     expect(compositionTest).toContain("useCanvasStore.getState().setCanvasData(");
     expect(compositionTest).toContain(
       "keeps pending ID selections stable across unrelated node updates",

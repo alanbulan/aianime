@@ -2,6 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  generationTaskDescriptor,
+  nodeNeedsGenerationResume,
   resumeNodeGeneration,
   type CanvasGenerationRecoveryNode,
   type CanvasGenerationTaskGateway,
@@ -85,6 +87,46 @@ describe('resumeNodeGeneration', () => {
         previewImageUrl: '/static/project-1/image.png',
       }),
     );
+  });
+
+  it('writes a completed video-upscale URL back to its video node', async () => {
+    awaitCompletion.mockResolvedValue({
+      result: { output_url: '/static/project-1/upscaled.mp4?v=42' },
+    });
+
+    await resume(
+      generationNode('videoNode', {
+        generationTaskType: 'freezone_video_upscale',
+      }),
+    );
+
+    expect(updateNodeData).toHaveBeenLastCalledWith(
+      'node-1',
+      expect.objectContaining({
+        generationTaskJobId: null,
+        generationTaskKey: null,
+        generationTaskType: null,
+        isGenerating: false,
+        videoUrl: '/static/project-1/upscaled.mp4?v=42',
+      }),
+    );
+  });
+
+  it('reconciles a terminal task even when this session submitted it', () => {
+    const task = {
+      task_key: 'task-owned-terminal',
+      task_type: 'freezone_video_upscale',
+      job_id: 'job-owned-terminal',
+    };
+    generationTaskDescriptor(task);
+    const node = generationNode('videoNode', {
+      generationTaskKey: task.task_key,
+      generationTaskType: task.task_type,
+      generationTaskJobId: task.job_id,
+    });
+
+    expect(nodeNeedsGenerationResume(node)).toBe(false);
+    expect(nodeNeedsGenerationResume(node, true)).toBe(true);
   });
 
   it('uses the result endpoint when an image task has no direct URL', async () => {

@@ -127,7 +127,7 @@ interface ProjectPoller {
 
 const DEFAULT_POLL_INTERVAL_MS = 4000;
 const DEFAULT_MAX_POLL_MS = 20 * 60 * 1000;
-const pendingByTaskKey = new Map<string, PendingResolver>();
+const pendingByTaskKey = new Map<string, Set<PendingResolver>>();
 const sharedStreamsByProject = new Map<string, SseHandle>();
 const pollersByProject = new Map<string, ProjectPoller>();
 const taskCompletionSourceCountsByProject = new Map<string, number>();
@@ -147,8 +147,10 @@ function closeAllTaskMonitoring(err?: Error): void {
   taskCompletionSourceCountsByProject.clear();
 
   if (err) {
-    for (const [, pending] of pendingByTaskKey) {
-      pending.reject(err);
+    for (const pendingSet of pendingByTaskKey.values()) {
+      for (const pending of pendingSet) {
+        pending.reject(err);
+      }
     }
     pendingByTaskKey.clear();
   }
@@ -156,10 +158,24 @@ function closeAllTaskMonitoring(err?: Error): void {
 
 function pendingCountForProject(projectId: string): number {
   let count = 0;
-  for (const pending of pendingByTaskKey.values()) {
-    if (pending.projectId === projectId) count += 1;
+  for (const pendingSet of pendingByTaskKey.values()) {
+    for (const pending of pendingSet) {
+      if (pending.projectId === projectId) count += 1;
+    }
   }
   return count;
+}
+
+function removePendingResolver(
+  taskKey: string,
+  pending: PendingResolver,
+): void {
+  const pendingSet = pendingByTaskKey.get(taskKey);
+  if (!pendingSet) return;
+  pendingSet.delete(pending);
+  if (pendingSet.size === 0) {
+    pendingByTaskKey.delete(taskKey);
+  }
 }
 
 function maybeStopProjectMonitoring(projectId: string): void {
@@ -184,24 +200,43 @@ function maybeStopProjectMonitoring(projectId: string): void {
 }
 
 function settleTask(task: TaskState): void {
-  const pending = pendingByTaskKey.get(task.task_key);
-  if (!pending) return;
-  if (task.status === "completed") {
-    pending.resolve(task);
-    pendingByTaskKey.delete(task.task_key);
-    maybeStopProjectMonitoring(pending.projectId);
-  } else if (task.status === "failed" || task.status === "cancelled") {
-    pending.reject(new TaskCompletionError(task.error ?? `task ${task.status}`, task.status, task.task_key));
-    pendingByTaskKey.delete(task.task_key);
-    maybeStopProjectMonitoring(pending.projectId);
+  if (
+    task.status !== "completed"
+    && task.status !== "failed"
+    && task.status !== "cancelled"
+  ) {
+    return;
+  }
+  const pendingSet = pendingByTaskKey.get(task.task_key);
+  if (!pendingSet) return;
+  pendingByTaskKey.delete(task.task_key);
+  const projectIds = new Set<string>();
+  for (const pending of pendingSet) {
+    projectIds.add(pending.projectId);
+    if (task.status === "completed") {
+      pending.resolve(task);
+    } else {
+      pending.reject(
+        new TaskCompletionError(
+          task.error ?? `task ${task.status}`,
+          task.status,
+          task.task_key,
+        ),
+      );
+    }
+  }
+  for (const projectId of projectIds) {
+    maybeStopProjectMonitoring(projectId);
   }
 }
 
 function rejectProjectPending(projectId: string, err: Error): void {
-  for (const [taskKey, pending] of pendingByTaskKey) {
-    if (pending.projectId !== projectId) continue;
-    pending.reject(err);
-    pendingByTaskKey.delete(taskKey);
+  for (const [taskKey, pendingSet] of pendingByTaskKey) {
+    for (const pending of Array.from(pendingSet)) {
+      if (pending.projectId !== projectId) continue;
+      pending.reject(err);
+      removePendingResolver(taskKey, pending);
+    }
   }
   maybeStopProjectMonitoring(projectId);
 }
@@ -240,8 +275,13 @@ export const registerTaskCompletionSource: TaskCompletionSourceRegistrar = (
   let closed = false;
   return {
     onTask(task) {
-      const pending = pendingByTaskKey.get(task.task_key);
-      if (pending?.projectId === resolved) {
+      const pendingSet = pendingByTaskKey.get(task.task_key);
+      if (
+        pendingSet
+        && Array.from(pendingSet).some(
+          (pending) => pending.projectId === resolved,
+        )
+      ) {
         settleTask(task);
       }
     },
@@ -303,8 +343,14 @@ function ensureProjectPoller(projectId: string): void {
       const tasks = await listTasks(projectId);
       poller.failureLogged = false;
       const tasksByKey = new Map(tasks.map((task) => [task.task_key, task]));
-      for (const [taskKey, pending] of pendingByTaskKey) {
-        if (pending.projectId !== projectId) continue;
+      for (const [taskKey, pendingSet] of pendingByTaskKey) {
+        if (
+          !Array.from(pendingSet).some(
+            (pending) => pending.projectId === projectId,
+          )
+        ) {
+          continue;
+        }
         const found = tasksByKey.get(taskKey);
         if (found) {
           settleTask(found);
@@ -320,18 +366,20 @@ function ensureProjectPoller(projectId: string): void {
     }
 
     const now = Date.now();
-    for (const [taskKey, pending] of pendingByTaskKey) {
-      if (pending.projectId !== projectId) continue;
-      // Timeout independently of the list request result. A persistent network
-      // failure must not leave the caller's promise pending forever.
-      if (now >= pending.expiresAt) {
-        pending.reject(new Error("task polling timed out"));
-        pendingByTaskKey.delete(taskKey);
+    for (const [taskKey, pendingSet] of pendingByTaskKey) {
+      for (const pending of Array.from(pendingSet)) {
+        if (pending.projectId !== projectId) continue;
+        // Timeout independently of the list request result. A persistent network
+        // failure must not leave the caller's promise pending forever.
+        if (now >= pending.expiresAt) {
+          pending.reject(new Error("task polling timed out"));
+          removePendingResolver(taskKey, pending);
+        }
       }
     }
 
     if (pendingCountForProject(projectId) === 0) {
-      pollersByProject.delete(projectId);
+      maybeStopProjectMonitoring(projectId);
       return;
     }
     schedule();
@@ -345,18 +393,23 @@ export function awaitTaskCompletion(
   projectId: string,
 ): Promise<TaskState> {
   const resolved = resolveTaskProjectId(projectId);
-  ensureSharedStream(resolved);
-  ensureProjectPoller(resolved);
+  let pending!: PendingResolver;
   const promise = new Promise<TaskState>((resolve, reject) => {
-    pendingByTaskKey.set(taskKey, {
+    pending = {
       resolve,
       reject,
       projectId: resolved,
       expiresAt: Date.now() + DEFAULT_MAX_POLL_MS,
-    });
+    };
+    const pendingSet =
+      pendingByTaskKey.get(taskKey) ?? new Set<PendingResolver>();
+    pendingSet.add(pending);
+    pendingByTaskKey.set(taskKey, pendingSet);
   });
+  ensureSharedStream(resolved);
+  ensureProjectPoller(resolved);
   return promise.finally(() => {
-    pendingByTaskKey.delete(taskKey);
+    removePendingResolver(taskKey, pending);
     maybeStopProjectMonitoring(resolved);
   });
 }

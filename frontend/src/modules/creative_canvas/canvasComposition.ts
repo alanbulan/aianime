@@ -163,6 +163,7 @@ import { uploadLocalImageToBackend as uploadLocalImageToBackendUseCase } from '.
 import { useCanvasStore } from './canvasStoreComposition';
 import { useShallow } from 'zustand/react/shallow';
 import type { EdgeTypes } from '@xyflow/react';
+import { isTerminal, useTaskCenterStore } from '@/modules/task_execution/public';
 
 import {
   embedStoryboardImageMetadata,
@@ -214,6 +215,7 @@ const freezoneAiGateway = createFreezoneAiGateway({
 });
 
 type CanvasStoreState = ReturnType<typeof useCanvasStore.getState>;
+type TaskCenterStoreState = ReturnType<typeof useTaskCenterStore.getState>;
 
 function selectPendingExportImageNodeIds(state: CanvasStoreState): string[] {
   return state.nodes
@@ -231,8 +233,27 @@ function selectPendingExportImageNodeIds(state: CanvasStoreState): string[] {
 
 function selectPendingGenerationResumeNodeIds(
   state: CanvasStoreState,
+  terminalTaskKeys: readonly string[],
 ): string[] {
-  return state.nodes.filter(nodeNeedsGenerationResume).map((node) => node.id);
+  return state.nodes
+    .filter((node) => {
+      const data = node.data as Record<string, unknown>;
+      const taskKey =
+        typeof data.generationTaskKey === 'string'
+          ? data.generationTaskKey
+          : '';
+      return nodeNeedsGenerationResume(
+        node,
+        terminalTaskKeys.includes(taskKey),
+      );
+    })
+    .map((node) => node.id);
+}
+
+function selectTerminalTaskKeys(state: TaskCenterStoreState): string[] {
+  return Array.from(state.tasks.values())
+    .filter(isTerminal)
+    .map((task) => task.task_key);
 }
 
 function usePendingExportImageNodeIds(): readonly string[] {
@@ -240,7 +261,14 @@ function usePendingExportImageNodeIds(): readonly string[] {
 }
 
 function usePendingGenerationResumeNodeIds(): readonly string[] {
-  return useCanvasStore(useShallow(selectPendingGenerationResumeNodeIds));
+  const terminalTaskKeys = useTaskCenterStore(
+    useShallow(selectTerminalTaskKeys),
+  );
+  return useCanvasStore(
+    useShallow((state) =>
+      selectPendingGenerationResumeNodeIds(state, terminalTaskKeys),
+    ),
+  );
 }
 
 function readCanvasNodeData(nodeId: string): Record<string, unknown> | null {
@@ -279,7 +307,19 @@ function resumePendingGenerationNode({
 }): Promise<void> {
   const state = useCanvasStore.getState();
   const node = state.nodes.find((item) => item.id === nodeId);
-  if (!node || !nodeNeedsGenerationResume(node)) {
+  if (!node) {
+    return Promise.resolve();
+  }
+  const data = node.data as Record<string, unknown>;
+  const taskKey =
+    typeof data.generationTaskKey === 'string'
+      ? data.generationTaskKey
+      : '';
+  const task = taskKey
+    ? useTaskCenterStore.getState().tasks.get(taskKey)
+    : undefined;
+  const taskSettled = task ? isTerminal(task) : false;
+  if (!nodeNeedsGenerationResume(node, taskSettled)) {
     return Promise.resolve();
   }
   return resumeNodeGeneration({
