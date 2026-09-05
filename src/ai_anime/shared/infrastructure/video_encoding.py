@@ -35,7 +35,9 @@ def ffmpeg_video_quality_args(
         ]
     if resolved_codec == "h264_videotoolbox":
         resolved_bitrate = bitrate or ("8M" if crf <= 18 else "4M")
-        return ["-b:v", resolved_bitrate]
+        # Prefer hardware, but allow VideoToolbox's software encoder on Macs
+        # without an available hardware compression session (including CI).
+        return ["-allow_sw", "1", "-b:v", resolved_bitrate]
     return []
 
 

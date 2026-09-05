@@ -33,7 +33,18 @@ def test_lgpl_desktop_encoders_use_bitrate_instead_of_x264_options() -> None:
         codec="h264_videotoolbox",
         preset="fast",
         crf=23,
-    ) == ["-b:v", "4M"]
+    ) == ["-allow_sw", "1", "-b:v", "4M"]
+
+
+def test_videotoolbox_allows_software_without_overriding_explicit_bitrate() -> None:
+    assert ffmpeg_video_encoding_args(codec="h264_videotoolbox", bitrate="6M") == [
+        "-c:v",
+        "h264_videotoolbox",
+        "-allow_sw",
+        "1",
+        "-b:v",
+        "6M",
+    ]
 
 
 def test_unknown_encoder_does_not_receive_incompatible_quality_flags() -> None:

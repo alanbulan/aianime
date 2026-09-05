@@ -82,7 +82,13 @@ for required_path in "$backend" "$ffmpeg" "$ffprobe" "$hermes"; do
   fi
 done
 
-backend_output="$(PYTHONIOENCODING=utf-8 PYTHONUTF8=1 "$backend" --runtime-smoke-check)"
+# Cognee reads these paths during import. Smoke data must not be written into
+# the signed application bundle, even when no project has been opened yet.
+backend_output="$(PYTHONIOENCODING=utf-8 PYTHONUTF8=1 \
+  SYSTEM_ROOT_DIRECTORY="${temporary_root}/cognee/system" \
+  DATA_ROOT_DIRECTORY="${temporary_root}/cognee/data" \
+  CACHE_ROOT_DIRECTORY="${temporary_root}/cognee/cache" \
+  "$backend" --runtime-smoke-check)"
 if ! grep -q '^AI_ANIME_BACKEND_SMOKE ' <<<"$backend_output"; then
   echo "Packaged backend runtime smoke marker is missing" >&2
   exit 1
@@ -98,10 +104,22 @@ for required_filter in drawtext subtitles; do
 done
 subtitle_path="${temporary_root}/subtitle.srt"
 printf '1\n00:00:00,000 --> 00:00:00,500\nIntel 中文\n' >"$subtitle_path"
-"$ffmpeg" -v error -f lavfi -i color=size=32x32:duration=0.1 \
-  -pix_fmt yuv420p -c:v h264_videotoolbox -frames:v 1 -f null -
-"$ffmpeg" -v error -f lavfi -i color=size=32x32:duration=0.1 \
-  -vf "subtitles=${subtitle_path}" -frames:v 1 -f null -
+video_path="${temporary_root}/encoded.mp4"
+# Use the application's hardware-preferred, software-allowed H.264 settings.
+# A real MP4 round trip verifies encoding, subtitle rendering, muxing and decoding.
+"$ffmpeg" -v error -f lavfi -i color=size=640x360:rate=25:duration=0.12 \
+  -vf "subtitles=${subtitle_path}" -pix_fmt yuv420p \
+  -c:v h264_videotoolbox -allow_sw 1 -b:v 4M -frames:v 3 "$video_path"
+video_info="$("$ffprobe" -v error -select_streams v:0 -count_frames \
+  -show_entries stream=codec_name,width,height,nb_read_frames -of default=noprint_wrappers=1 "$video_path")"
+for expected_field in codec_name=h264 width=640 height=360 nb_read_frames=3; do
+  if ! grep -qx "$expected_field" <<<"$video_info"; then
+    echo "Packaged FFmpeg MP4 verification failed: expected ${expected_field}, got ${video_info}" >&2
+    exit 1
+  fi
+done
+"$ffmpeg" -v error -xerror -i "$video_path" -f null -
+echo "Packaged FFmpeg H.264/subtitles/MP4/decode smoke passed."
 "$hermes" --help >/dev/null
 
 codesign --verify --deep --strict "$app_path"

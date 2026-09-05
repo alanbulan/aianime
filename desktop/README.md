@@ -56,6 +56,8 @@ pnpm --dir desktop package:mac:x64 # 在 Intel Mac 上生成兼容 Ventura 的 D
 
 Intel 首次打包前需保证 `clang`、`make`、`python3`、`meson`、`ninja`、`perl`、`cargo` 和 `rustc` 可从 `PATH` 调用。打包链会从固定 SHA-256 的 `markus-perl/ffmpeg-build-script` 源码构建并缓存 Intel FFmpeg，随后验证 `h264_videotoolbox`、`drawtext`、`subtitles`、系统动态库链接、Mach-O 架构和最低 macOS 版本。出包后还会检查所有内置 Mach-O、运行后端/FFmpeg/Hermes 冒烟并执行严格签名校验。
 
+macOS 视频编码使用 `h264_videotoolbox -allow_sw 1`：优先使用硬件编码，在硬件会话不可用时允许系统软件编码，避免无硬件编码器的 Actions Runner 直接失败；软件编码可能更慢，不改变 Windows 的 `libopenh264` 参数。该选项的默认值和行为见 [FFmpeg 9.0.1 VideoToolbox 实现](https://github.com/FFmpeg/FFmpeg/blob/n9.0.1/libavcodec/videotoolboxenc.c)。成品冒烟使用同一设置生成带中文字幕的 H.264 MP4，校验分辨率和解码帧数，再实际解码；不会跳过编码失败。后端冒烟的 Cognee 数据目录定向到临时目录，避免写入已签名应用。
+
 Intel Python 准备脚本会先构建面向 Ventura 的静态 OpenSSL 4.0.2，再安装锁定版本的 cryptography，避免链接构建机的 Homebrew 库；不降低加密库版本。Ladybug 仅在 Intel Mac 使用 0.17.1，Windows 仍为 0.19.0，其他平台保持原选择。该旧版的存储缺陷与跨版本图数据库兼容性风险见根目录 README 的 Intel 打包说明，不自动改写用户数据。两个 Python 环境会在 FFmpeg 编译前完成原生库预检；这些步骤不进入 Windows 或 arm64 的打包命令。
 
 仓库的 `.github/workflows/build-macos-intel.yml` 可在 GitHub Actions 中手动运行，也会在推送与 `desktop/package.json` 版本一致的 `v*` 标签时自动运行。它使用 `macos-15-intel` 生成 DMG、ZIP、`latest-mac.yml` 和 SHA-256 清单；手动构建保留 1 天 Actions 制品，标签构建保存到不会直接发布的草稿 Release。该托管 Runner 运行 macOS 15；Intel 打包会先按 Ventura 目标同步两个 Python 环境，后续构建不再按宿主系统重选轮子。它能验证 x86_64 架构、13.4 最低版本与内置运行时，但不能代替 Intel macOS 13.7.8 上的最终安装和业务冒烟。

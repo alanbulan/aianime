@@ -228,6 +228,9 @@ test("packaged Intel app verification checks architecture, minimum OS, runtime a
   assert.match(smokeScript, /--runtime-smoke-check/);
   assert.ok(smokeScript.includes('filters="$("$ffmpeg" -hide_banner -filters'));
   assert.match(smokeScript, /-c:v h264_videotoolbox/);
+  assert.match(smokeScript, /-allow_sw 1 -b:v 4M/);
+  assert.match(smokeScript, /nb_read_frames=3/);
+  assert.match(smokeScript, /-v error -xerror -i "\$video_path" -f null -/);
   assert.match(smokeScript, /subtitles=\$\{subtitle_path\}/);
   assert.match(smokeScript, /codesign --verify --deep --strict/);
   assert.match(smokeScript, /macos-\$\{artifact_arch\}\.\$\{extension\}/);
