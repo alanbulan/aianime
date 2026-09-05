@@ -62,7 +62,7 @@ Intel Python 准备脚本会先构建面向 Ventura 的静态 OpenSSL 4.0.2，�
 
 可选的“导演世界 3D 运行环境”当前只支持 Windows x64 和 macOS arm64，不随轻量主安装包分发；Intel x64 客户端会明确显示该可选运行环境不受支持。
 
-Intel 打包命令单独加载 `electron-builder.macos-intel.yml`，排除仅供该可选 3D 环境使用的 `@playcanvas/splat-transform` 和 `webgpu`，避免将要求 macOS 15 的 Dawn 原生库带入 Ventura 主包；Windows 与 Apple Silicon 仍使用原配置和依赖。Mach-O 检查使用 Apple `otool -m` 按完整文件名读取带括号的 Electron Helper，并继续严格校验目标架构和最低系统版本。Actions 会在耗时编译前运行这些打包回归测试；最终还会启动成品 Electron 的 Node 模式，验证 ASAR 主入口、更新器依赖和 3D 模块排除结果，不触发联网更新或登录。
+Intel 打包命令单独加载 `electron-builder.macos-intel.yml`，在根级 `files` 白名单内排除仅供该可选 3D 环境使用的 `@playcanvas/splat-transform` 和 `webgpu`，避免将要求 macOS 15 的 Dawn 原生库带入 Ventura 主包；不要改成仅含排除规则的 `mac.files`，该配置会触发默认全目录收集并带入 Hermes 开发虚拟环境。Windows 与 Apple Silicon 仍使用原配置和依赖。Mach-O 检查使用 Apple `otool -m` 按完整文件名读取带括号的 Electron Helper，并继续严格校验目标架构和最低系统版本。Actions 会在耗时编译前使用打包器归一化后的配置验证主应用文件收集；最终还会启动成品 Electron 的 Node 模式，检查 ASAR 根目录仅包含 `dist`、`node_modules`、`package.json`，并验证主入口、更新器依赖和 3D 模块排除结果，不触发联网更新或登录。
 
 打包不强制开发者证书：Windows 可直接生成无证书 NSIS，macOS 使用 ad-hoc 签名。对外分发的 macOS 包仍需 Developer ID 签名和 Apple 公证。`electron-builder` 同时生成 `latest.yml` / `latest-mac.yml`，客户端由 `electron-updater` 完成下载、SHA-512 校验和安装。
 

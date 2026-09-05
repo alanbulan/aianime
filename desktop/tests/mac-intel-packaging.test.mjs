@@ -49,7 +49,6 @@ test("Intel builder filters optional 3D modules without changing shared resource
   assert.equal(intel.mac.minimumSystemVersion, "13.4.0");
   assert.equal(base.mac.minimumSystemVersion, "15.0.0");
   assert.deepEqual(intel.win, base.win);
-  assert.deepEqual(intel.files, base.files);
   assert.deepEqual(intel.extraResources, base.extraResources);
   assert.deepEqual(intel.publish, base.publish);
 
@@ -82,6 +81,42 @@ test("Intel builder filters optional 3D modules without changing shared resource
     "node_modules/debug/src/index.js",
   ]) {
     assert.equal(includes(intel, "mac", modulePath), true, modulePath);
+  }
+});
+
+test("validated Intel main file collection excludes build environments and keeps the application", async () => {
+  const require = createRequire(import.meta.url);
+  const builderRequire = createRequire(require.resolve("electron-builder/package.json"));
+  const { Packager } = builderRequire("app-builder-lib/out/packager.js");
+  const { AppInfo } = builderRequire("app-builder-lib/out/appInfo.js");
+  const { MacPackager } = builderRequire("app-builder-lib/out/macPackager.js");
+  const { getMainFileMatchers } = builderRequire("app-builder-lib/out/fileMatcher.js");
+  const desktopRoot = fileURLToPath(new URL("..", import.meta.url));
+  for (const config of ["electron-builder.yml", "electron-builder.macos-intel.yml"]) {
+    const info = new Packager({ projectDir: desktopRoot, config });
+    try {
+      // validateConfig normalizes root files to FileSets, as in a real build.
+      await info.validateConfig();
+      info._appInfo = new AppInfo(info);
+      const packager = new MacPackager(info);
+      const matchers = getMainFileMatchers(desktopRoot, join(desktopRoot, "release", "test-app"),
+        (pattern) => pattern, info.config.mac, packager, join(desktopRoot, "release"), false);
+      const includes = (path) => matchers.some((matcher) =>
+        matcher.createFilter()(join(desktopRoot, path), { isDirectory: () => false }));
+      for (const path of ["package.json", "dist/main.js", "dist/preload.cjs", "dist/runtime-dependencies.js"]) {
+        assert.equal(includes(path), true, `${config}: ${path}`);
+      }
+      for (const path of [
+        "hermes-runtime/.venv/bin/python", "hermes-runtime/.venv/lib/python3.11/site-packages/test.py",
+        "hermes-runtime/dist/hermes-acp/hermes-acp", "backend-dist/ai-anime-backend/ai-anime-backend",
+        ".ffmpeg-cache/source/workspace/bin/ffmpeg", ".macos-intel-cache/openssl/lib/libcrypto.a",
+        "runtime/ffmpeg/ffmpeg", "src/main.ts", "tests/mac-intel-packaging.test.mjs", "dist/main.js.map",
+      ]) {
+        assert.equal(includes(path), false, `${config}: ${path}`);
+      }
+    } finally {
+      await info.tempDirManager.cleanup();
+    }
   }
 });
 

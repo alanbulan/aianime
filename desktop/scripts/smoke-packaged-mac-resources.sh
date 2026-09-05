@@ -50,7 +50,7 @@ resources="${app_path}/Contents/Resources"
 test -f "${resources}/frontend/index.html"
 ELECTRON_RUN_AS_NODE=1 "$main_executable" - "${resources}/app.asar" <<'NODE'
 const assert = require("node:assert/strict");
-const { existsSync, readFileSync } = require("node:fs");
+const { existsSync, readFileSync, readdirSync } = require("node:fs");
 const { createRequire } = require("node:module");
 const { join } = require("node:path");
 const archive = process.argv[2];
@@ -61,6 +61,8 @@ assert.ok(existsSync(join(archive, manifest.main)), "Packaged main entry is miss
 const appRequire = createRequire(manifestPath);
 assert.equal(typeof appRequire("electron-updater").MacUpdater, "function");
 if (process.arch === "x64") {
+  assert.deepEqual(readdirSync(archive).sort(), ["dist", "node_modules", "package.json"],
+    "Intel ASAR must contain only the application and its production dependencies");
   for (const moduleName of ["@playcanvas/splat-transform", "webgpu"]) {
     assert.equal(existsSync(join(archive, "node_modules", moduleName)), false,
       `Optional 3D module must not be bundled in the Intel main app: ${moduleName}`);
