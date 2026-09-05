@@ -240,9 +240,9 @@ export interface CharacterGateway {
   uploadIdentityImage(
     project: string,
     name: string,
-    identityName: string,
+    identityId: string,
     file: File,
-  ): Promise<AssetDataResponse<{ image_url: string }>>;
+  ): Promise<AssetResponse<{ image_url: string }>>;
   uploadIdentityCostume(
     project: string,
     name: string,

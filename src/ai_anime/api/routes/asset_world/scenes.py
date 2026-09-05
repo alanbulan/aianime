@@ -13,6 +13,7 @@ from ai_anime.api.deps import (
     make_static_url_for_context,
 )
 from ai_anime.api.routes.asset_world.scenes_schemas import (
+    ClearSceneDirectorWorldRequest,
     PanoViewerCorrection,
     SceneCreate,
     ScenePanoGenerateRequest,
@@ -248,19 +249,18 @@ async def save_scene_director_world_source(
 async def clear_scene_director_world(
     project: str,
     name: str,
-    body: dict[str, Any] | None = None,
+    body: ClearSceneDirectorWorldRequest | None = None,
     user: dict = Depends(get_api_user),
 ):
     _ctx, _username, _project_name, project_dir, _output_dir, store = (
         await _resolve_scene_project(project, user, required_role="editor")
     )
-    body = body or {}
     try:
         data = await scene_viewer_use_cases().clear_director_world(
             repository=store,
             project_dir=project_dir,
             scene_name=name,
-            active_source_id=body.get("active_source_id"),
+            active_source_id=body.active_source_id if body is not None else None,
         )
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}

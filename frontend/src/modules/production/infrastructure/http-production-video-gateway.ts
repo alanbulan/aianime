@@ -872,11 +872,10 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       )
       .json<ProductionDataResponse<SketchCropResult> | ProductionErrorResponse>();
   },
-  async assignSketchColors(project, episode, force) {
+  async assignSketchColors(project, episode) {
     return api
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/sketches/assign-colors`,
-        force ? { searchParams: { force: "true" } } : undefined,
       )
       .json<ProductionDataResponse<AssignColorsResult> | ProductionErrorResponse>();
   },

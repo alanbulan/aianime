@@ -56,6 +56,7 @@ const GENERIC_TOOL_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   get: "读取项目数据",
   patch: "更新项目数据",
   post: "执行项目操作",
+  question: "请求用户确认",
   read: "读取文件",
   read_file: "读取文件",
   search: "搜索内容",

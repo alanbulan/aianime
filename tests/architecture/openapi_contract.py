@@ -49,6 +49,7 @@ def _normalize(
     *,
     document: Mapping[str, Any],
     reference_stack: tuple[str, ...] = (),
+    preserve_property_names: bool = False,
 ) -> Any:
     if isinstance(value, list):
         return [
@@ -82,9 +83,10 @@ def _normalize(
             item,
             document=document,
             reference_stack=reference_stack,
+            preserve_property_names=not preserve_property_names and key == "properties",
         )
         for key, item in sorted(value.items())
-        if key not in NON_CONTRACT_KEYS
+        if preserve_property_names or key not in NON_CONTRACT_KEYS
     }
 
 

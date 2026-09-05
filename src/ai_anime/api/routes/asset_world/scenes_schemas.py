@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PanoSphereCorrection(BaseModel):
@@ -59,7 +59,14 @@ class SceneReferenceGenerateRequest(BaseModel):
     model: Optional[str] = None
 
 
+class ClearSceneDirectorWorldRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    active_source_id: str | None = None
+
+
 __all__ = [
+    "ClearSceneDirectorWorldRequest",
     "PanoSphereCorrection",
     "PanoViewerCorrection",
     "SceneCreate",

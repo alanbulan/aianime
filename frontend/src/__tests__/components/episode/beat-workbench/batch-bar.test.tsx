@@ -49,10 +49,10 @@ beforeAll(async () => {
                   "AI 检测完成：{{beats}} 个 beat，共 {{ids}} 个身份、{{props}} 个道具",
                 aiDetectReview:
                   "请核对每个 beat；漏识别可在更多里的出场身份/出场道具中补选。",
-                reassignColors: "重新配色",
-                reassignColorsTooltip: "重新配色",
-                reassignColorsTitle: "重新配色？",
-                reassignColorsDesc: "确认重新配色？",
+                reassignColors: "补齐配色",
+                reassignColorsTooltip: "保留已有颜色，补齐缺失配色",
+                reassignColorsTitle: "确认补齐配色？",
+                reassignColorsDesc: "保留已有颜色，补齐缺失配色。",
                 reassignColorsSuccess:
                   "已分配 {{count}} 个身份、{{propCount}} 个道具",
                 insertManualBeforeFirst: "首镜前插入",
@@ -492,7 +492,8 @@ describe("BatchBar", () => {
 
     expect(detectIdentitiesMock).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole("button", { name: "重新配色" }));
+    await user.click(screen.getByRole("button", { name: "补齐配色" }));
+    expect(screen.getByText("保留已有颜色，补齐缺失配色。")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "确认执行" }));
 
     expect(assignColorsMock).toHaveBeenCalledTimes(1);

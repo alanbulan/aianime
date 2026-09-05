@@ -186,9 +186,11 @@ async def test_standard_video_preserves_duration_resolution_and_task_payload(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("overrides", [{}, {"duration": 6, "resolution": "480p"}])
 async def test_standard_video_preserves_inline_video_config(
     monkeypatch,
     tmp_path: Path,
+    overrides,
 ) -> None:
     _frame(tmp_path)
     store = _Store(
@@ -198,6 +200,7 @@ async def test_standard_video_preserves_inline_video_config(
                 "audio_type": "silence",
                 "video_mode": "first_frame",
                 "video_prompt": "old prompt",
+                "video_config_json": '{"ratio":"16:9","duration":3}',
             }
         ]
     )
@@ -211,13 +214,16 @@ async def test_standard_video_preserves_inline_video_config(
                 '"final_prompt":"configured prompt","generate_audio":false,'
                 '"return_last_frame":true}'
             ),
+            provided_fields=frozenset(overrides),
+            **overrides,
         ),
     )
 
     config = parse_video_config(task.config["video_config"])
     assert task.config["prompt"] == "configured prompt"
-    assert task.config["video_duration"] == 9
-    assert task.config["resolution"] == "720p"
+    assert task.config["video_duration"] == overrides.get("duration", 9)
+    assert task.config["resolution"] == overrides.get("resolution", "720p")
+    assert config.ratio == "16:9"
     assert config.generate_audio is False
     assert config.return_last_frame is True
     assert store.updated[-1]["video_config_json"] == task.config["video_config"]

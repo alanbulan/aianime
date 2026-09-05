@@ -38,6 +38,10 @@ except ValueError:
     DECISION_TIMEOUT_SECONDS = 86400
 SCRIPT_UPLOAD_EXTENSIONS = {".txt", ".md", ".doc", ".docx"}
 CHAT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+SKETCH_MODES_BY_ASPECT_RATIO = {
+    "2:3": "1x1_2-3_sketch",
+    "16:9": "1x1_16-9_sketch",
+}
 STYLE_CONFIG_FIELDS = {
     "base",
     "style_instructions",
@@ -739,18 +743,14 @@ def _limit_items(items: list[dict[str, Any]], args: dict[str, Any], default: int
     return items[offset : offset + limit]
 
 
-def _requested_beats(
-    args: dict[str, Any],
-    *,
-    allow_single: bool = True,
-) -> set[int] | None:
+def _requested_beats(args: dict[str, Any]) -> set[int] | None:
     raw = args.get("beat_indices")
     values: list[Any] = []
     if isinstance(raw, list):
         values.extend(raw)
     elif raw is not None:
         values.append(raw)
-    if allow_single and args.get("beat") is not None:
+    if args.get("beat") is not None:
         values.append(args["beat"])
     beats: set[int] = set()
     for value in values:
@@ -2366,12 +2366,40 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
         episode = _require_episode(args)
-        requested_beats = sorted(
-            _requested_beats(args, allow_single=False) or ()
-        )
+        requested_beats = sorted(_requested_beats(args) or ())
         all_beats = args.get("all_beats") is True
         if requested_beats and all_beats:
-            raise ValueError("pass either beat_indices or all_beats=true, not both")
+            raise ValueError("pass either beat/beat_indices or all_beats=true, not both")
+        if requested_beats or all_beats:
+            unsupported = [
+                key for key in ("grid_index", "sketch_scene_grouping")
+                if args.get(key) is not None
+            ]
+            if unsupported:
+                raise ValueError(
+                    f"{', '.join(unsupported)} only applies to missing-sketch generation; "
+                    "omit it when using beat, beat_indices or all_beats=true"
+                )
+            if args.get("replace_existing") is False:
+                raise ValueError(
+                    "replace_existing=false conflicts with explicit Beat regeneration, "
+                    "which replaces selected sketches after success; omit beat, beat_indices "
+                    "and all_beats to generate only missing sketches"
+                )
+            mode_key = args.get("mode_key")
+            aspect_ratio = args.get("aspect_ratio")
+            if mode_key is not None and aspect_ratio is not None:
+                mode_ratio = re.fullmatch(r"\d+x\d+_(\d+)-(\d+)(?:_sketch)?", str(mode_key))
+                if (
+                    mode_ratio is None
+                    or f"{mode_ratio[1]}:{mode_ratio[2]}" != aspect_ratio
+                ):
+                    raise ValueError("mode_key and aspect_ratio must describe the same sketch ratio")
+        elif args.get("mode_key") is not None:
+            raise ValueError(
+                "mode_key requires beat_indices, beat or all_beats=true; "
+                "use aspect_ratio for missing-sketch generation"
+            )
         if all_beats:
             requested_beats = _resolve_episode_beats(project, episode)
             if not requested_beats:
@@ -2404,7 +2432,7 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
             and grid_index < 0
         ):
             raise ValueError(
-                "replace_existing=true requires beat_indices, all_beats=true, "
+                "replace_existing=true requires beat_indices, beat, all_beats=true, "
                 "or an explicit non-negative grid_index"
             )
 
@@ -2429,11 +2457,7 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
                 "beat_indices": [int(beat) for beat in requested_beats],
                 "mode_key": str(
                     args.get("mode_key")
-                    or (
-                        "1x1_16-9_sketch"
-                        if aspect_ratio == "16:9"
-                        else "1x1_2-3_sketch"
-                    )
+                    or SKETCH_MODES_BY_ASPECT_RATIO[aspect_ratio]
                 ),
             }
             for key in ("style", "image_generation_selection"):
@@ -3121,10 +3145,10 @@ def _handle_render_first_frames(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
         episode = _require_episode(args)
-        beats = sorted(_requested_beats(args, allow_single=False) or ())
+        beats = sorted(_requested_beats(args) or ())
         all_beats = args.get("all_beats") is True
         if beats and all_beats:
-            raise ValueError("pass either beat_indices or all_beats=true, not both")
+            raise ValueError("pass either beat/beat_indices or all_beats=true, not both")
         if all_beats:
             beats = _resolve_episode_beats(project, episode)
             if not beats:
@@ -3134,7 +3158,7 @@ def _handle_render_first_frames(args: dict[str, Any], **_: Any) -> str:
                 )
         elif not beats:
             raise ValueError(
-                "beat_indices is required for explicit first-frame regeneration; "
+                "beat_indices is required unless beat is supplied for explicit first-frame regeneration; "
                 "pass all_beats=true only when the user explicitly requested every "
                 "beat, or use ai_anime_run_production_workflow to continue production"
             )
@@ -3143,6 +3167,9 @@ def _handle_render_first_frames(args: dict[str, Any], **_: Any) -> str:
             body["style"] = str(args["style"])
         if args.get("image_generation_selection") is not None:
             body["image_generation_selection"] = args["image_generation_selection"]
+        for key in ("mode_key", "sketch_aspect_padding"):
+            if args.get(key) is not None:
+                body[key] = args[key]
         return tool_result(
             _request(
                 "POST",
@@ -3918,10 +3945,14 @@ TOOLS = (
             "independent identity and scene nodes run concurrently. Wait only for the returned "
             "workflow task_key, then read with ai_anime_get_episode_script. This is only for one "
             "explicitly requested episode; never call it in parallel for multiple episodes. Use "
-            "one ai_anime_run_script_workflow call for any multi-episode request.",
+            "one ai_anime_run_script_workflow call for any multi-episode request. Pass "
+            "target_duration_total for a requested episode duration and target_beats for an explicit shot count.",
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "episode": {"type": "integer", "description": "Episode number (1-based, required)."},
+                "script_mode": {"type": "string", "enum": ["duration", "literal"]},
+                "target_duration_total": {"type": "integer", "minimum": 30, "maximum": 600, "description": "Target seconds for this episode."},
+                "target_beats": {"type": "integer", "minimum": 5, "maximum": 80, "description": "Explicit beat count for this episode."},
             },
             ["episode"],
         ),
@@ -4080,7 +4111,7 @@ TOOLS = (
             "POST /projects/{project}/episodes/{episode}/sketches/generate with a canonical body. "
             "This tool automatically runs assign-colors first by default and fills safe defaults: "
             "one independent 1x1 image per Beat, grid_index=-1 (all missing Beats), "
-            "sketch_scene_grouping=true, aspect_ratio='2:3'. Pass beat_indices for explicit local "
+            "sketch_scene_grouping=true, aspect_ratio='2:3'. Pass beat or beat_indices for explicit local "
             "regeneration; that path uses the same /sketches/regenerate endpoint as the frontend. "
             "Use THIS instead of ai_anime_post or guessing the body. Runs "
             "after the script exists. Wait with ai_anime_wait_task(task_key=<returned task_key>).",
@@ -4090,11 +4121,11 @@ TOOLS = (
                 "style": {"type": "string", "description": "Optional visual style override."},
                 "grid_index": {
                     "type": "integer",
-                    "description": "Grid index to generate. Use -1 to generate all grids. Default: -1.",
+                    "description": "Only for missing-sketch generation: use -1 for all missing Beats or a non-negative grid index. Do not combine with beat, beat_indices or all_beats=true. Default: -1.",
                 },
                 "sketch_scene_grouping": {
                     "type": "boolean",
-                    "description": "Group sketch grids by scene. Default: true.",
+                    "description": "Only for missing-sketch generation. Do not combine with beat, beat_indices or all_beats=true. Default: true.",
                 },
                 "aspect_ratio": {
                     "type": "string",
@@ -4110,17 +4141,22 @@ TOOLS = (
                     "items": {"type": "integer"},
                     "description": "Explicit Beat numbers to regenerate through the same local endpoint used by the frontend.",
                 },
+                "beat": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Optional single Beat to regenerate. Merged with beat_indices without duplicates; cannot combine with all_beats=true.",
+                },
                 "all_beats": {
                     "type": "boolean",
                     "description": "Set true only when the user explicitly requests every Beat to be regenerated.",
                 },
                 "mode_key": {
                     "type": "string",
-                    "description": "Optional explicit 1x1 sketch mode for selected Beat regeneration.",
+                    "description": "Only for regeneration with beat, beat_indices or all_beats=true. Must agree with aspect_ratio when both are supplied.",
                 },
                 "replace_existing": {
                     "type": "boolean",
-                    "description": "Legacy grid-generation overwrite flag. Requires an explicit Beat/all-Beat scope or non-negative grid_index; ordinary continuation must omit it.",
+                    "description": "For grid generation, true requires a non-negative grid_index. Explicit beat/beat_indices/all_beats regeneration always replaces selected sketches after success, so false is invalid there; omit this flag or set true. Ordinary continuation must omit it.",
                 },
                 "auto_assign_colors": {
                     "type": "boolean",
@@ -4352,7 +4388,7 @@ TOOLS = (
         _schema(
             "ai_anime_render_first_frames",
             "Explicitly regenerate selected first frames (首帧重做, selected_regen task). This tool "
-            "overwrites the current first-frame selection for the requested beats. Pass beat_indices "
+            "overwrites the current first-frame selection for the requested beats. Pass beat or beat_indices "
             "for an explicit local rebuild. Use all_beats=true only when the user explicitly asks to "
             "rebuild every beat. Never use this tool for ordinary continue/resume requests; use "
             "ai_anime_run_production_workflow, which preserves existing assets and fills only missing ones.",
@@ -4362,13 +4398,26 @@ TOOLS = (
                 "beat_indices": {
                     "type": "array",
                     "items": {"type": "integer"},
-                    "description": "Explicit Beat numbers to rebuild. Required unless all_beats=true.",
+                    "description": "Explicit Beat numbers to rebuild. Required unless beat is supplied or all_beats=true.",
+                },
+                "beat": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Optional single Beat to rebuild. Merged with beat_indices without duplicates; cannot combine with all_beats=true.",
                 },
                 "all_beats": {
                     "type": "boolean",
                     "description": "Set true only for an explicit user request to rebuild every Beat.",
                 },
                 "style": {"type": "string", "description": "Optional visual style override."},
+                "mode_key": {
+                    "type": "string",
+                    "description": "Optional render grid mode, such as 1x1_16-9 or 1x1_9-16. Omit to use the backend default 1x1_2-3.",
+                },
+                "sketch_aspect_padding": {
+                    "type": "boolean",
+                    "description": "Optional sketch aspect padding override. Omit to use project render settings.",
+                },
                 "image_generation_selection": {
                     "type": "string",
                     "description": "Optional backend/provider selection from render settings.",

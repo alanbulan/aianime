@@ -29,7 +29,7 @@ export function createUseShareProjectController(
       projectId,
       open && Boolean(projectId),
     );
-    const users = queries.useUserSearch(query);
+    const users = queries.useUserSearch(open ? query : "");
     const addGrant = queries.useAddProjectGrant(projectId);
     const updateGrant = queries.useUpdateProjectGrant(projectId);
     const deleteGrant = queries.useDeleteProjectGrant(projectId);

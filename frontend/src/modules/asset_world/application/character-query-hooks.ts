@@ -422,12 +422,12 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({
-        identityName,
+        identityId,
         file,
       }: {
-        identityName: string;
+        identityId: string;
         file: File;
-      }) => gateway.uploadIdentityImage(project, name, identityName, file),
+      }) => gateway.uploadIdentityImage(project, name, identityId, file),
       onSuccess: () =>
         queryClient.invalidateQueries({
           queryKey: queryKeys.identities(project, name),

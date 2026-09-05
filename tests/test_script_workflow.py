@@ -405,6 +405,8 @@ async def test_workflow_route_submits_one_parent_task_with_complete_config(
             max_parallel=6,
             filename="novel.txt",
             target_beats=12,
+            target_duration_total=60,
+            script_mode="literal",
             spine_template="drama",
             visual_style="anime",
             ethnicity="Japanese",
@@ -420,6 +422,8 @@ async def test_workflow_route_submits_one_parent_task_with_complete_config(
     assert submissions[0].payload["episodes"] == [2, 1]
     assert submissions[0].payload["max_parallel"] == 6
     assert submissions[0].payload["target_beats"] == 12
+    assert submissions[0].payload["target_duration_total"] == 60
+    assert submissions[0].payload["script_mode"] == "literal"
     assert submissions[0].payload["spine_template"] == "drama"
     assert submissions[0].payload["visual_style"] == "anime"
     assert submissions[0].payload["ethnicity"] == "Japanese"

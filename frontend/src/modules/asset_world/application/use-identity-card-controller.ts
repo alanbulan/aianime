@@ -298,10 +298,14 @@ export function createUseIdentityCardController(
     ) => {
       try {
         if (kind === "image") {
-          await uploadImage.mutateAsync({
-            identityName: identity.identity_name,
+          const response = await uploadImage.mutateAsync({
+            identityId: identity.identity_id,
             file,
           });
+          if (!response.ok) {
+            toast.error(response.error || t("common.error"));
+            return;
+          }
         } else if (kind === "costume") {
           await uploadCostume.mutateAsync({
             identityId: identity.identity_id,

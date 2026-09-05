@@ -338,9 +338,11 @@ def test_generic_post_rejects_ingest_start(
     assert "ai_anime_start_ingest" in result["tool_error"]
 
 
+@pytest.mark.parametrize("options", [{}, {"script_mode": "duration", "target_duration_total": 60, "target_beats": 12}])
 def test_generate_script_runs_missing_prerequisites_through_one_graph(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
+    options,
 ) -> None:
     monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
     calls: list[tuple[str, str, object]] = []
@@ -351,7 +353,9 @@ def test_generate_script_runs_missing_prerequisites_through_one_graph(
 
     monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
 
-    result = ai_anime_plugin._handle_generate_script({"episode": 2})
+    schema = next(schema for name, schema, _ in ai_anime_plugin.TOOLS if name == "ai_anime_generate_script")
+    assert options.keys() <= schema["parameters"]["properties"].keys()
+    result = ai_anime_plugin._handle_generate_script({"episode": 2, **options})
 
     assert result["task_type"] == "script_workflow"
     assert calls == [
@@ -362,6 +366,7 @@ def test_generate_script_runs_missing_prerequisites_through_one_graph(
                 "mode": "through",
                 "target": "script",
                 "episodes": [2],
+                **options,
             },
         )
     ]
@@ -1023,9 +1028,13 @@ def test_first_frame_regeneration_requires_explicit_all_beats_opt_in(
     assert schema["parameters"]["properties"]["all_beats"]["type"] == "boolean"
 
 
+@pytest.mark.parametrize("mode_key", ["1x1_16-9", "1x1_9-16"])
+@pytest.mark.parametrize("padding", [False, True])
 def test_first_frame_regeneration_preserves_model_selection(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
+    mode_key,
+    padding,
 ) -> None:
     from ai_anime.api.routes.production.render_schemas import BeatsRegenerateRequest
 
@@ -1045,11 +1054,45 @@ def test_first_frame_regeneration_preserves_model_selection(
             "episode": 1,
             "beat_indices": [2],
             "image_generation_selection": "image-route",
+            "mode_key": mode_key,
+            "sketch_aspect_padding": padding,
         }
     )
 
     assert result["ok"] is True
     assert requests[0].image_generation_selection == "image-route"
+    assert requests[0].mode_key == mode_key
+    assert requests[0].sketch_aspect_padding is padding
+    schema = next(schema for name, schema, _ in ai_anime_plugin.TOOLS if name == "ai_anime_render_first_frames")
+    assert {"mode_key", "sketch_aspect_padding"} <= schema["parameters"]["properties"].keys()
+
+
+@pytest.mark.parametrize("tool_name, suffix", [
+    ("ai_anime_generate_sketches", "sketches/regenerate"),
+    ("ai_anime_render_first_frames", "beats/regenerate"),
+])
+@pytest.mark.parametrize("selectors, expected", [
+    ({"beat": 3}, [3]),
+    ({"beat": 3, "beat_indices": [5, 5]}, [3, 5]),
+])
+def test_regeneration_tools_accept_single_beats_without_expanding_scope(
+    ai_anime_plugin, monkeypatch, tool_name, suffix, selectors, expected
+):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(method, path, **kwargs):
+        calls.append((method, path, kwargs.get("body")))
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+    schema, handler = next((schema, handler) for name, schema, handler in ai_anime_plugin.TOOLS if name == tool_name)
+    result = handler({"episode": 1, **selectors})
+
+    assert result["ok"] is True
+    assert calls[-1][1] == f"/api/v1/projects/project-1/episodes/1/{suffix}"
+    assert calls[-1][2]["beat_indices"] == expected
+    assert "beat" in schema["parameters"]["properties"]
 
 
 @pytest.mark.parametrize("add_subtitles", [False, True])
@@ -1789,6 +1832,174 @@ def test_sketch_tool_rejects_unscoped_full_overwrite(
     )
 
     assert "requires beat_indices" in result["tool_error"]
+
+
+@pytest.mark.parametrize("scope", [{"beat_indices": [2]}, {"all_beats": True}])
+@pytest.mark.parametrize(
+    ("options", "error_field"),
+    [
+        ({"grid_index": -1}, "grid_index"),
+        ({"sketch_scene_grouping": False}, "sketch_scene_grouping"),
+        ({"replace_existing": False}, "replace_existing"),
+        ({"mode_key": "1x1_2-3_sketch", "aspect_ratio": "16:9"}, "aspect_ratio"),
+    ],
+)
+def test_sketch_tool_rejects_incompatible_branch_options_before_requests(
+    ai_anime_plugin, monkeypatch, scope, options, error_field
+):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(*args, **kwargs):
+        calls.append((args, kwargs))
+        return {"ok": True, "data": [{"beat_number": 2}]}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_generate_sketches(
+        {"episode": 1, **scope, **options}
+    )
+
+    assert error_field in result["tool_error"]
+    assert calls == []
+
+
+@pytest.mark.parametrize("mode_key", ["1x1_2-3_sketch", "1x1_16-9_sketch", "1x1_9-16_sketch", "1x1_1-1_sketch"])
+def test_sketch_tool_preserves_explicit_regeneration_mode_and_replacement(
+    ai_anime_plugin, monkeypatch, mode_key
+):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request", lambda method, path, **kwargs: calls.append((path, kwargs.get("body"))) or {"ok": True}
+    )
+
+    result = ai_anime_plugin._handle_generate_sketches({
+        "episode": 1, "beat_indices": [2], "mode_key": mode_key,
+        "replace_existing": True, "auto_assign_colors": False,
+    })
+
+    assert result["ok"] is True
+    assert calls == [(
+        "/api/v1/projects/project-1/episodes/1/sketches/regenerate",
+        {"beat_indices": [2], "mode_key": mode_key},
+    )]
+
+
+def test_sketch_tool_rejects_regeneration_mode_without_regeneration_scope(
+    ai_anime_plugin, monkeypatch
+):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request", lambda *args, **kwargs: calls.append((args, kwargs)) or {"ok": True}
+    )
+
+    result = ai_anime_plugin._handle_generate_sketches(
+        {"episode": 1, "mode_key": "1x1_16-9_sketch"}
+    )
+
+    assert "mode_key" in result["tool_error"]
+    assert calls == []
+
+
+@pytest.mark.parametrize("handler", ["_handle_generate_sketches", "_handle_render_first_frames"])
+@pytest.mark.parametrize("selectors", [{"beat_indices": [2]}, {"beat": 2}])
+def test_regeneration_rejects_conflicting_scopes_without_backend_calls(
+    ai_anime_plugin, monkeypatch, handler, selectors
+):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request", lambda *args, **kwargs: calls.append((args, kwargs)) or {"ok": True}
+    )
+
+    result = getattr(ai_anime_plugin, handler)(
+        {"episode": 1, **selectors, "all_beats": True}
+    )
+
+    assert "not both" in result["tool_error"]
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("handler", "result_key"),
+    [
+        ("_handle_get_sketches", "sketches"),
+        ("_handle_get_first_frames", "frames"),
+        ("_handle_get_episode_media", "beats"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("selectors", "expected"),
+    [
+        ({"beat": 2}, [2]),
+        ({"beat_indices": [3, 1, 3]}, [1, 3]),
+        ({"beat": 2, "beat_indices": [3, 2]}, [2, 3]),
+    ],
+)
+def test_media_tools_merge_single_and_multiple_beat_selectors(
+    ai_anime_plugin, monkeypatch, handler, result_key, selectors, expected
+):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(ai_anime_plugin, "_request", lambda *args, **kwargs: {
+        "data": [{"beat_number": number} for number in range(1, 5)]
+    })
+
+    result = getattr(ai_anime_plugin, handler)({"episode": 1, **selectors})
+
+    assert [item["beat_number"] for item in result[result_key]] == expected
+
+
+def test_scene_media_combines_name_and_index_filters(ai_anime_plugin, monkeypatch):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(ai_anime_plugin, "_request", lambda *args, **kwargs: {
+        "data": [{"name": name} for name in ["Hall", "Street", "Hall upstairs", "Garden"]]
+    })
+
+    result = ai_anime_plugin._handle_get_scene_images({
+        "name": "Hall", "names": ["Street", "Hall"],
+        "index": 2, "scene_indices": [1, 2, 4],
+    })
+
+    assert [item["name"] for item in result["scenes"]] == ["Hall", "Street"]
+
+
+@pytest.mark.parametrize(
+    ("selectors", "expected"),
+    [
+        ({"name": "Ada", "names": ["Bob", "Ada"]}, ["Ada", "Bob"]),
+        ({"query": "pilot"}, ["Ada"]),
+        ({"name": "pilot"}, []),
+        ({"names": ["Ada", "Bob"], "query": "pilot"}, ["Ada"]),
+    ],
+)
+def test_character_media_distinguishes_names_from_description_search(
+    ai_anime_plugin, monkeypatch, selectors, expected
+):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(ai_anime_plugin, "_request", lambda *args, **kwargs: {
+        "data": [{"name": "Ada", "role": "pilot"}, {"name": "Bob", "role": "doctor"}]
+    })
+
+    result = ai_anime_plugin._handle_get_character_media({"media_kind": "portrait", **selectors})
+
+    assert [item["name"] for item in result["characters"]] == expected
+
+
+def test_voice_design_merges_explicit_name_selectors(ai_anime_plugin, monkeypatch):
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request", lambda *args, **kwargs: calls.append(kwargs["body"]) or {"ok": True}
+    )
+
+    result = ai_anime_plugin._handle_design_character_voices({
+        "name": "Ada", "names": ["Bob", "Ada"], "replace_existing": True,
+    })
+
+    assert result["ok"] is True
+    assert calls == [{"character_names": ["Ada", "Bob"], "replace_existing": True}]
 
 
 def test_create_style_tool_saves_account_style_with_canonical_config(

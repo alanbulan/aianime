@@ -723,16 +723,16 @@ describe("render grid query", () => {
 });
 
 describe("sketch action queries", () => {
-  it("uses the v2 assign-colors endpoint and forwards force=true", async () => {
+  it("uses the assign-colors endpoint without unsupported query parameters", async () => {
     let requestedPath = "";
-    let requestedForce = "";
+    let requestedSearch = "";
     server.use(
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/sketches/assign-colors",
         ({ request }) => {
           const url = new URL(request.url);
           requestedPath = url.pathname;
-          requestedForce = url.searchParams.get("force") ?? "";
+          requestedSearch = url.search;
           return HttpResponse.json({
             ok: true,
             data: {
@@ -750,11 +750,11 @@ describe("sketch action queries", () => {
       wrapper,
     });
 
-    result.current.mutate({ force: true });
+    result.current.mutate();
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/sketches/assign-colors");
-    expect(requestedForce).toBe("true");
+    expect(requestedSearch).toBe("");
     expect(result.current.data?.ok).toBe(true);
     if (!result.current.data?.ok) throw new Error("expected assign-colors to succeed");
     expect(result.current.data.data.prop_count).toBe(1);
@@ -792,7 +792,7 @@ describe("sketch action queries", () => {
       wrapper: wrapperWithClient(queryClient),
     });
 
-    await result.current.mutateAsync({ force: true });
+    await result.current.mutateAsync();
 
     expect(queryClient.getQueryState(episodeDetailKey)?.isInvalidated).toBe(
       true,

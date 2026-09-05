@@ -3,9 +3,11 @@ from __future__ import annotations
 import io
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.parse import quote, unquote, urlsplit
 
 import pytest
-from fastapi import UploadFile
+from fastapi import FastAPI, UploadFile
+from fastapi.testclient import TestClient
 
 from ai_anime.api.routes.asset_world.characters_schemas import IdentityCreate
 from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
@@ -284,7 +286,7 @@ async def test_upload_identity_image_backs_up_existing_file(tmp_path, monkeypatc
     response = await characters.upload_identity_image(
         project="demo",
         name="秦",
-        identity_name="少年",
+        identity_id="秦_少年",
         file=_png_upload(),
         user={"username": "admin"},
     )
@@ -294,6 +296,129 @@ async def test_upload_identity_image_backs_up_existing_file(tmp_path, monkeypatc
     assert len(backups) == 1
     assert backups[0].read_bytes() == old_bytes
     assert target.read_bytes() != old_bytes
+
+
+@pytest.mark.parametrize(
+    ("identity_name", "filename"),
+    [
+        ("少年", "少年.png"),
+        ("少年/战损", "少年_战损.png"),
+        (r"少年\战损", "少年_战损.png"),
+        ("少年:战损?", "少年_战损_.png"),
+        (r"..\portrait", ".._portrait.png"),
+        ("秦_少年", "少年.png"),
+    ],
+)
+def test_identity_image_http_upload_and_delete_use_registered_id(
+    tmp_path, monkeypatch, identity_name, filename
+):
+    from ai_anime.api.routes.asset_world import characters
+
+    identity = CharacterIdentity(
+        identity_id="秦_测试",
+        character_name="秦",
+        identity_name=identity_name,
+    )
+    character = NovelCharacter(name="秦")
+    character.identities = [identity]
+    _patch_character_project(
+        monkeypatch, characters, tmp_path, _CharacterStore(character)
+    )
+    app = FastAPI()
+    app.include_router(characters.router, prefix="/api/v1")
+    app.dependency_overrides[characters.get_api_user] = lambda: {"username": "admin"}
+    base = f"/api/v1/projects/demo/characters/{quote('秦', safe='')}/identities"
+    target = tmp_path / "assets" / "characters" / "秦" / "identities" / filename
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"{base}/image/upload",
+            data={"identity_id": identity.identity_id},
+            files={"file": ("upload.png", _png_upload().file.read(), "image/png")},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["ok"] is True
+        assert unquote(urlsplit(body["data"]["image_url"]).path) == (
+            f"/static/projects/proj_demo/assets/characters/秦/identities/{filename}"
+        )
+        assert target.is_file()
+
+        response = client.post(
+            f"{base}/{quote(identity.identity_id, safe='')}/image/delete"
+        )
+        assert response.status_code == 200
+        assert response.json() == {"ok": True, "data": {"deleted": True}}
+        assert not target.exists()
+
+
+def test_identity_image_http_upload_accepts_special_characters_in_form_id(
+    tmp_path, monkeypatch
+):
+    from ai_anime.api.routes.asset_world import characters
+
+    identity = CharacterIdentity(
+        identity_id="秦_少年/战损?",
+        character_name="秦",
+        identity_name="少年/战损?",
+    )
+    character = NovelCharacter(name="秦")
+    character.identities = [identity]
+    _patch_character_project(
+        monkeypatch, characters, tmp_path, _CharacterStore(character)
+    )
+    app = FastAPI()
+    app.include_router(characters.router, prefix="/api/v1")
+    app.dependency_overrides[characters.get_api_user] = lambda: {"username": "admin"}
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/api/v1/projects/demo/characters/{quote('秦', safe='')}/identities/image/upload",
+            data={"identity_id": identity.identity_id},
+            files={"file": ("upload.png", _png_upload().file.read(), "image/png")},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    target = tmp_path / "assets/characters/秦/identities/少年_战损_.png"
+    assert target.is_file()
+    assert list(tmp_path.rglob("*.png")) == [target]
+
+
+@pytest.mark.parametrize(
+    ("data", "status_code"),
+    [({}, 422), ({"identity_id": ""}, 422), ({"identity_id": "秦_旧名称"}, 200)],
+)
+def test_identity_image_http_upload_rejects_missing_or_stale_id(
+    tmp_path, monkeypatch, data, status_code
+):
+    from ai_anime.api.routes.asset_world import characters
+
+    identity = CharacterIdentity(
+        identity_id="秦_新名称", character_name="秦", identity_name="新名称"
+    )
+    character = NovelCharacter(name="秦")
+    character.identities = [identity]
+    _patch_character_project(
+        monkeypatch, characters, tmp_path, _CharacterStore(character)
+    )
+    app = FastAPI()
+    app.include_router(characters.router, prefix="/api/v1")
+    app.dependency_overrides[characters.get_api_user] = lambda: {"username": "admin"}
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/api/v1/projects/demo/characters/{quote('秦', safe='')}/identities/image/upload",
+            data=data,
+            files={"file": ("upload.png", _png_upload().file.read(), "image/png")},
+        )
+
+    assert response.status_code == status_code
+    if status_code == 200:
+        assert response.json() == {
+            "ok": False, "error": "Identity '秦_旧名称' not found"
+        }
+    assert not list(tmp_path.rglob("*.png"))
 
 
 @pytest.mark.asyncio

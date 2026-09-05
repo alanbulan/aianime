@@ -484,7 +484,7 @@ describe("BatchBar controller", () => {
     expect(hookMocks.toastError).toHaveBeenLastCalledWith("任务执行失败");
   });
 
-  it("forces color reassignment and reports its result", async () => {
+  it("fills missing colors without forcing reassignment and reports its result", async () => {
     assignColors.mockResolvedValue({
       ok: true,
       data: { colors: {}, count: 2, prop_count: 1 },
@@ -495,7 +495,7 @@ describe("BatchBar controller", () => {
 
     await act(async () => result.current.onReassignColors());
 
-    expect(assignColors).toHaveBeenCalledWith({ force: true });
+    expect(assignColors).toHaveBeenCalledWith();
     expect(hookMocks.toastSuccess).toHaveBeenCalledWith("colored:2:1");
   });
 });

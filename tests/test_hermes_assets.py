@@ -41,12 +41,13 @@ def test_every_ai_anime_plugin_tool_has_a_frontend_chinese_display_name():
         / "domain"
         / "toolDisplayName.ts"
     ).read_text(encoding="utf-8")
-    plugin_names = set(re.findall(r'^\s{8}"(ai_anime_[a-z0-9_]+)",$', plugin_text, re.M))
+    plugin_names = set(re.findall(r'^\s{8}"(ai_anime_[a-z0-9_]+|question)",$', plugin_text, re.M))
     localized_names = set(
-        re.findall(r"^\s{2}(ai_anime_[a-z0-9_]+):\s*\"[^\"]*[\u3400-\u9fff]", display_names_text, re.M)
+        re.findall(r"^\s{2}(ai_anime_[a-z0-9_]+|question):\s*\"[^\"]*[\u3400-\u9fff]", display_names_text, re.M)
     )
 
     assert plugin_names
+    assert "question" in plugin_names
     assert plugin_names == localized_names
 
 

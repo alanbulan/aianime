@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger("ai_anime.api.characters")
@@ -1017,16 +1017,16 @@ async def upload_portrait(
     return {"ok": True, "data": data}
 
 
-@router.post("/projects/{project}/characters/{name}/identities/{identity_name}/upload")
+@router.post("/projects/{project}/characters/{name}/identities/image/upload")
 async def upload_identity_image(
     project: str,
     name: str,
-    identity_name: str,
+    identity_id: str = Form(..., min_length=1),
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
     """上传角色身份图片。"""
-    logger.info("[%s] upload_identity_image: %s/%s", project, name, identity_name)
+    logger.info("[%s] upload_identity_image: %s/%s", project, name, identity_id)
     (
         ctx,
         _username,
@@ -1041,7 +1041,7 @@ async def upload_identity_image(
             repository=store,
             project_dir=project_dir,
             character_name=name,
-            identity_name=identity_name,
+            identity_id=identity_id,
             upload=file,
             asset_url=make_project_asset_url_builder(
                 ctx, project_dir, make_static_url_for_context

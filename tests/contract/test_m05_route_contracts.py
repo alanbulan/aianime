@@ -997,6 +997,67 @@ def test_m05_ce_exposes_scene_director_world_openapi_and_http(m05_client_factory
     assert ("scenes", "editor") in store.resolved_roles
 
 
+@pytest.mark.parametrize("active_source_id", [None, "uploaded_360"])
+def test_m05_clear_director_world_declares_and_forwards_source_id(
+    m05_client_factory, monkeypatch, active_source_id
+):
+    from ai_anime.api.routes.asset_world import scenes
+
+    client, _backend, _project_dir, _store = m05_client_factory("inline")
+    calls = []
+
+    async def clear_director_world(**kwargs):
+        calls.append(kwargs)
+        return {"active_source_id": kwargs["active_source_id"] or ""}
+
+    monkeypatch.setattr(
+        scenes,
+        "scene_viewer_use_cases",
+        lambda: SimpleNamespace(clear_director_world=clear_director_world),
+    )
+    spec = client.get("/openapi.json").json()
+    schema = spec["components"]["schemas"]["ClearSceneDirectorWorldRequest"]
+    assert set(schema["properties"]) == {"active_source_id"}
+    assert schema["additionalProperties"] is False
+
+    response = client.post(
+        f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/director-stage/world/clear",
+        json={"active_source_id": active_source_id},
+    )
+
+    _assert_ok(response)
+    assert len(calls) == 1
+    assert calls[0]["active_source_id"] == active_source_id
+    assert calls[0]["scene_name"] == _SCENE
+
+
+@pytest.mark.parametrize("body", [{"active_source_id": 123}, {"activeSourceId": "pano"}])
+def test_m05_clear_director_world_rejects_invalid_parameters_before_clearing(
+    m05_client_factory, monkeypatch, body
+):
+    from ai_anime.api.routes.asset_world import scenes
+
+    client, _backend, _project_dir, _store = m05_client_factory("inline")
+    calls = []
+
+    async def clear_director_world(**kwargs):
+        calls.append(kwargs)
+        return {"active_source_id": ""}
+
+    monkeypatch.setattr(
+        scenes,
+        "scene_viewer_use_cases",
+        lambda: SimpleNamespace(clear_director_world=clear_director_world),
+    )
+    response = client.post(
+        f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/director-stage/world/clear",
+        json=body,
+    )
+
+    assert response.status_code == 422
+    assert calls == []
+
+
 def test_m05_scene_director_world_missing_scene_uses_ok_false_not_404(m05_client_factory):
     client, _backend, _project_dir, _store = m05_client_factory("inline")
 

@@ -72,13 +72,10 @@ class LocalCharacterImageFiles:
         content: bytes,
     ) -> Path:
         image = _decoded_rgb(content)
-        target = (
-            project_dir
-            / "assets"
-            / "characters"
-            / character_name
-            / "identities"
-            / f"{identity_name}.png"
+        target = canonical_identity_path(
+            project_dir,
+            character_name,
+            identity_name,
         )
         return _save_png(image, target, backup="microseconds")
 

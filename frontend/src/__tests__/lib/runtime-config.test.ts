@@ -32,6 +32,42 @@ describe("runtime-config", () => {
     expect(authRequired()).toBe(false);
   });
 
+  it.each([
+    ["ee", true, true],
+    ["ee", false, false],
+    ["ee", undefined, false],
+    ["ce", true, false],
+  ])("gates sharing using edition %s and capability %s", async (edition, capability, expected) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        ok: true,
+        data: { edition, auth_required: true, project_sharing_enabled: capability },
+      }), { headers: { "content-type": "application/json" } }),
+    ));
+    const { loadRuntimeConfig, projectSharingEnabled } = await import("@/lib/runtime-config");
+
+    expect(projectSharingEnabled()).toBe(false);
+    await loadRuntimeConfig();
+
+    expect(projectSharingEnabled()).toBe(expected);
+  });
+
+  it("disables sharing when config refresh fails after an EE session", async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true,
+        data: { edition: "ee", auth_required: true, project_sharing_enabled: true },
+      }), { headers: { "content-type": "application/json" } }))
+      .mockRejectedValueOnce(new Error("network down"));
+    vi.stubGlobal("fetch", fetch);
+    const { loadRuntimeConfig, projectSharingEnabled } = await import("@/lib/runtime-config");
+
+    await loadRuntimeConfig();
+    expect(projectSharingEnabled()).toBe(true);
+    await loadRuntimeConfig();
+    expect(projectSharingEnabled()).toBe(false);
+  });
+
   it("falls back to auth-required when the fetch fails without VITE_EDITION", async () => {
     delete (import.meta.env as Record<string, unknown>).VITE_EDITION;
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));

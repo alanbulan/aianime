@@ -10,8 +10,7 @@ export function createSketchMarkerQueryHooks(
   function useAssignColors(project: string, episode: number) {
     const queryClient = useQueryClient();
     return useMutation({
-      mutationFn: (options?: { force?: boolean }) =>
-        gateway.assignSketchColors(project, episode, options?.force ?? false),
+      mutationFn: () => gateway.assignSketchColors(project, episode),
       onSuccess: (response) => {
         if (!response.ok) return;
         queryClient.invalidateQueries({

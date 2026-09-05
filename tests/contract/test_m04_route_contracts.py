@@ -715,7 +715,8 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_NAME}/upload",
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/image/upload",
+            data={"identity_id": _IDENTITY_ID},
             files={"file": ("identity.png", png, "image/png")},
         )
     )

@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from openapi_contract import contract_snapshot, operation_fingerprints
 
 
@@ -51,3 +53,33 @@ def test_only_desktop_auth_is_hidden_from_the_browser_api(monkeypatch) -> None:
 
     assert desktop - browser == DESKTOP_ONLY_OPERATIONS
     assert browser - desktop == set()
+
+
+@pytest.mark.parametrize("field_name", ["title", "description", "summary", "tags"])
+def test_contract_detects_changes_to_fields_named_like_metadata(field_name) -> None:
+    field_schema = {"type": "string", "description": "Display text"}
+    specification = {
+        "paths": {
+            "/example": {
+                "post": {
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {field_name: field_schema},
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    original = contract_snapshot(specification)
+
+    field_schema["description"] = "Updated documentation"
+    assert contract_snapshot(specification) == original
+
+    field_schema["type"] = "integer"
+    assert contract_snapshot(specification) != original

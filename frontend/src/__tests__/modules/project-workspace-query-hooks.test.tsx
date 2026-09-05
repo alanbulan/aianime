@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import ky from "ky";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
@@ -17,6 +17,9 @@ import {
   useProjectGrants,
   usePurgeProject,
 } from "@/modules/project_workspace/public";
+import { queryKeys } from "@/lib/query-keys";
+import { createUseShareProjectController } from "@/modules/project_workspace/application/use-share-project-controller";
+import { projectWorkspaceQueries } from "@/modules/project_workspace/composition";
 
 const server = setupServer();
 
@@ -129,6 +132,57 @@ describe("Project Workspace query boundary", () => {
       principalUsername: "bob",
       role: "editor",
     });
+  });
+
+  it("stops sharing queries while the dialog is closed", async () => {
+    const searches: string[] = [];
+    server.use(
+      http.get("http://localhost:3000/api/v1/projects/project-1/grants", () =>
+        HttpResponse.json({ ok: true, data: [] }),
+      ),
+      http.get("http://localhost:3000/api/v1/users/search", ({ request }) => {
+        const username = new URL(request.url).searchParams.get("q")!;
+        searches.push(username);
+        return HttpResponse.json({
+          ok: true,
+          data: [{ id: username, username }],
+        });
+      }),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const useController = createUseShareProjectController(
+      projectWorkspaceQueries,
+      { copy: vi.fn() },
+    );
+    const { result, rerender } = renderHook(
+      ({ open }) => useController(
+        { id: "project-1", name: "Demo", status: "active" },
+        open,
+      ),
+      {
+        initialProps: { open: true },
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      },
+    );
+    act(() => result.current.setQuery("alice"));
+    await waitFor(() => expect(result.current.searchResults[0]?.username).toBe("alice"));
+
+    rerender({ open: false });
+    expect(queryClient.getQueryCache().find({
+      queryKey: queryKeys.userSearch("alice"),
+    })?.isActive()).toBe(false);
+    expect(queryClient.getQueryCache().find({
+      queryKey: queryKeys.projectGrants("project-1"),
+    })?.isActive()).toBe(false);
+    await act(() => queryClient.refetchQueries({ type: "active" }));
+    expect(searches).toEqual(["alice"]);
+
+    rerender({ open: true });
+    await waitFor(() => expect(searches).toEqual(["alice", "alice"]));
   });
 
   it("accepts the minimal purge response without reintroducing transport DTOs", async () => {

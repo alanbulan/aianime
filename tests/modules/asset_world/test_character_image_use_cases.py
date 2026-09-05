@@ -23,6 +23,7 @@ from ai_anime.shared.utils.path_resolver import (
     canonical_identity_path,
     canonical_identity_portrait_path,
     canonical_portrait_path,
+    compute_identity_path,
 )
 
 
@@ -115,11 +116,18 @@ async def test_upload_character_portrait_converts_to_rgb_and_backs_up_by_second(
 
 
 @pytest.mark.asyncio
-async def test_upload_identity_image_does_not_require_registered_identity_and_backs_up(
+@pytest.mark.parametrize(
+    ("identity_name", "filename"),
+    [("少年", "少年"), ("秦_少年", "少年"), ("少年/战损", "少年_战损")],
+)
+async def test_upload_identity_image_uses_registered_identity_and_backs_up(
     tmp_path: Path,
+    identity_name: str,
+    filename: str,
 ) -> None:
-    repository = _Repository([_Character(name="秦")])
-    target = canonical_identity_path(tmp_path, "秦", "少年")
+    identity = _Identity(identity_id=f"秦_{identity_name}", identity_name=identity_name)
+    repository = _Repository([_Character(name="秦", identities=[identity])])
+    target = tmp_path / "assets" / "characters" / "秦" / "identities" / f"{filename}.png"
     target.parent.mkdir(parents=True)
     old_content = _png_bytes((10, 20, 30), mode="RGB")
     target.write_bytes(old_content)
@@ -128,18 +136,99 @@ async def test_upload_identity_image_does_not_require_registered_identity_and_ba
         repository=repository,
         project_dir=tmp_path,
         character_name="秦",
-        identity_name="少年",
+        identity_id=identity.identity_id,
         upload=_Upload(_png_bytes((120, 80, 40, 128))),
         asset_url=_asset_url,
     )
 
-    assert data == {"image_url": "/media/少年.png"}
-    backups = list(target.parent.glob("少年_*.png"))
+    assert data == {"image_url": f"/media/{filename}.png"}
+    backups = list(target.parent.glob(f"{filename}_*.png"))
     assert len(backups) == 1
-    assert re.fullmatch(r"少年_\d{20}\.png", backups[0].name)
+    assert re.fullmatch(rf"{re.escape(filename)}_\d{{20}}\.png", backups[0].name)
     assert backups[0].read_bytes() == old_content
     with Image.open(target) as image:
         assert image.mode == "RGB"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("identity_id", ["秦_未创建", "秦_旧名称", "新名称"])
+async def test_upload_identity_image_rejects_unknown_or_stale_id_before_file_io(
+    tmp_path: Path, identity_id: str
+) -> None:
+    identity = _Identity(identity_id="秦_新名称", identity_name="新名称")
+    repository = _Repository([_Character(name="秦", identities=[identity])])
+
+    class UnreadUpload:
+        async def read(self) -> bytes:
+            raise AssertionError("Rejected uploads must not be read")
+
+    project_dir = tmp_path / "project"
+    with pytest.raises(CharacterIdentityNotFound, match="not found"):
+        await _use_cases().upload_identity_image(
+            repository=repository,
+            project_dir=project_dir,
+            character_name="秦",
+            identity_id=identity_id,
+            upload=UnreadUpload(),
+            asset_url=_asset_url,
+        )
+
+    assert not project_dir.exists()
+    assert repository.identity_updates == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("identity_name", "filename"),
+    [
+        ("少年 战损", "少年 战损.png"),
+        ("少年/战损", "少年_战损.png"),
+        (r"少年\战损", "少年_战损.png"),
+        ('少年:战损?"<>|*', "少年_战损______.png"),
+        ("../portrait", ".._portrait.png"),
+        (r"..\portrait", ".._portrait.png"),
+        ("秦_少年", "少年.png"),
+    ],
+)
+async def test_identity_image_upload_read_delete_share_a_contained_path(
+    tmp_path: Path,
+    identity_name: str,
+    filename: str,
+) -> None:
+    project_dir = tmp_path / "project"
+    identity = _Identity(identity_id="秦_测试", identity_name=identity_name)
+    repository = _Repository([_Character(name="秦", identities=[identity])])
+    portrait = canonical_portrait_path(project_dir, "秦")
+    portrait.parent.mkdir(parents=True)
+    portrait.write_bytes(b"existing portrait")
+    target = portrait.parent / "identities" / filename
+    use_cases = _use_cases()
+
+    data = await use_cases.upload_identity_image(
+        repository=repository,
+        project_dir=project_dir,
+        character_name="秦",
+        identity_id=identity.identity_id,
+        upload=_Upload(_png_bytes((120, 80, 40, 128))),
+        asset_url=_asset_url,
+    )
+
+    assert data == {"image_url": f"/media/{filename}"}
+    assert target.is_file()
+    assert compute_identity_path(project_dir, "秦", identity_name) == str(target)
+    assert set(project_dir.rglob("*.png")) == {portrait, target}
+    assert portrait.read_bytes() == b"existing portrait"
+
+    deleted = await use_cases.delete_identity_image(
+        repository=repository,
+        project_dir=project_dir,
+        character_name="秦",
+        identity_id=identity.identity_id,
+    )
+
+    assert deleted == {"deleted": True}
+    assert not target.exists()
+    assert portrait.read_bytes() == b"existing portrait"
 
 
 @pytest.mark.asyncio

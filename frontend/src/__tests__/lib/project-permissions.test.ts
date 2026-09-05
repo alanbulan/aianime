@@ -10,19 +10,20 @@ import type {
   ProjectSummary,
 } from "@/modules/project_workspace/domain/project";
 
-const runtimeState = vi.hoisted(() => ({ isCeRuntime: false }));
+const runtimeState = vi.hoisted(() => ({ isCeRuntime: false, sharingAvailable: true }));
 
 vi.mock("@/lib/runtime-config", () => ({
-  isCeRuntime: () => runtimeState.isCeRuntime,
+  projectSharingEnabled: () => !runtimeState.isCeRuntime && runtimeState.sharingAvailable,
 }));
 
 function summaryWithRole(role: ProjectRole): ProjectSummary {
   return { effectiveRole: role } as ProjectSummary;
 }
 
-describe("canManageProjectGrants (edition gating)", () => {
+describe("canManageProjectGrants (sharing capability gating)", () => {
   beforeEach(() => {
     runtimeState.isCeRuntime = false;
+    runtimeState.sharingAvailable = true;
   });
 
   it("allows admin and owner in EE runtime", () => {
@@ -37,6 +38,12 @@ describe("canManageProjectGrants (edition gating)", () => {
 
   it("denies everyone in CE runtime — even owner (no grants concept)", () => {
     runtimeState.isCeRuntime = true;
+    expect(canManageProjectGrants(summaryWithRole("owner"))).toBe(false);
+    expect(canManageProjectGrants(summaryWithRole("admin"))).toBe(false);
+  });
+
+  it("denies everyone when EE sharing routes are unavailable", () => {
+    runtimeState.sharingAvailable = false;
     expect(canManageProjectGrants(summaryWithRole("owner"))).toBe(false);
     expect(canManageProjectGrants(summaryWithRole("admin"))).toBe(false);
   });

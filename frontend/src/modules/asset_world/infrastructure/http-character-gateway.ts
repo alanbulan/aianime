@@ -232,15 +232,16 @@ export const httpCharacterGateway: CharacterGateway = {
     );
   },
 
-  async uploadIdentityImage(project, name, identityName, file) {
+  async uploadIdentityImage(project, name, identityId, file) {
     const formData = new FormData();
+    formData.append("identity_id", identityId);
     formData.append("file", file);
     return uploadApi
       .post(
-        p`api/v1/projects/${project}/characters/${name}/identities/${identityName}/upload`,
+        p`api/v1/projects/${project}/characters/${name}/identities/image/upload`,
         { body: formData },
       )
-      .json<AssetDataResponse<{ image_url: string }>>();
+      .json<AssetResponse<{ image_url: string }>>();
   },
 
   async uploadIdentityCostume(project, name, identityId, file) {

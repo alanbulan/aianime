@@ -378,7 +378,6 @@ export interface ProductionVideoGateway {
   assignSketchColors(
     project: string,
     episode: number,
-    force: boolean,
   ): Promise<ProductionDataResponse<AssignColorsResult> | ProductionErrorResponse>;
   detectSketchIdentities(
     project: string,

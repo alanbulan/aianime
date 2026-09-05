@@ -48,15 +48,15 @@ class CharacterImageUseCases:
         repository: CharacterImageRepository,
         project_dir: Path,
         character_name: str,
-        identity_name: str,
+        identity_id: str,
         upload: CharacterImageUpload,
         asset_url: AssetUrl,
     ) -> dict[str, str]:
-        require_character(repository, character_name)
+        identity = require_character_identity(repository, character_name, identity_id)
         target = self._files.save_identity_image(
             project_dir,
             character_name,
-            identity_name,
+            identity.identity_name,
             await upload.read(),
         )
         return {"image_url": asset_url(target)}

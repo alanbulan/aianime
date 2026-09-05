@@ -37,7 +37,7 @@
 | `POST` | `/projects/{project}/characters/{name}/identities` | 新增身份 |
 | `PATCH` | `/projects/{project}/characters/{name}/identities/{identity_id}` | 修改身份（identity_id = `角色名_身份名`） |
 | `DELETE` | `/projects/{project}/characters/{name}/identities/{identity_id}` | 删除身份 |
-| `POST` | `/projects/{project}/characters/{name}/identities/{identity_name}/upload` | 上传身份主图；使用身份名称（如 `少年`），multipart 字段为 `file` |
+| `POST` | `/projects/{project}/characters/{name}/identities/image/upload` | 上传已创建身份的主图；multipart 字段为 `identity_id`（当前身份 ID，如 `秦_少年`）和 `file`。重命名后须重新获取身份 ID |
 | `POST` | `/projects/{project}/characters/{name}/identities/{identity_id}/costume/upload` | 上传身份服装图；使用身份 ID（如 `秦_少年`），multipart 字段为 `file` |
 | `POST` | `/projects/{project}/characters/{name}/identities/{identity_id}/portrait/upload` | 上传身份肖像图；使用身份 ID，multipart 字段为 `file` |
 | `POST` | `/projects/{project}/characters/{name}/identities/{identity_id}/generate-async` | 生成身份图（Identity Locking）`{"style":"...","model":"..."}` [ASYNC → identity_image]；助手使用 `ai_anime_generate_identity_image`，按返回的 `task_key` 等待任务完成 |
@@ -61,6 +61,10 @@
 | `POST` | `/projects/{project}/workflow/scripts` | 单节点或完整脚本生产 DAG：`摄入 → 角色 → 分集 →（身份规划 || 场景规划）→ 分集脚本` [ASYNC → script_workflow]。`mode=through` 自动补前置，`mode=single` 仅运行目标节点；助手使用 `ai_anime_run_script_workflow`，不得用通用 POST 绕过。 |
 
 ## 剧本
+
+单集生成使用 `ai_anime_generate_script`，可传 `script_mode`（`duration` 或
+`literal`）、`target_duration_total`（30–600 秒）和 `target_beats`（5–80 个镜头）。
+例如生成第 1 集 60 秒剧本：`{"episode":1,"target_duration_total":60}`。
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
@@ -87,6 +91,16 @@
 | `POST` | `/projects/{project}/episodes/{ep}/script/generate` | 底层脚本任务 [ASYNC → script_writer]；要求身份与场景均已规划，仅供图执行器内部调度，助手不得直接调用 |
 
 ## 画面生成
+
+`ai_anime_generate_sketches` 的两条路径参数不能混用：补缺失草图使用
+`grid_index`、`sketch_scene_grouping`、`aspect_ratio`；显式重做使用
+`beat`、`beat_indices` 或 `all_beats=true`，可指定 `mode_key`，但不能同时传
+`grid_index`、`sketch_scene_grouping` 或 `replace_existing=false`。
+局部重做成功后会替换选中的草图；`mode_key` 与 `aspect_ratio` 同传时比例必须一致。
+`beat` 与 `beat_indices` 同传时合并去重；任一局部范围均不能与 `all_beats=true` 同传。
+
+首帧重做 `ai_anime_render_first_frames` 同样支持这三种范围，可传 `mode_key`
+（如 `1x1_16-9`、`1x1_9-16`）和 `sketch_aspect_padding`；省略时沿用后端默认画幅及项目补边设置。
 
 | 方法 | 路径 | 用途 |
 |------|------|------|

@@ -47,7 +47,7 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 **修改**: `PATCH /projects/{project}/characters/{name}/identities/{identity_id}`（identity_id = `角色名_身份名`）
 **删除**: `DELETE /projects/{project}/characters/{name}/identities/{identity_id}`
 **生成身份图**: `POST /projects/{project}/characters/{name}/identities/{identity_id}/generate`
-**上传身份图**: `POST /projects/{project}/characters/{name}/identities/{identity_name}/upload`（multipart）
+**上传身份图**: `POST /projects/{project}/characters/{name}/identities/image/upload`（multipart：`identity_id` + `file`；身份必须已创建，重命名后须重新获取身份 ID）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -151,7 +151,7 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 |------|-----|------|
 | 上传小说 | `POST /projects/{project}/ingest/upload` | multipart `file=novel.txt` |
 | 上传肖像 | `POST /projects/{project}/characters/{name}/portrait/upload` | multipart `file=portrait.png` |
-| 上传身份图 | `POST /projects/{project}/characters/{name}/identities/{identity_name}/upload` | multipart `file=identity.png` |
+| 上传身份图 | `POST /projects/{project}/characters/{name}/identities/image/upload` | multipart `identity_id=角色名_身份名` + `file=identity.png`，使用当前已创建身份的 ID |
 
 ## 图池选择
 

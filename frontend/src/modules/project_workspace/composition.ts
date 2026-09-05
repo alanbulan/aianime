@@ -2,7 +2,7 @@ import { useCallback, createElement } from "react";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 
 import { openFreezoneProject } from "@/lib/freezone-url";
-import { isCeRuntime } from "@/lib/runtime-config";
+import { projectSharingEnabled } from "@/lib/runtime-config";
 import { createProjectWorkspaceQueryHooks } from "@/modules/project_workspace/application/query-hooks";
 import { createUseProjectDashboardController } from "@/modules/project_workspace/application/use-project-dashboard-controller";
 import { createUseShareProjectController } from "@/modules/project_workspace/application/use-share-project-controller";
@@ -46,7 +46,7 @@ export const {
 export function canManageProjectGrants(
   summary: Parameters<typeof roleCanManageProjectGrants>[0],
 ): boolean {
-  return !isCeRuntime() && roleCanManageProjectGrants(summary);
+  return projectSharingEnabled() && roleCanManageProjectGrants(summary);
 }
 
 export { useProjectNavigationStore };
@@ -112,7 +112,7 @@ export function ProjectDashboardPage() {
     setView,
     view,
   });
-  const sharingEnabled = !isCeRuntime();
+  const sharingEnabled = projectSharingEnabled();
   const shareController = useShareProjectController(
     controller.shareProject,
     sharingEnabled && Boolean(controller.shareProject),

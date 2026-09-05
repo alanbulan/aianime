@@ -41,9 +41,7 @@ import { backendErrorToastMessage } from "@/shared/api/errors";
 
 interface AssignColorsMutation {
   isPending: boolean;
-  mutateAsync(options?: {
-    force?: boolean;
-  }): Promise<
+  mutateAsync(): Promise<
     ProductionDataResponse<AssignColorsResult> | ProductionErrorResponse
   >;
 }
@@ -450,7 +448,7 @@ export function createUseBatchBarController(
 
     const onReassignColors = async () => {
       try {
-        const response = await assignColors.mutateAsync({ force: true });
+        const response = await assignColors.mutateAsync();
         if (!response.ok) {
           toast.error(response.error || t("common.error"));
           return;
