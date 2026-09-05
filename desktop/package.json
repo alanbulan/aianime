@@ -15,6 +15,7 @@
     "build:hermes": "uv run --project hermes-runtime --locked --group build pyinstaller --clean --noconfirm --distpath hermes-runtime/dist --workpath hermes-runtime/.pyinstaller hermes-runtime/hermes_acp.spec",
     "runtime:hermes": "uv sync --project hermes-runtime --locked",
     "release:manifest:mac:x64": "node scripts/prepare-macos-release-manifest.mjs",
+    "release:manifest:win": "node scripts/prepare-windows-update-manifest.mjs",
     "runtime:icon": "electron scripts/generate-icon.cjs",
     "runtime:ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "runtime:splat-transform": "node scripts/prepare-splat-transform.mjs",
@@ -29,7 +30,7 @@
     "test": "node --disable-warning=ExperimentalWarning --experimental-transform-types --import ./scripts/register-typescript.mjs --test tests/*.test.mjs",
     "package:prepare": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run runtime:whisper && pnpm run build && pnpm run build:backend && pnpm run build:hermes",
     "package:dir": "pnpm run package:prepare && electron-builder --dir && node scripts/smoke-packaged-win-resources.mjs",
-    "package:win": "node scripts/assert-package-host.mjs win32 x64 && pnpm run package:prepare && electron-builder --win nsis --x64 --publish never && node scripts/smoke-packaged-win-resources.mjs",
+    "package:win": "node scripts/assert-package-host.mjs win32 x64 && pnpm run package:prepare && electron-builder --win nsis --x64 --publish never && pnpm run release:manifest:win && node scripts/smoke-packaged-win-resources.mjs",
     "package:mac": "node scripts/assert-package-host.mjs darwin arm64 && pnpm run package:prepare && electron-builder --mac dmg zip --arm64 --publish never",
     "package:mac:x64": "node scripts/assert-package-host.mjs darwin x64 && bash scripts/prepare-macos-intel-python.sh && MACOSX_DEPLOYMENT_TARGET=13.0 UV_NO_SYNC=1 pnpm run package:prepare && electron-builder --mac dmg zip --x64 --publish never --config electron-builder.macos-intel.yml && bash scripts/smoke-packaged-mac-resources.sh x86_64 13.4.0"
   },

@@ -16,7 +16,7 @@ test("Intel macOS packaging targets Ventura without changing Windows or arm64 pa
 
   assert.equal(
     manifest.scripts["package:win"],
-    "node scripts/assert-package-host.mjs win32 x64 && pnpm run package:prepare && electron-builder --win nsis --x64 --publish never && node scripts/smoke-packaged-win-resources.mjs",
+    "node scripts/assert-package-host.mjs win32 x64 && pnpm run package:prepare && electron-builder --win nsis --x64 --publish never && pnpm run release:manifest:win && node scripts/smoke-packaged-win-resources.mjs",
   );
   assert.doesNotMatch(arm64Package, /prepare-macos-intel|UV_NO_SYNC|DEPLOYMENT_TARGET/);
   assert.doesNotMatch(manifest.scripts["package:prepare"], /prepare-macos-intel|UV_NO_SYNC/);

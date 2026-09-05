@@ -70,6 +70,8 @@ Intel 打包命令单独加载 `electron-builder.macos-intel.yml`，在根级 `f
 
 打包不强制开发者证书：Windows 可直接生成无证书 NSIS，macOS 使用 ad-hoc 签名。对外分发的 macOS 包仍需 Developer ID 签名和 Apple 公证。`electron-builder` 同时生成 `latest.yml` / `latest-mac.yml`，客户端由 `electron-updater` 完成下载、SHA-512 校验和安装。
 
+Windows `package:win` 在生成 NSIS 后自动运行 `release:manifest:win`：核对 `latest.yml` 的版本、安装包文件名及两处 SHA-512，再按实际安装包字节数写入 `files[0].size`；核对失败会中止打包流程。已有安装包可单独执行 `pnpm --dir desktop release:manifest:win` 补齐该字段，无需重建 EXE。
+
 ## 安全边界
 
 - JWT、设备私钥、离线租约、BYOK 持久化密文和更新 feed 请求头只存在于 Electron 主进程；渲染进程只拿到可展示的会话摘要和业务 DTO。
