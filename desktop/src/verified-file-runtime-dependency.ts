@@ -359,7 +359,6 @@ export class VerifiedFileRuntimeDependencyManager<Id extends RuntimeDependencyId
       this.installing = false;
       this.verification = null;
       await rm(stagingPath, { recursive: true, force: true }).catch(() => undefined);
-      await rm(previousPath, { recursive: true, force: true }).catch(() => undefined);
     }
     return await this.status();
   }
@@ -372,22 +371,27 @@ export class VerifiedFileRuntimeDependencyManager<Id extends RuntimeDependencyId
     onProgress: (progress: VerifiedFileDependencyProgress) => void,
   ): Promise<void> {
     let lastError: unknown;
-    const urls = [...file.urls];
+    let urls = [...file.urls];
     let refreshed = false;
-    for (const url of urls) {
+    while (urls.length > 0) {
+      const url = urls.shift()!;
       try {
         const response = await this.fetchImpl(url, {
           signal: AbortSignal.timeout(3_600_000),
           redirect: "error",
         });
         if (response.status === 403 && !refreshed) {
+          await response.body?.cancel();
           refreshed = true;
           const freshPackage = await this.fetchDownloadPackage();
           const freshFile = freshPackage.files.find((entry) => entry.relativePath === file.relativePath)!;
-          urls.push(...freshFile.urls);
+          urls = [...freshFile.urls];
           continue;
         }
-        if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok || !response.body) {
+          await response.body?.cancel();
+          throw new Error(`HTTP ${response.status}`);
+        }
         const destination = await open(targetPath, "w");
         let fileBytes = 0;
         try {

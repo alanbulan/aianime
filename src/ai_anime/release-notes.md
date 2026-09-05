@@ -1,21 +1,21 @@
 ---
-version: 1.1.62
-attention: high
+version: 1.1.63
+attention: medium
 ---
-# v1.1.62
+# v1.1.63
 
 ## User-facing Highlights (zh)
 
-- **小说摄入恢复**: 请求项目类型与当前项目相同时，不再被误判为类型变更；原始 Markdown 可正常进入小说摄入任务。
-- **完整生产工作流恢复**: “继续生成第一集”与直接导入共用的摄入链路已修复，后续角色、脚本、配音、画面和视频阶段不再被该误判提前阻断。
-- **错误信息可诊断**: 并行节点异常为空消息时保留底层异常类型，避免任务中心只显示无上下文的 `RuntimeError`。
-- **版本同步**: Python 包、Electron 安装器、前端版本兜底、依赖锁文件和 README 已统一更新为 1.1.62。
-- **更新提示**: 更新窗口将展示本版本记录；安装完成后请重新启动客户端，使本地后端、Hermes 和 Electron 主进程全部切换到新版本。
+- **环境依赖下载**: 3D 运行环境、导演世界大型模型和图片抠图资源统一通过云端清单获取下载地址，直接下载并校验完整性。
+- **下载地址续签**: 下载地址过期时重新获取清单并重试一次；Windows 安装程序与设置页使用相同的续签、大小和 SHA-256 校验规则。
+- **保留已有环境**: 下载或校验失败时保留旧安装；若文件替换后的回退失败，保留备份目录。
+- **平台校验**: 3D 运行环境严格匹配操作系统和架构，Mac ARM64 构件尚未发布时不会下载 Windows 包。
+- **更新提示**: 安装完成后请重新启动客户端，使 Electron 主进程、本地后端和 Hermes 使用新版本。
 
 ## User-facing Highlights (en)
 
-- **Story ingestion restored**: A requested project type matching the current project is no longer misclassified as a type change, so raw Markdown can enter ingestion normally.
-- **Production workflow restored**: The shared ingestion path used by “continue episode 1” and direct import no longer blocks the remaining character, script, voice, image, and video stages prematurely.
-- **Actionable task errors**: Parallel node failures with an empty message now retain the underlying exception type instead of surfacing only a context-free `RuntimeError`.
-- **Version synchronization**: Python, Electron, frontend fallback, dependency lock, and README versions are synchronized to 1.1.62.
-- **Update notice**: Restart the desktop client after installation so the local backend, Hermes, and Electron main process all use the new version.
+- **Runtime downloads**: 3D runtime, director-world models and image matting resources use cloud manifests and verified direct downloads.
+- **Expired download links**: Refresh the manifest and retry once after HTTP 403. The Windows installer and settings share size and SHA-256 verification requirements.
+- **Preserve installations**: Failed downloads or verification preserve the previous installation; failed rollback retains its backup directory.
+- **Platform validation**: Runtime archives must match the OS and architecture. An unpublished Mac ARM64 runtime cannot be replaced with a Windows archive.
+- **Update notice**: Restart after installation so Electron, the local backend and Hermes use the new version.

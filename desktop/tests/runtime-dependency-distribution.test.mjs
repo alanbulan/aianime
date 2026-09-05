@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import fsPromises, { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { RuntimeDependencyManager } from "../src/runtime-dependencies.ts";
@@ -21,11 +22,11 @@ const expected = {
 const expiredUrl = "https://rustfs.example/bucket/model.onnx?X-Amz-Signature=expired&X-Amz-Expires=3600";
 const freshUrl = "https://rustfs.example/bucket/model.onnx?X-Amz-Signature=fresh%2Bsignature&X-Amz-Expires=3600";
 
-function manifest(url = freshUrl) {
+function manifest(url = freshUrl, id = "matte") {
   return {
     schemaVersion: 1,
     package: {
-      id: "matte", platform: "win32", arch: "x64", version: expected.version,
+      id, platform: "win32", arch: "x64", version: expected.version,
       files: expected.files.map((file) => ({ ...file, urls: [url] })),
     },
   };
@@ -36,38 +37,41 @@ test("all dependency manifests use the cloud API and encode locked versions", ()
     const url = new URL(runtimeDependencyManifestUrl(id, "win32", "x64", {}, expected.version));
     assert.equal(url.pathname, `/api/v1/client/runtime-dependencies/${id}/win32-x64/manifest.json`);
     assert.equal(url.searchParams.get("version"), expected.version);
+    assert.match(url.search, /%2B/);
   }
   assert.equal(runtimeDependencyManifestUrl("matte", "darwin", "x64", {
     AI_ANIME_RUNTIME_MANIFEST_URL: "http://127.0.0.1:8000/{id}/{platform}/{arch}/manifest.json",
   }), "http://127.0.0.1:8000/matte/darwin/x64/manifest.json");
 });
 
-test("signed object downloads preserve query strings and refresh an expired URL once", async (t) => {
+for (const id of ["worldModels", "matte"]) test(`${id} downloads preserve signed URLs and refresh once`, async (t) => {
   const root = await mkdtemp(join(tmpdir(), "runtime-distribution-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const requests = [];
   let manifests = 0;
-  const manifestUrl = runtimeDependencyManifestUrl("matte", "win32", "x64", {}, expected.version);
+  const manifestUrl = runtimeDependencyManifestUrl(id, "win32", "x64", {}, expected.version);
   const manager = new RuntimeDependencyManager(root, {
-    platform: "win32", arch: "x64", mattePackage: expected,
+    platform: "win32", arch: "x64",
+    ...(id === "matte" ? { mattePackage: expected } : { worldModelsPackage: expected }),
     fetchImpl: async (url, options) => {
       requests.push(String(url));
       assert.equal(options.redirect, "error");
       assert.equal(options.headers, undefined);
       if (String(url) === manifestUrl) {
         assert.equal(options.cache, "no-store");
-        return Response.json(manifest(++manifests === 1 ? expiredUrl : freshUrl));
+        return Response.json(manifest(++manifests === 1 ? expiredUrl : freshUrl, id));
       }
       if (String(url) === expiredUrl) return new Response(null, { status: 403 });
       assert.equal(String(url), freshUrl);
       return new Response(bytes);
     },
   });
-  const result = await manager.install("matte");
+  const result = await manager.install(id);
   assert.equal(result.state, "ready");
   assert.deepEqual(requests, [manifestUrl, expiredUrl, manifestUrl, freshUrl]);
-  assert.deepEqual(await readFile(join(manager.paths.matteRoot, expected.files[0].relativePath)), bytes);
-  const receipt = await readFile(join(manager.paths.matteRoot, "install.json"), "utf8");
+  const installRoot = id === "matte" ? manager.paths.matteRoot : manager.paths.worldModelsRoot;
+  assert.deepEqual(await readFile(join(installRoot, expected.files[0].relativePath)), bytes);
+  const receipt = await readFile(join(installRoot, "install.json"), "utf8");
   assert.doesNotMatch(receipt, /Signature|https:/);
 });
 
@@ -135,6 +139,34 @@ test("persistently expired signatures fail after one refresh", async (t) => {
   assert.equal((await manager.status("matte")).state, "not-installed");
 });
 
+test("a failed replacement and rollback retain the previous installation backup", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "runtime-rollback-backup-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const manager = new RuntimeDependencyManager(root, {
+    platform: "win32", arch: "x64", mattePackage: expected,
+    fetchImpl: async (url) => new URL(url).pathname.endsWith("manifest.json")
+      ? Response.json(manifest()) : new Response(bytes),
+  });
+  await manager.install("matte");
+  const originalRename = fsPromises.rename;
+  fsPromises.rename = async (source, destination) => {
+    if (destination === manager.paths.matteRoot) throw new Error("replacement and rollback blocked");
+    return await originalRename(source, destination);
+  };
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(manager.install("matte"), /replacement and rollback blocked/);
+    const dependencyRoot = dirname(manager.paths.matteRoot);
+    const backups = (await readdir(dependencyRoot)).filter((name) => name.startsWith(".previous-"));
+    assert.equal(backups.length, 1);
+    assert.deepEqual(await readFile(join(dependencyRoot, backups[0], expected.files[0].relativePath)), bytes);
+    assert.equal(JSON.parse(await readFile(join(dependencyRoot, backups[0], "install.json"), "utf8")).version, expected.version);
+  } finally {
+    fsPromises.rename = originalRename;
+    syncBuiltinESMExports();
+  }
+});
+
 test("world archive size is checked before extraction even when the hash matches", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "runtime-world-size-"));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -154,4 +186,29 @@ test("world archive size is checked before extraction even when the hash matches
   });
   await assert.rejects(manager.install("world"), /大小校验失败/);
   assert.equal((await manager.status("world")).state, "not-installed");
+});
+
+test("Mac ARM64 world never substitutes a Windows archive when its build is absent", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "runtime-world-mac-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const status of [404, 200]) {
+    const requests = [];
+    const manager = new RuntimeDependencyManager(root, {
+      platform: "darwin", arch: "arm64",
+      fetchImpl: async (url) => {
+        requests.push(String(url));
+        return Response.json({
+          schemaVersion: 1,
+          package: {
+            id: "world", version: "1.1.39", platform: "win32", arch: "x64",
+            archive: "tar.gz", sha256: expected.files[0].sha256,
+            downloadSizeBytes: bytes.length, installedSizeBytes: bytes.length,
+            urls: [freshUrl],
+          },
+        }, { status });
+      },
+    });
+    await assert.rejects(manager.install("world"), status === 404 ? /HTTP 404/ : /当前平台不匹配/);
+    assert.deepEqual(requests, [runtimeDependencyManifestUrl("world", "darwin", "arm64", {})]);
+  }
 });

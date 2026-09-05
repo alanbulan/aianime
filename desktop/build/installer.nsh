@@ -37,7 +37,7 @@ AiAnimeShowWorldRuntimePage:
   Pop $AiAnimeWorldRuntimeCheckbox
   ${NSD_Uncheck} $AiAnimeWorldRuntimeCheckbox
 
-  ${NSD_CreateLabel} 18u 108u 94% 42u "组件将从国内镜像下载并校验完整性。模型权重在首次使用时按需下载。未安装该组件不影响脚本、图片、视频等其他功能。"
+  ${NSD_CreateLabel} 18u 108u 94% 42u "组件将按云端清单下载并校验完整性。模型权重可在“设置 → 环境依赖”中另行安装。未安装该组件不影响脚本、图片、视频等其他功能。"
   Pop $0
 
   nsDialogs::Show

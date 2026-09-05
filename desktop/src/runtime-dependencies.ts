@@ -526,11 +526,11 @@ export class RuntimeDependencyManager {
       await mkdir(this.dependencyRoot, { recursive: true });
       onProgress({ id: "world", phase: "manifest", message: "正在获取运行环境安装清单…" });
       const manifest = await this.fetchManifest();
-      await this.downloadArchive(manifest.package, archivePath, onProgress);
+      const packageInfo = await this.downloadArchive(manifest.package, archivePath, onProgress);
 
       onProgress({ id: "world", phase: "verifying", message: "正在校验安装包完整性…" });
       const digest = await sha256File(archivePath);
-      if (digest.toLowerCase() !== manifest.package.sha256.toLowerCase()) {
+      if (digest.toLowerCase() !== packageInfo.sha256.toLowerCase()) {
         throw new Error("运行环境安装包 SHA-256 校验失败");
       }
       await verifyArchiveEntries(archivePath, this.platform);
@@ -547,12 +547,12 @@ export class RuntimeDependencyManager {
       const receipt: InstallReceipt = {
         schemaVersion: 1,
         id: "world",
-        version: manifest.package.version,
+        version: packageInfo.version,
         platform: this.platform,
         arch: this.arch,
-        sha256: manifest.package.sha256,
-        downloadSizeBytes: manifest.package.downloadSizeBytes,
-        installedSizeBytes: manifest.package.installedSizeBytes,
+        sha256: packageInfo.sha256,
+        downloadSizeBytes: packageInfo.downloadSizeBytes,
+        installedSizeBytes: packageInfo.installedSizeBytes,
         installedAt: new Date().toISOString(),
       };
       await writeFile(
@@ -580,7 +580,6 @@ export class RuntimeDependencyManager {
       this.smokeCheck = null;
       await rm(archivePath, { force: true }).catch(() => undefined);
       await rm(stagingPath, { recursive: true, force: true }).catch(() => undefined);
-      await rm(previousPath, { recursive: true, force: true }).catch(() => undefined);
     }
     return await this.worldStatus();
   }
@@ -596,14 +595,25 @@ export class RuntimeDependencyManager {
     packageInfo: RuntimeDependencyPackage,
     targetPath: string,
     onProgress: (progress: RuntimeDependencyProgress) => void,
-  ): Promise<void> {
+  ): Promise<RuntimeDependencyPackage> {
     let lastError: unknown;
-    for (const url of packageInfo.urls) {
+    let urls = [...packageInfo.urls];
+    let refreshed = false;
+    while (urls.length > 0) {
+      const url = urls.shift()!;
       try {
         const response = await this.fetchImpl(url, {
           signal: AbortSignal.timeout(3_600_000), redirect: "error",
         });
+        if (response.status === 403 && !refreshed) {
+          await response.body?.cancel();
+          refreshed = true;
+          packageInfo = (await this.fetchManifest()).package;
+          urls = [...packageInfo.urls];
+          continue;
+        }
         if (!response.ok || !response.body) {
+          await response.body?.cancel();
           throw new Error(`HTTP ${response.status}`);
         }
         const headerSize = Number(response.headers.get("content-length") || 0);
@@ -635,7 +645,7 @@ export class RuntimeDependencyManager {
         } finally {
           await destination.close();
         }
-        return;
+        return packageInfo;
       } catch (error) {
         lastError = error;
         await rm(targetPath, { force: true }).catch(() => undefined);

@@ -1,6 +1,6 @@
 # 云端接入交接
 
-客户端 `1.1.62` 固定使用 `https://aianime.mingcw.com`。Windows x86_64 NSIS `1.1.6` 已作为可选更新发布，`1.1.5` 可通过现有 Gateway 完成版本判断、YAML/EXE 下载和 SHA-512 校验；后续版本继续沿用同一更新合同，客户端支持启动检查、手动检查、真实下载进度和安装确认。
+客户端 `1.1.63` 固定使用 `https://aianime.mingcw.com`。Windows x86_64 NSIS `1.1.6` 已作为可选更新发布，`1.1.5` 可通过现有 Gateway 完成版本判断、YAML/EXE 下载和 SHA-512 校验；后续版本继续沿用同一更新合同，客户端支持启动检查、手动检查、真实下载进度和安装确认。
 
 ## 1. 登录首屏
 
@@ -286,6 +286,30 @@ sha512: 0Soo+g6HeWW/nKvAMBP30veqFYtYSzR6H/6N4Xytk2Sormxh5Bfm27WBy7RFNyQij7G27Q61
 ```
 
 `latest.yml` 中的版本、文件名和 SHA-512 已与 `1.1.58` 安装包重新计算的结果一致，`releaseDate` 为 `2026-08-24T00:09:54.368Z`。出包前已将旧 `1.1.57` 安装包及构建目录移入 Windows 回收站；前端 CE、Electron 主进程、本地后端、Hermes ACP 与 NSIS 安装器均构建成功，后端运行时校验确认 52 个提示词、25 个迁移资源和 4 个 worker 已随包收集，最终资源校验通过。该构件未使用 Authenticode 证书，Windows 会显示未知发布者；当前差分下载关闭，发布时上传新的 EXE 与 `latest.yml`。
+
+2026-09-05 已生成依赖分发修复版 Windows `1.1.63`，用于替换仍携带旧依赖入口的安装包：
+
+```text
+AI-anime-1.1.63-x64-setup.exe
+size: 722489960
+sha256: bccdf7c41baeb89a42b416f8120e5f517e49196520390f59a0cafc43e457ea00
+sha512: Phb4pstvj4at3ZhO4eLKnu/A/P8U4EKdMk1b4DReuQ91t9Fx8tqMedz3i+lGVm/buuBHhkfFmnciNIR5I91HlQ==
+releaseDate: 2026-09-05T13:07:32.150Z
+```
+
+发布时使用 `desktop/release` 下对应 EXE 与本次 `latest.yml`；
+`release-1.1.63-windows-x64.json` 提供实际字节数和校验值。YAML 的版本、文件名和两处
+SHA-512 已与 EXE 重新计算的结果核对。最终 EXE 中的 `app-64.7z` 已提取检查，确认
+ASAR 内依赖模块及随包 PowerShell 安装器与本次构建一致。未使用 Authenticode 证书。
+
+三类依赖均使用新清单和原样预签名 URL；3D 运行环境与 Windows 安装器补齐 403 续签一次，
+重新验证清单后再安装。桌面测试 215 项通过、1 项 Mac 条件跳过，类型检查与后端资源冒烟
+通过；在隔离目录完成
+Windows 三类资源从真实云端完整下载、大小/SHA-256 校验和安装检查。Mac ARM64 模型与
+抠图清单已匹配锁定版本，world 清单返回 404，仍需真实 Mac 构建。
+
+本次未执行主应用云端上传发布、系统级干净安装、登录/生成或自动更新验收；
+云端交接所述 SSH 依赖安全门禁不在此次客户端改动范围内，未修改该依赖。
 
 macOS 打包：
 

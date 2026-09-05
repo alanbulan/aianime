@@ -90,6 +90,42 @@ test(
       manifestUrl: `${fixture.origin}/manifest-illegal.json`,
       managerPattern: /非法路径/,
     });
+
+    const refreshUrl = `${fixture.origin}/manifest-refresh.json`;
+    const refreshedManager = new RuntimeDependencyManager(join(root, "manager-refresh"), {
+      platform: "win32", arch: "x64",
+    });
+    await seedCurrent(refreshedManager.paths.root, "old-install");
+    assert.equal((await withManifest(refreshUrl, () => refreshedManager.install("world"))).state, "ready");
+    assert.equal((await readReceipt(refreshedManager.paths.root)).version, "9.8.7");
+    await assertNoInstallerResidue(dirname(refreshedManager.paths.root));
+
+    const refreshedPsRoot = join(root, "powershell-refresh");
+    await seedCurrent(join(refreshedPsRoot, "current"), "old-install");
+    const refreshedPs = await runPowerShellInstaller({
+      manifestUrl: refreshUrl, installRoot: refreshedPsRoot, logPath: join(root, "logs", "refresh.log"),
+    });
+    assert.equal(refreshedPs.code, 0, refreshedPs.stderr || refreshedPs.stdout);
+    assert.equal((await readReceipt(join(refreshedPsRoot, "current"))).version, "9.8.7");
+    assert.doesNotMatch(refreshedPs.stdout + refreshedPs.stderr, /X-Amz-Signature/);
+    await assertNoInstallerResidue(refreshedPsRoot);
+    assert.equal(fixture.hits.refreshManifest, 4);
+    assert.equal(fixture.hits.expiredArchive, 2);
+    assert.equal(fixture.hits.refreshedArchive, 2);
+
+    await assertRejectedInstallPreservesCurrent({
+      root, name: "expired", manifestUrl: `${fixture.origin}/manifest-expired.json`,
+      managerPattern: /HTTP 403/,
+    });
+    assert.equal(fixture.hits.expiredManifest, 4);
+    assert.equal(fixture.hits.expiredArchive, 6);
+
+    await assertRejectedInstallPreservesCurrent({
+      root, name: "refresh-platform", manifestUrl: `${fixture.origin}/manifest-refresh-platform.json`,
+      managerPattern: /当前平台不匹配/,
+    });
+    assert.equal(fixture.hits.platformManifest, 4);
+    assert.equal(fixture.hits.refreshedArchive, 2);
   },
 );
 
@@ -255,7 +291,11 @@ function windowsCSharpCompiler() {
 }
 
 async function startFixtureServer(validArchive, illegalArchive) {
-  const hits = { failedMirror: 0, validArchive: 0, illegalArchive: 0 };
+  const hits = {
+    failedMirror: 0, validArchive: 0, illegalArchive: 0,
+    refreshManifest: 0, expiredManifest: 0, platformManifest: 0,
+    expiredArchive: 0, refreshedArchive: 0,
+  };
   let origin = "";
   const manifest = (archive, sha256 = archive.sha256) => ({
     schemaVersion: 1,
@@ -273,6 +313,36 @@ async function startFixtureServer(validArchive, illegalArchive) {
   });
   const server = createServer((request, response) => {
     const path = new URL(request.url || "/", "http://localhost").pathname;
+    if (path === "/expired.tar.gz") {
+      hits.expiredArchive += 1;
+      response.writeHead(403).end("expired signature");
+      return;
+    }
+    if (path === "/refreshed.tar.gz") {
+      assert.equal(request.url, "/refreshed.tar.gz?X-Amz-Signature=fresh%2Bsignature&X-Amz-Expires=3600");
+      hits.refreshedArchive += 1;
+      response.writeHead(200, { "Content-Length": validArchive.bytes.byteLength }).end(validArchive.bytes);
+      return;
+    }
+    if (["/manifest-refresh.json", "/manifest-expired.json", "/manifest-refresh-platform.json"].includes(path)) {
+      const counter = path === "/manifest-refresh.json" ? "refreshManifest"
+        : path === "/manifest-expired.json" ? "expiredManifest" : "platformManifest";
+      const renewed = ++hits[counter] % 2 === 0 && counter !== "expiredManifest";
+      const value = manifest(validArchive);
+      value.package.urls = [renewed
+        ? `${origin}/refreshed.tar.gz?X-Amz-Signature=fresh%2Bsignature&X-Amz-Expires=3600`
+        : `${origin}/expired.tar.gz?X-Amz-Signature=expired`];
+      if (!renewed) {
+        value.package.version = "9.8.6";
+        value.package.sha256 = "0".repeat(64);
+        value.package.downloadSizeBytes += 10;
+      } else if (counter === "platformManifest") {
+        value.package.platform = "darwin";
+        value.package.arch = "arm64";
+      }
+      response.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(value));
+      return;
+    }
     if (path === "/mirror-fail.tar.gz") {
       hits.failedMirror += 1;
       response.writeHead(503).end("try next mirror");

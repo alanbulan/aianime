@@ -178,21 +178,40 @@ try {
 New-Item -ItemType Directory -Path $dependencyRoot -Force | Out-Null
 try {
     Write-Output "正在获取运行环境安装清单"
-    $manifest = Invoke-RestMethod -Uri $ManifestUrl -Method Get -TimeoutSec 60 -MaximumRedirection 0
+    $manifest = Invoke-RestMethod -Uri $ManifestUrl -Method Get -TimeoutSec 60 -MaximumRedirection 0 -Headers @{ "Cache-Control" = "no-cache" }
     $package = Assert-RuntimeDependencyManifest -Manifest $manifest
 
     $downloaded = $false
-    foreach ($url in @($package.urls)) {
+    $manifestRefreshed = $false
+    $downloadUrls = [Collections.Generic.Queue[string]]::new()
+    foreach ($url in @($package.urls)) { $downloadUrls.Enqueue([string]$url) }
+    while ($downloadUrls.Count -gt 0) {
+        $url = $downloadUrls.Dequeue()
         try {
             Write-Output "正在下载 3D 运行环境"
             Invoke-WebRequest -Uri ([string]$url) -OutFile $archivePath -UseBasicParsing -TimeoutSec 3600 -MaximumRedirection 0
             $downloaded = $true
             break
         } catch {
-            Write-Output "下载失败，尝试下一个地址。"
+            $responseProperty = $_.Exception.PSObject.Properties["Response"]
+            $statusCode = 0
+            if ($responseProperty -and $responseProperty.Value) {
+                $statusCode = [int]$responseProperty.Value.StatusCode
+                if ($responseProperty.Value -is [IDisposable]) { $responseProperty.Value.Dispose() }
+            }
             if (Test-Path -LiteralPath $archivePath) {
                 Remove-Item -LiteralPath $archivePath -Force
             }
+            if ($statusCode -eq 403 -and -not $manifestRefreshed) {
+                $manifestRefreshed = $true
+                Write-Output "下载地址已失效，正在重新获取运行环境清单。"
+                $manifest = Invoke-RestMethod -Uri $ManifestUrl -Method Get -TimeoutSec 60 -MaximumRedirection 0 -Headers @{ "Cache-Control" = "no-cache" }
+                $package = Assert-RuntimeDependencyManifest -Manifest $manifest
+                $downloadUrls.Clear()
+                foreach ($freshUrl in @($package.urls)) { $downloadUrls.Enqueue([string]$freshUrl) }
+                continue
+            }
+            Write-Output "下载失败，尝试下一个地址。"
         }
     }
     if (-not $downloaded) {
