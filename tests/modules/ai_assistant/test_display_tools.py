@@ -14,7 +14,15 @@ def test_display_tool_call_key_is_stable_across_argument_order():
 
 def test_display_tool_name_accepts_only_known_tools():
     assert is_display_tool_name(" ai_anime_get_sketches ")
+    assert is_display_tool_name("ai_anime_get_final_video")
     assert not is_display_tool_name("ai_anime_pipeline_status")
+
+
+def test_extract_final_video_display_call():
+    assert extract_display_tool_call({
+        "title": "ai_anime_get_final_video",
+        "arguments": '{"episode": 2}',
+    }) == ("ai_anime_get_final_video", {"episode": 2})
 
 
 def test_infer_display_tool_call_recovers_sketch_display_promise():

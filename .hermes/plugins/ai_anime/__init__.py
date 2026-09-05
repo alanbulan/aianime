@@ -1970,7 +1970,9 @@ def _apply_production_preflight(
                 "realistic",
                 "post_apocalyptic",
             }:
-                raise ValueError("视觉风格必须从支持的项目预设中选择")
+                style = _request("GET", f"/api/v1/styles/{quote(visual_style, safe='')}")
+                if style.get("ok") is not True or not isinstance(style.get("data"), dict):
+                    raise ValueError("视觉风格必须使用已有预设或当前账号自定义风格 ID")
             resolved["visual_style"] = visual_style
         if "ethnicity" in answers:
             ethnicity = {
@@ -2548,9 +2550,25 @@ def _handle_generate_audio(args: dict[str, Any], **_: Any) -> str:
     """Generate episode audio via the current IndexTTS2 audio pipeline."""
     try:
         body: dict[str, Any] = {}
-        for key in ("mode", "beat_numbers"):
-            if args.get(key) is not None:
-                body[key] = args[key]
+        if args.get("mode") is not None:
+            body["mode"] = args["mode"]
+        selectors = {
+            key: args[key]
+            for key in ("beat", "beat_indices", "beat_numbers")
+            if args.get(key) is not None
+        }
+        if selectors:
+            for key, value in selectors.items():
+                values = [value] if key == "beat" else value
+                if (
+                    not isinstance(values, list)
+                    or not values
+                    or any(type(beat) is not int or beat <= 0 for beat in values)
+                ):
+                    raise ValueError(f"{key} must contain positive integer beat numbers")
+            beats = _requested_beats(args) or set()
+            beats.update(selectors.get("beat_numbers", []))
+            body["beat_numbers"] = sorted(beats)
         result = _episode_post(args, "audio/generate", body=body)
         if (
             isinstance(result, dict)
@@ -3764,8 +3782,7 @@ TOOLS = (
                 },
                 "visual_style": {
                     "type": "string",
-                    "enum": ["chinese_period_drama", "anime", "realistic", "post_apocalyptic"],
-                    "description": "Visual preset inferred from the uploaded source. Pass anime for Japanese/2D anime material; do not rely on the project default when filename is present.",
+                    "description": "Existing style ID from /styles, including account custom styles. Built-in presets: chinese_period_drama, anime, realistic, post_apocalyptic. Infer from the uploaded source; do not rely on the project default when filename is present.",
                 },
                 "narration_style": {
                     "type": "string",
@@ -3836,8 +3853,7 @@ TOOLS = (
                 },
                 "visual_style": {
                     "type": "string",
-                    "enum": ["chinese_period_drama", "anime", "realistic", "post_apocalyptic"],
-                    "description": "Visual preset inferred from the uploaded source. Pass anime for Japanese/2D anime material.",
+                    "description": "Existing style ID from /styles, including account custom styles. Built-in presets: chinese_period_drama, anime, realistic, post_apocalyptic. Infer from the uploaded source.",
                 },
                 "narration_style": {
                     "type": "string",
@@ -3887,8 +3903,7 @@ TOOLS = (
                 },
                 "visual_style": {
                     "type": "string",
-                    "enum": ["chinese_period_drama", "anime", "realistic", "post_apocalyptic"],
-                    "description": "Optional visual preset override. Omit it to keep the project's configured value.",
+                    "description": "Existing style ID from /styles, including account custom styles. Built-in presets: chinese_period_drama, anime, realistic, post_apocalyptic. Omit it to keep the project's configured value.",
                 },
                 "narration_style": {
                     "type": "string",
@@ -4476,8 +4491,20 @@ TOOLS = (
                 },
                 "beat_numbers": {
                     "type": "array",
-                    "items": {"type": "integer"},
+                    "items": {"type": "integer", "minimum": 1},
+                    "minItems": 1,
                     "description": "Optional beat numbers for partial audio generation.",
+                },
+                "beat": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Generate audio only for this Beat (1-based). Combined with any supplied beat lists.",
+                },
+                "beat_indices": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 1},
+                    "minItems": 1,
+                    "description": "Beat numbers (1-based) for partial audio generation; same meaning as beat_numbers.",
                 },
             },
             ["episode"],

@@ -859,16 +859,18 @@ def test_complete_generation_uses_recommended_defaults_without_duplicate_questio
     ]
 
 
+@pytest.mark.parametrize("visual_style", ["realistic", "custom_watercolor"])
 def test_new_story_production_preflight_collects_creative_parameters(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
+    visual_style: str,
 ) -> None:
     monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
     decision_batches = []
     production_bodies = []
     selected = {
         "spine_template": "narrated",
-        "visual_style": "realistic",
+        "visual_style": visual_style,
         "ethnicity": "Japanese",
         "target_episodes": "2",
         "planning_mode": "ai_events",
@@ -885,6 +887,9 @@ def test_new_story_production_preflight_collects_creative_parameters(
         body=None,
         timeout_seconds=None,
     ):
+        if path == "/api/v1/styles/custom_watercolor":
+            assert method == "GET"
+            return {"ok": True, "data": {"id": "custom_watercolor"}}
         if path == "/api/v1/chat/decisions":
             ids = [question["id"] for question in body["questions"]]
             decision_batches.append(ids)
@@ -932,7 +937,7 @@ def test_new_story_production_preflight_collects_creative_parameters(
             "filename": "story.txt",
             "rebuild": False,
             "spine_template": "narrated",
-            "visual_style": "realistic",
+            "visual_style": visual_style,
             "narration_style": "third_person",
             "ethnicity": "Japanese",
             "target_episodes": 2,
@@ -2560,7 +2565,8 @@ def test_hermes_production_tools_match_openapi_request_fields(
         <= production_fields
     )
     assert (
-        set(tool_schemas["ai_anime_generate_audio"]) - {"project_id", "episode"}
+        set(tool_schemas["ai_anime_generate_audio"])
+        - {"project_id", "episode", "beat", "beat_indices"}
         <= audio_fields
     )
     assert "audio_model" not in tool_schemas["ai_anime_run_production_workflow"]
@@ -2568,6 +2574,111 @@ def test_hermes_production_tools_match_openapi_request_fields(
     assert "model" not in tool_schemas["ai_anime_generate_audio"]
     assert "model" in tool_schemas["ai_anime_start_single_video"]
     assert "model_selector" in tool_schemas["ai_anime_start_single_video"]
+
+
+@pytest.mark.parametrize(
+    ("selection", "expected"),
+    [
+        ({"beat": 3}, [3]),
+        ({"beat_indices": [3, 1, 3]}, [1, 3]),
+        ({"beat_numbers": [3, 1]}, [1, 3]),
+        ({"beat": 2, "beat_indices": [3], "beat_numbers": [1, 2]}, [1, 2, 3]),
+    ],
+)
+def test_generate_audio_maps_beat_selection_to_api_contract(
+    ai_anime_plugin, monkeypatch, selection, expected,
+) -> None:
+    from ai_anime.api.routes.production.audio_schemas import EpisodeAudioGenerateRequest
+
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(method, path, *, body):
+        request = EpisodeAudioGenerateRequest.model_validate(body)
+        calls.append((method, path, request))
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+    result = ai_anime_plugin._handle_generate_audio(
+        {"episode": 2, "mode": "redo", **selection}
+    )
+
+    assert result == {"ok": True}
+    assert len(calls) == 1
+    method, path, request = calls[0]
+    assert (method, path) == (
+        "POST", "/api/v1/projects/project-1/episodes/2/audio/generate",
+    )
+    assert request.beat_numbers == expected
+    assert request.mode == "redo"
+
+
+@pytest.mark.parametrize(
+    "selection",
+    [
+        {"beat": 0}, {"beat": True}, {"beat": 1.5},
+        {"beat_indices": []}, {"beat_indices": [1, -1]},
+        {"beat_numbers": []}, {"beat_numbers": ["bad"]},
+        {"beat_numbers": 1},
+    ],
+)
+def test_generate_audio_invalid_selection_never_expands_to_episode(
+    ai_anime_plugin, monkeypatch, selection,
+) -> None:
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request",
+        lambda *args, **kwargs: pytest.fail("invalid selection must not call API"),
+    )
+    result = ai_anime_plugin._handle_generate_audio({"episode": 1, **selection})
+    assert "positive integer" in result["tool_error"]
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    ["ai_anime_run_production_workflow", "ai_anime_run_script_workflow", "ai_anime_start_ingest"],
+)
+def test_workflow_tools_accept_and_forward_account_style_id(
+    ai_anime_plugin, monkeypatch, tool_name,
+) -> None:
+    from jsonschema import validate
+
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    _, schema, handler = next(tool for tool in ai_anime_plugin.TOOLS if tool[0] == tool_name)
+    args = {"filename": "story.txt", "visual_style": "custom_watercolor"}
+    if tool_name == "ai_anime_run_production_workflow":
+        args["use_recommended_defaults"] = True
+    validate(args, schema["parameters"])
+    calls = []
+
+    def fake_request(method, path, *, body):
+        calls.append((method, path, body))
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+    assert handler(args) == {"ok": True}
+    assert len(calls) == 1
+    assert calls[0][2]["visual_style"] == "custom_watercolor"
+
+
+def test_production_preflight_rejects_unregistered_custom_style(
+    ai_anime_plugin, monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request_decision_batch",
+        lambda *args, **kwargs: {"visual_style": "unknown_style"},
+    )
+    calls = []
+
+    def fake_request(method, path, **kwargs):
+        calls.append((method, path))
+        return {"ok": False, "error": "style_not_found"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+    result = ai_anime_plugin._handle_run_production_workflow(
+        {"project_id": "project-1", "filename": "story.txt"}
+    )
+    assert "已有预设" in result["tool_error"]
+    assert calls == [("GET", "/api/v1/styles/unknown_style")]
 
 
 def test_generate_audio_treats_no_required_audio_as_successful_skip(

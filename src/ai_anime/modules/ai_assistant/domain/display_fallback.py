@@ -526,6 +526,23 @@ def project_episode_media_specs(
     return [_media_ui_spec("keyframe_video", "Video", limited)] if limited else []
 
 
+def project_final_video_specs(
+    args: dict[str, Any],
+    response: Any,
+) -> list[dict[str, Any]]:
+    data = response.get("data") if isinstance(response, dict) else None
+    if not isinstance(data, dict) or not data.get("exists"):
+        return []
+    video_url = str(data.get("video_url") or "").strip()
+    if not video_url:
+        return []
+    return [_media_ui_spec("keyframe_video", "Video", [{
+        "src": video_url,
+        "title": f"第 {display_episode(args)} 集成片",
+        "description": "最终合成视频",
+    }])]
+
+
 __all__ = [
     "character_identity_requests",
     "display_candidate_beat",
@@ -533,6 +550,7 @@ __all__ = [
     "project_beat_image_specs",
     "project_character_media_specs",
     "project_episode_media_specs",
+    "project_final_video_specs",
     "project_scene_image_specs",
     "project_sketch_candidate_specs",
 ]

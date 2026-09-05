@@ -17,6 +17,7 @@ from ai_anime.modules.ai_assistant.domain import (
     project_beat_image_specs,
     project_character_media_specs,
     project_episode_media_specs,
+    project_final_video_specs,
     project_scene_image_specs,
     project_sketch_candidate_specs,
 )
@@ -117,6 +118,14 @@ class DisplayFallbacks:
                 token,
             )
             return project_episode_media_specs(args, response)
+
+        if tool_name == "ai_anime_get_final_video":
+            episode = display_episode(args)
+            response = self._gateway.get(
+                f"/api/v1/projects/{project_q}/episodes/{episode}/final",
+                token,
+            )
+            return project_final_video_specs(args, response)
 
         return []
 

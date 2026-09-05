@@ -32,6 +32,7 @@ from ai_anime.modules.ai_assistant.domain.display_fallback import (
     project_beat_image_specs,
     project_character_media_specs,
     project_episode_media_specs,
+    project_final_video_specs,
     project_scene_image_specs,
     project_sketch_candidate_specs,
 )
@@ -103,6 +104,7 @@ __all__ = [
     "project_beat_image_specs",
     "project_character_media_specs",
     "project_episode_media_specs",
+    "project_final_video_specs",
     "project_scene_image_specs",
     "project_sketch_candidate_specs",
     "prepend_managed_context",

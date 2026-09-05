@@ -24,6 +24,36 @@ def _media_props(specs):
 
 
 @pytest.mark.asyncio
+async def test_final_video_fallback_uses_final_endpoint_and_video_card():
+    path = "/api/v1/projects/api%20project/episodes/2/final"
+    gateway = StubDisplayFallbackGateway({path: {
+        "ok": True, "data": {"exists": True, "video_url": "/static/final.mp4"},
+    }})
+    specs = await DisplayFallbacks(gateway).build(
+        "chat-scope", "ai_anime_get_final_video",
+        {"project_id": "api project", "episode": 2}, token="token",
+    )
+    assert gateway.calls == [(path, "token")]
+    props = _media_props(specs)[0]
+    assert props["src"] == "/static/final.mp4"
+    assert props["title"] == "第 2 集成片"
+    assert specs[0]["elements"]["media_1"]["type"] == "Video"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("response", [
+    {}, {"data": {"exists": False, "video_url": "/stale.mp4"}},
+    {"data": {"exists": True, "video_url": " "}},
+])
+async def test_final_video_fallback_omits_missing_video(response):
+    path = "/api/v1/projects/project-a/episodes/1/final"
+    gateway = StubDisplayFallbackGateway({path: response})
+    assert await DisplayFallbacks(gateway).build(
+        "project-a", "ai_anime_get_final_video", {"episode": 1}, token="token",
+    ) == []
+
+
+@pytest.mark.asyncio
 async def test_display_fallback_rejects_unknown_tool_without_gateway_call():
     gateway = StubDisplayFallbackGateway()
 

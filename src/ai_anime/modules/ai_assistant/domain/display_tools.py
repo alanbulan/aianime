@@ -14,6 +14,7 @@ _DISPLAY_TOOL_NAMES = frozenset(
         "ai_anime_get_scene_images",
         "ai_anime_get_character_media",
         "ai_anime_get_episode_media",
+        "ai_anime_get_final_video",
     }
 )
 

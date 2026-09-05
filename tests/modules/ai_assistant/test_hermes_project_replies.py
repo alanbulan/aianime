@@ -412,6 +412,34 @@ async def test_hermes_project_replies_dedupe_tool_errors_and_display_fallbacks(
 
 
 @pytest.mark.anyio
+async def test_hermes_project_replies_recovers_final_video_display(monkeypatch):
+    monkeypatch.setattr(replies_module, "dedupe_tool_ui_specs", lambda specs: specs)
+    monkeypatch.setattr(
+        replies_module, "filter_tool_ui_specs_for_prompt", lambda _prompt, specs: specs,
+    )
+    raw = {
+        "sessionUpdate": "tool_call",
+        "title": "ai_anime_get_final_video",
+        "arguments": {"episode": 2},
+    }
+    replies, _thread, _runtime, _messages, _media, sessions, fallbacks = _build_replies([
+        _event("tool_update", name="ai_anime_get_final_video", raw=raw),
+        _event("complete", text="第2集成片"),
+    ])
+
+    async def on_event(event):
+        return None
+
+    result = await replies.stream("alice", "project-a", "查看第2集成片", on_event)
+
+    assert sessions.calls == [("alice", "project-a", "hermes-display-fallback")]
+    assert fallbacks.calls == [
+        ("project-a", "ai_anime_get_final_video", {"episode": 2}, "fallback-token"),
+    ]
+    assert result["content"] == "normalized:第2集成片|specs:1"
+
+
+@pytest.mark.anyio
 async def test_hermes_project_replies_recovers_inferred_display_call(monkeypatch):
     monkeypatch.setattr(
         replies_module,
