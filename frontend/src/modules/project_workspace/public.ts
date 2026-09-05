@@ -51,6 +51,7 @@ export type {
   SpineTemplate,
   UserSearchResult,
 } from "@/modules/project_workspace/domain/project";
+export type { ProjectUpdatePayload } from "@/modules/project_workspace/application/ports";
 export {
   AI_ASSISTANT_WIDTH_DEFAULT,
   AI_ASSISTANT_WIDTH_MAX,

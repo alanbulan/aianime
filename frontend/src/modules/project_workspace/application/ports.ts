@@ -10,12 +10,17 @@ import type {
   UserSearchResult,
 } from "@/modules/project_workspace/domain/project";
 
+// Cover changes use the dedicated upload/select endpoints, never the config PATCH.
+export type ProjectUpdatePayload = Omit<ProjectConfig, "cover_path"> & {
+  cover_path?: never;
+};
+
 export interface ProjectWorkspaceGateway {
   getProject(project: string, signal?: AbortSignal): Promise<ProjectConfig>;
   createProject(name: string): Promise<CreatedProject>;
   updateProject(
     project: string,
-    config: Partial<ProjectConfig>,
+    config: ProjectUpdatePayload,
   ): Promise<ProjectConfig>;
   listProjectCoverCandidates(
     project: string,

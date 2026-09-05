@@ -1,9 +1,11 @@
 // Copyright (c) 2026 AI anime
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
-import type { ProjectWorkspaceGateway } from "@/modules/project_workspace/application/ports";
 import type {
-  ProjectConfig,
+  ProjectUpdatePayload,
+  ProjectWorkspaceGateway,
+} from "@/modules/project_workspace/application/ports";
+import type {
   ProjectLifecycleAction,
   ProjectRole,
   ProjectSummary,
@@ -39,7 +41,7 @@ export function createProjectWorkspaceQueryHooks(
   function useUpdateProject(project: string) {
     const queryClient = useQueryClient();
     return useMutation({
-      mutationFn: (config: Partial<ProjectConfig>) =>
+      mutationFn: (config: ProjectUpdatePayload) =>
         gateway.updateProject(project, config),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.project(project) });

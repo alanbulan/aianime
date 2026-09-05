@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
   isValidProjectName,
@@ -6,7 +6,8 @@ import {
   projectStatusCounts,
   sortProjectSummaries,
 } from "@/modules/project_workspace/domain/project-dashboard";
-import type { ProjectSummary } from "@/modules/project_workspace/domain/project";
+import type { ProjectConfig, ProjectSummary } from "@/modules/project_workspace/domain/project";
+import type { ProjectWorkspaceGateway } from "@/modules/project_workspace/application/ports";
 
 const project = (
   id: string,
@@ -16,6 +17,13 @@ const project = (
 ): ProjectSummary => ({ id, name, status, updatedAt });
 
 describe("Project Workspace domain", () => {
+  it("keeps read-only cover fields out of project config updates", () => {
+    type UpdatePayload = Parameters<ProjectWorkspaceGateway["updateProject"]>[1];
+    expectTypeOf<{ display_name: string; add_subtitles: boolean }>().toExtend<UpdatePayload>();
+    expectTypeOf<{ cover_path: string }>().not.toExtend<UpdatePayload>();
+    expectTypeOf<ProjectConfig>().not.toExtend<UpdatePayload>();
+  });
+
   it("keeps project-name validation aligned with the backend", () => {
     expect(isValidProjectName("story_01")).toBe(true);
     expect(isValidProjectName("我的漫剧_01")).toBe(true);

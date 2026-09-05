@@ -1,5 +1,6 @@
 import type {
   ProjectConfig,
+  ProjectUpdatePayload,
   SpineTemplate,
 } from "@/modules/project_workspace/public";
 
@@ -66,7 +67,7 @@ export function resolveIngestSettings(
 
 export function toProjectSettingsPayload(
   settings: IngestSettingsValues,
-): Partial<ProjectConfig> {
+): ProjectUpdatePayload {
   return { ...settings };
 }
 

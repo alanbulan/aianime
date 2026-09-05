@@ -10,7 +10,7 @@ import type {
 import { orientationForAspectRatio } from "@/shared/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat, DataResponse, Episode } from "@/modules/narrative_planning/public";
-import type { ProjectConfig } from "@/modules/project_workspace/public";
+import type { ProjectConfig, ProjectUpdatePayload } from "@/modules/project_workspace/public";
 import type { ProductionTaskResponse, ProductionVideoGateway } from "@/modules/production/application/ports";
 import type { EpisodeCounts } from "@/modules/production/domain/beat-state";
 import {
@@ -27,7 +27,7 @@ interface ComposeMutation {
 }
 
 interface ProjectMutation {
-  mutateAsync(config: Partial<ProjectConfig>): Promise<unknown>;
+  mutateAsync(config: ProjectUpdatePayload): Promise<unknown>;
 }
 
 export interface EpisodeComposePageQueries {
@@ -113,7 +113,7 @@ export function createUseEpisodeComposePageController(
     }, [projectConfig?.add_bgm]);
 
     const persistComposePreferences = useCallback(
-      (updates: Partial<ProjectConfig>) => {
+      (updates: ProjectUpdatePayload) => {
         void updateProject
           .mutateAsync(updates)
           .catch(() => toast.error(t("common.error")));
