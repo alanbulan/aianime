@@ -101,6 +101,8 @@ jobs:
           zip_path="${release_dir}/AI-anime-${app_version}-macos-x64.zip"
           update_path="${release_dir}/latest-mac.yml"
           checksum_path="${release_dir}/SHA256SUMS-macos-x64.txt"
+          manifest_path="${release_dir}/release-${app_version}-macos-x64.json"
+          pnpm --dir desktop release:manifest:mac:x64
           for artifact_path in "${dmg_path}" "${zip_path}" "${update_path}"; do
             test -f "${artifact_path}"
           done
@@ -110,12 +112,13 @@ jobs:
               exit 1
             fi
           done
-          shasum -a 256 "${dmg_path}" "${zip_path}" "${update_path}" >"${checksum_path}"
+          shasum -a 256 "${dmg_path}" "${zip_path}" "${update_path}" "${manifest_path}" >"${checksum_path}"
           printf 'dmg_path=%s\n' "${dmg_path}" >>"${GITHUB_OUTPUT}"
           printf 'zip_path=%s\n' "${zip_path}" >>"${GITHUB_OUTPUT}"
           printf 'update_path=%s\n' "${update_path}" >>"${GITHUB_OUTPUT}"
           printf 'checksum_path=%s\n' "${checksum_path}" >>"${GITHUB_OUTPUT}"
-          du -h "${dmg_path}" "${zip_path}" "${update_path}" "${checksum_path}"
+          printf 'manifest_path=%s\n' "${manifest_path}" >>"${GITHUB_OUTPUT}"
+          du -h "${dmg_path}" "${zip_path}" "${update_path}" "${checksum_path}" "${manifest_path}"
 
       - name: Upload temporary workflow artifact
         if: github.ref_type != 'tag'
@@ -127,6 +130,7 @@ jobs:
             ${{ steps.artifacts.outputs.zip_path }}
             ${{ steps.artifacts.outputs.update_path }}
             ${{ steps.artifacts.outputs.checksum_path }}
+            ${{ steps.artifacts.outputs.manifest_path }}
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
@@ -140,6 +144,7 @@ jobs:
           ZIP_PATH: ${{ steps.artifacts.outputs.zip_path }}
           UPDATE_PATH: ${{ steps.artifacts.outputs.update_path }}
           CHECKSUM_PATH: ${{ steps.artifacts.outputs.checksum_path }}
+          MANIFEST_PATH: ${{ steps.artifacts.outputs.manifest_path }}
         run: |
           set -euo pipefail
           if release_is_draft="$(gh release view "${GITHUB_REF_NAME}" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
@@ -148,11 +153,11 @@ jobs:
               exit 1
             fi
             gh release upload "${GITHUB_REF_NAME}" \
-              "${DMG_PATH}" "${ZIP_PATH}" "${UPDATE_PATH}" "${CHECKSUM_PATH}" \
+              "${DMG_PATH}" "${ZIP_PATH}" "${UPDATE_PATH}" "${CHECKSUM_PATH}" "${MANIFEST_PATH}" \
               --clobber
           else
             gh release create "${GITHUB_REF_NAME}" \
-              "${DMG_PATH}" "${ZIP_PATH}" "${UPDATE_PATH}" "${CHECKSUM_PATH}" \
+              "${DMG_PATH}" "${ZIP_PATH}" "${UPDATE_PATH}" "${CHECKSUM_PATH}" "${MANIFEST_PATH}" \
               --draft \
               --generate-notes \
               --title "${GITHUB_REF_NAME}" \

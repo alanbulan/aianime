@@ -14,6 +14,7 @@
     "build:world-runtime": "uv run --project .. --locked --extra world --group desktop pyinstaller --clean --noconfirm --distpath world-runtime-dist --workpath .pyinstaller-world backend/ai_anime_world_runtime.spec && node scripts/smoke-world-runtime.mjs",
     "build:hermes": "uv run --project hermes-runtime --locked --group build pyinstaller --clean --noconfirm --distpath hermes-runtime/dist --workpath hermes-runtime/.pyinstaller hermes-runtime/hermes_acp.spec",
     "runtime:hermes": "uv sync --project hermes-runtime --locked",
+    "release:manifest:mac:x64": "node scripts/prepare-macos-release-manifest.mjs",
     "runtime:icon": "electron scripts/generate-icon.cjs",
     "runtime:ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "runtime:splat-transform": "node scripts/prepare-splat-transform.mjs",

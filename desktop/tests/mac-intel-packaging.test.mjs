@@ -323,6 +323,10 @@ test("GitHub Actions packages Intel macOS on an explicit x86_64 runner", async (
   assert.match(workflow, /AI-anime-\$\{app_version\}-macos-x64\.zip/);
   assert.match(workflow, /latest-mac\.yml/);
   assert.match(workflow, /SHA256SUMS-macos-x64\.txt/);
+  assert.match(workflow, /pnpm --dir desktop release:manifest:mac:x64/);
+  assert.match(workflow, /release-\$\{app_version\}-macos-x64\.json/);
+  assert.match(workflow, /steps\.artifacts\.outputs\.manifest_path/);
+  assert.equal((workflow.match(/"\$\{MANIFEST_PATH\}"/g) ?? []).length, 2);
   assert.match(workflow, /github\.ref_type != 'tag'/);
   assert.match(workflow, /gh release create "\$\{GITHUB_REF_NAME\}"/);
   assert.match(workflow, /--draft/);
