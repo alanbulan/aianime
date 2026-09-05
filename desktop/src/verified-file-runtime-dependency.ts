@@ -12,6 +12,10 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
+import {
+  fetchRuntimeDependencyManifest,
+  type RuntimeDependencyId,
+} from "./runtime-dependency-manifest.js";
 
 const INSTALL_RECEIPT = "install.json";
 const VERIFY_CACHE_MS = 30_000;
@@ -43,7 +47,7 @@ export interface VerifiedFileDependencyPackage {
   files: readonly VerifiedFileDependencyFile[];
 }
 
-export interface VerifiedFileDependencyDefinition<Id extends string> {
+export interface VerifiedFileDependencyDefinition<Id extends RuntimeDependencyId> {
   id: Id;
   directoryName: string;
   displayName: string;
@@ -114,21 +118,25 @@ function validatePackage(
   displayName: string,
   packageInfo: VerifiedFileDependencyPackage,
 ): void {
-  if (!packageInfo.version.trim() || packageInfo.files.length === 0) {
+  if (typeof packageInfo.version !== "string" || !packageInfo.version.trim()
+    || !Array.isArray(packageInfo.files) || packageInfo.files.length === 0) {
     throw new Error(`${displayName}文件清单为空`);
   }
   const paths = new Set<string>();
   for (const file of packageInfo.files) {
     if (
-      !isSafeRelativePath(file.relativePath)
+      !file || typeof file !== "object"
+      || typeof file.relativePath !== "string"
+      || !isSafeRelativePath(file.relativePath)
       || paths.has(file.relativePath)
       || !Number.isSafeInteger(file.sizeBytes)
       || file.sizeBytes <= 0
       || !/^[a-f0-9]{64}$/iu.test(file.sha256)
+      || !Array.isArray(file.urls)
       || file.urls.length === 0
       || !file.urls.every(isVerifiedFileDownloadUrlAllowed)
     ) {
-      throw new Error(`${displayName}文件清单无效: ${file.relativePath}`);
+      throw new Error(`${displayName}文件清单无效: ${file?.relativePath ?? "unknown"}`);
     }
     paths.add(file.relativePath);
   }
@@ -145,7 +153,7 @@ async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-export class VerifiedFileRuntimeDependencyManager<Id extends string> {
+export class VerifiedFileRuntimeDependencyManager<Id extends RuntimeDependencyId> {
   readonly root: string;
   private readonly definition: VerifiedFileDependencyDefinition<Id>;
   private readonly packageInfo: VerifiedFileDependencyPackage;
@@ -291,7 +299,8 @@ export class VerifiedFileRuntimeDependencyManager<Id extends string> {
         totalBytes,
         percent: 0,
       });
-      for (const file of this.packageInfo.files) {
+      const downloadPackage = await this.fetchDownloadPackage();
+      for (const file of downloadPackage.files) {
         const targetPath = join(stagingPath, file.relativePath);
         await mkdir(dirname(targetPath), { recursive: true });
         await this.downloadFile(
@@ -363,11 +372,21 @@ export class VerifiedFileRuntimeDependencyManager<Id extends string> {
     onProgress: (progress: VerifiedFileDependencyProgress) => void,
   ): Promise<void> {
     let lastError: unknown;
-    for (const url of file.urls) {
+    const urls = [...file.urls];
+    let refreshed = false;
+    for (const url of urls) {
       try {
         const response = await this.fetchImpl(url, {
           signal: AbortSignal.timeout(3_600_000),
+          redirect: "error",
         });
+        if (response.status === 403 && !refreshed) {
+          refreshed = true;
+          const freshPackage = await this.fetchDownloadPackage();
+          const freshFile = freshPackage.files.find((entry) => entry.relativePath === file.relativePath)!;
+          urls.push(...freshFile.urls);
+          continue;
+        }
         if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
         const destination = await open(targetPath, "w");
         let fileBytes = 0;
@@ -408,6 +427,41 @@ export class VerifiedFileRuntimeDependencyManager<Id extends string> {
     throw new Error(
       `${this.definition.displayName}文件下载或校验失败（${file.relativePath}）：${String(lastError)}`,
     );
+  }
+
+  private async fetchDownloadPackage(): Promise<VerifiedFileDependencyPackage> {
+    const value = await fetchRuntimeDependencyManifest(
+      this.definition.id, this.platform, this.arch, this.fetchImpl, this.packageInfo.version,
+    );
+    if (!value || typeof value !== "object") throw new Error("依赖清单格式无效");
+    const manifest = value as {
+      schemaVersion?: unknown;
+      package?: Partial<VerifiedFileDependencyPackage> & {
+        id?: unknown; platform?: unknown; arch?: unknown;
+      };
+    };
+    const candidate = manifest.package;
+    if (
+      manifest.schemaVersion !== 1
+      || candidate?.id !== this.definition.id
+      || candidate.platform !== this.platform
+      || candidate.arch !== this.arch
+      || candidate.version !== this.packageInfo.version
+      || !Array.isArray(candidate.files)
+      || candidate.files.length !== this.packageInfo.files.length
+    ) {
+      throw new Error("依赖清单与当前平台或客户端锁定版本不匹配");
+    }
+    const packageInfo = candidate as VerifiedFileDependencyPackage;
+    validatePackage(this.definition.displayName, packageInfo);
+    for (const expected of this.packageInfo.files) {
+      const actual = packageInfo.files.find((file) => file.relativePath === expected.relativePath);
+      if (!actual || actual.sizeBytes !== expected.sizeBytes
+        || actual.sha256.toLowerCase() !== expected.sha256.toLowerCase()) {
+        throw new Error(`依赖清单与客户端锁定文件不匹配: ${expected.relativePath}`);
+      }
+    }
+    return packageInfo;
   }
 
   private async verifyFile(

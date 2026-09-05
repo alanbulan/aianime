@@ -834,6 +834,8 @@ GitHub 仓库公开前必须确认源码和历史中不包含密钥或敏感数�
 
 主安装包之外的“导演世界 3D 运行环境”仍只提供 Windows x64 与 macOS arm64 预编译包，Intel Mac 的“设置 → 环境依赖”会将它标记为不支持；这是现有可选运行时的架构限制，不是本次依赖降级造成。主包中的后端、Whisper、FFmpeg、字幕和 Hermes 会随 Intel 包构建并执行自动冒烟；完整界面与生成工作流仍需在安装后的目标机验收。
 
+三类可下载依赖使用 `pnpm --dir desktop package:runtime-dependencies` 统一生成发布目录、对象索引、SHA-256 清单与传输包。云端业务接口提供版本清单和 RustFS 预签名地址，客户端直接下载并校验；Windows 与 Apple Silicon 的 3D 二进制分别在对应主机构建。接口字段、发布流程和可复制的云端提示词见 [运行依赖 RustFS 交接文档](docs/runtime-dependencies-rustfs.md)。SHARP 模型权重受研究用途许可限制，商业分发需额外授权。
+
 Apple Silicon 包最低版本仍为 15.0。Windows 允许无证书打包，两个 macOS 包均使用本地 ad-hoc 签名，不要求打包机配置开发者账号或证书；对外分发时仍需 Developer ID 签名与公证，才能避免 Gatekeeper 的未识别开发者拦截。
 
 更新由 `electron-updater` 处理。`electron-builder` 会生成 `latest.yml` / `latest-mac.yml`，云端直接托管 YAML 和对应安装包，具体接口见 [云端交接文档](docs/cloud-integration-handoff.md)。

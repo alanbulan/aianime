@@ -26,7 +26,6 @@ import { EncryptedFileModelInvocationStore } from "../src/commercial-model-invoc
 import { saveCommercialInvocationResult } from "../src/commercial-invocation-result.ts";
 import {
   CommercialApiClient,
-  COMMERCIAL_RUNTIME_DEPENDENCIES_URL,
   EncryptedFileCommercialRememberedLoginStore,
   EncryptedFileCommercialSessionStore,
   registerCommercialIpc,
@@ -398,8 +397,6 @@ async function startApplication() {
     environment: {
       AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
       AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
-      AI_ANIME_SHARP_MODEL_URL:
-        `${COMMERCIAL_RUNTIME_DEPENDENCIES_URL}/models/sharp/sharp_2572gikvuh.pt`,
     },
   });
   try {

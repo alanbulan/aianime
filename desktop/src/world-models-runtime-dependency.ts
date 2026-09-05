@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 
 import { join } from "node:path";
-import { COMMERCIAL_RUNTIME_DEPENDENCIES_URL } from "./commercial-api-client.js";
 import {
   VerifiedFileRuntimeDependencyManager,
   type VerifiedFileDependencyPackage,
@@ -30,7 +29,6 @@ export const WORLD_MODELS_DEPENDENCY_PACKAGE: WorldModelsDependencyPackage = {
       sizeBytes: 2_809_738_232,
       sha256: "94211a75198c47f61fca7d739ba08a215418d8d398d48fddf023baccc24f073d",
       urls: [
-        `${COMMERCIAL_RUNTIME_DEPENDENCIES_URL}/models/sharp/sharp_2572gikvuh.pt`,
         "https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt",
       ],
     },
@@ -39,7 +37,6 @@ export const WORLD_MODELS_DEPENDENCY_PACKAGE: WorldModelsDependencyPackage = {
       sizeBytes: 1_378_513_064,
       sha256: "d8ea568fc3dfb7d7432e5b763de499dd03fb6dc1c2020d84639f35e2dfa4f78e",
       urls: [
-        `${COMMERCIAL_RUNTIME_DEPENDENCIES_URL}/models/da2/model.safetensors`,
         `https://hf-mirror.com/haodongli/DA-2/resolve/${DA2_REVISION}/model.safetensors`,
         `https://huggingface.co/haodongli/DA-2/resolve/${DA2_REVISION}/model.safetensors`,
       ],

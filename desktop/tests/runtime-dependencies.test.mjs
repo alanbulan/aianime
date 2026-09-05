@@ -10,8 +10,8 @@ import {
   registerRuntimeDependencyIpc,
   RUNTIME_DEPENDENCY_CHANNELS,
   RuntimeDependencyManager,
-  runtimeDependencyManifestUrl,
 } from "../src/runtime-dependencies.ts";
+import { runtimeDependencyManifestUrl } from "../src/runtime-dependency-manifest.ts";
 
 test("runtime dependency downloads allow HTTPS and all loopback URL forms", () => {
   assert.equal(
@@ -109,11 +109,11 @@ test("runtime dependency IPC registers status/install handlers and checks the ac
 
 test("runtime dependency manifest defaults to the domestic release host", () => {
   assert.equal(
-    runtimeDependencyManifestUrl("win32", "x64", {}),
-    "https://aianime.mingcw.com/api/v1/client/runtime-dependencies/win32-x64/manifest.json",
+    runtimeDependencyManifestUrl("world", "win32", "x64", {}),
+    "https://aianime.mingcw.com/api/v1/client/runtime-dependencies/world/win32-x64/manifest.json",
   );
   assert.equal(
-    runtimeDependencyManifestUrl("darwin", "arm64", {
+    runtimeDependencyManifestUrl("world", "darwin", "arm64", {
       AI_ANIME_RUNTIME_MANIFEST_URL:
         "https://mirror.example.cn/{platform}/{arch}/manifest.json",
     }),
@@ -224,6 +224,12 @@ test("matte dependency installs verified files into the stable desktop directory
   ];
   const fetchImpl = async (url) => {
     fetchCalls.push(String(url));
+    if (new URL(url).pathname.endsWith("manifest.json")) {
+      return Response.json({
+        schemaVersion: 1,
+        package: { id: "matte", platform: "win32", arch: "x64", ...packageInfo },
+      });
+    }
     return new Response(String(url).includes("mirror.example") ? corruptBytes : bytes);
   };
   try {
@@ -246,7 +252,10 @@ test("matte dependency installs verified files into the stable desktop directory
     );
     assert.ok(progress.every((entry) => entry.id === "matte"));
     assert.equal(progress.at(-1)?.phase, "complete");
-    assert.deepEqual(fetchCalls, packageInfo.files[0].urls);
+    assert.deepEqual(fetchCalls, [
+      runtimeDependencyManifestUrl("matte", "win32", "x64", {}, packageInfo.version),
+      ...packageInfo.files[0].urls,
+    ]);
 
     await writeFile(
       join(manager.paths.matteRoot, packageInfo.files[0].relativePath),
@@ -286,9 +295,12 @@ test("world model dependency installs verified SHARP and DA-2 files centrally", 
       },
     ],
   };
-  const fetchImpl = async (url) => new Response(
-    String(url).endsWith("sharp.pt") ? sharpBytes : da2Bytes,
-  );
+  const fetchImpl = async (url) => new URL(url).pathname.endsWith("manifest.json")
+    ? Response.json({
+      schemaVersion: 1,
+      package: { id: "worldModels", platform: "win32", arch: "x64", ...packageInfo },
+    })
+    : new Response(String(url).endsWith("sharp.pt") ? sharpBytes : da2Bytes);
   try {
     const manager = new RuntimeDependencyManager(root, {
       platform: "win32",

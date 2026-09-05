@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 const desktopRoot = process.cwd();
 const platform = process.platform;
@@ -27,17 +27,6 @@ if (platform === "win32" && !existsSync(tarExecutable)) {
 const runtimeVersions = JSON.parse(
   await readFile(join(desktopRoot, "runtime-version.json"), "utf8"),
 );
-const commercialClientSource = await readFile(
-  join(desktopRoot, "src", "commercial-api-client.ts"),
-  "utf8",
-);
-const gatewayMatch = commercialClientSource.match(
-  /export const COMMERCIAL_GATEWAY_URL = "([^"]+)";/u,
-);
-const commercialGatewayUrl = gatewayMatch?.[1];
-if (!commercialGatewayUrl?.startsWith("https://")) {
-  throw new Error("commercial gateway URL is missing or insecure");
-}
 const version = String(runtimeVersions.world || "").trim();
 if (!/^\d+\.\d+\.\d+$/u.test(version)) {
   throw new Error(`invalid world runtime version: ${version || "missing"}`);
@@ -114,24 +103,6 @@ const archiveStats = await stat(archivePath);
 const installedSizeBytes =
   (await directorySize(worldSource)) + (await directorySize(splatSource));
 const digest = await sha256(archivePath);
-const defaultBase =
-  process.env.AI_ANIME_RUNTIME_DOWNLOAD_BASE_URL?.trim().replace(/\/+$/u, "") ||
-  `${commercialGatewayUrl}/api/v1/client/runtime-dependencies`;
-const configuredUrls = String(process.env.AI_ANIME_RUNTIME_DOWNLOAD_URLS || "")
-  .split(/[;,\r\n]+/u)
-  .map((value) => value.trim())
-  .filter(Boolean);
-const urls = (configuredUrls.length > 0
-  ? configuredUrls
-  : [`${defaultBase}/${platform}-${arch}/${archiveName}`]
-).map((value) =>
-  value
-    .replaceAll("{platform}", platform)
-    .replaceAll("{arch}", arch)
-    .replaceAll("{version}", version)
-    .replaceAll("{archive}", basename(archivePath)),
-);
-
 const manifest = {
   schemaVersion: 1,
   package: {
@@ -143,10 +114,10 @@ const manifest = {
     sha256: digest,
     downloadSizeBytes: archiveStats.size,
     installedSizeBytes,
-    urls,
+    objectKey: `runtime-dependencies/world/${version}/${platform}-${arch}/${archiveName}`,
   },
 };
-const manifestPath = join(targetDirectory, "manifest.json");
+const manifestPath = join(targetDirectory, "artifact.json");
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 
 console.log(

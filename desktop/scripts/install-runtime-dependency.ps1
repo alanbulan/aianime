@@ -84,9 +84,9 @@ $runtimeBaseUrl = if ($env:AI_ANIME_RUNTIME_DOWNLOAD_BASE_URL) {
 }
 if (-not $ManifestUrl) {
     $ManifestUrl = if ($env:AI_ANIME_RUNTIME_MANIFEST_URL) {
-        $env:AI_ANIME_RUNTIME_MANIFEST_URL.Replace("{platform}", "win32").Replace("{arch}", "x64")
+        $env:AI_ANIME_RUNTIME_MANIFEST_URL.Replace("{id}", "world").Replace("{platform}", "win32").Replace("{arch}", "x64")
     } else {
-        "$runtimeBaseUrl/win32-x64/manifest.json"
+        "$runtimeBaseUrl/world/win32-x64/manifest.json"
     }
 }
 
@@ -177,28 +177,31 @@ try {
 
 New-Item -ItemType Directory -Path $dependencyRoot -Force | Out-Null
 try {
-    Write-Output "正在获取国内镜像安装清单: $ManifestUrl"
-    $manifest = Invoke-RestMethod -Uri $ManifestUrl -Method Get -TimeoutSec 60
+    Write-Output "正在获取运行环境安装清单"
+    $manifest = Invoke-RestMethod -Uri $ManifestUrl -Method Get -TimeoutSec 60 -MaximumRedirection 0
     $package = Assert-RuntimeDependencyManifest -Manifest $manifest
 
     $downloaded = $false
     foreach ($url in @($package.urls)) {
         try {
-            Write-Output "正在下载 3D 运行环境: $url"
-            Invoke-WebRequest -Uri ([string]$url) -OutFile $archivePath -UseBasicParsing -TimeoutSec 3600
+            Write-Output "正在下载 3D 运行环境"
+            Invoke-WebRequest -Uri ([string]$url) -OutFile $archivePath -UseBasicParsing -TimeoutSec 3600 -MaximumRedirection 0
             $downloaded = $true
             break
         } catch {
-            Write-Output "镜像下载失败，尝试下一个地址: $($_.Exception.Message)"
+            Write-Output "下载失败，尝试下一个地址。"
             if (Test-Path -LiteralPath $archivePath) {
                 Remove-Item -LiteralPath $archivePath -Force
             }
         }
     }
     if (-not $downloaded) {
-        throw "所有运行环境下载镜像均失败。"
+        throw "所有运行环境下载地址均失败。"
     }
 
+    if ((Get-Item -LiteralPath $archivePath).Length -ne [long]$package.downloadSizeBytes) {
+        throw "运行环境安装包大小校验失败。"
+    }
     Write-Output "正在校验 SHA-256..."
     $actualHash = Get-FileSha256 -Path $archivePath
     if ($actualHash -ne ([string]$package.sha256).ToLowerInvariant()) {

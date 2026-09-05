@@ -20,7 +20,10 @@ import {
   installedWorldRuntimePaths,
   type InstalledWorldRuntimePaths,
 } from "./platform-runtime.js";
-import { COMMERCIAL_RUNTIME_DEPENDENCIES_URL } from "./commercial-api-client.js";
+import {
+  fetchRuntimeDependencyManifest,
+  type RuntimeDependencyId,
+} from "./runtime-dependency-manifest.js";
 import {
   MatteRuntimeDependencyManager,
   type MatteDependencyPackage,
@@ -30,8 +33,6 @@ import {
   type WorldModelsDependencyPackage,
 } from "./world-models-runtime-dependency.js";
 
-const DEFAULT_RUNTIME_MANIFEST_BASE_URL =
-  COMMERCIAL_RUNTIME_DEPENDENCIES_URL;
 const INSTALL_RECEIPT = "install.json";
 const MAX_PROCESS_OUTPUT = 2 * 1024 * 1024;
 /**
@@ -56,8 +57,6 @@ export const RUNTIME_DEPENDENCY_CHANNELS = {
   install: "desktop:runtime-dependencies:install",
   progress: "desktop:runtime-dependencies:progress",
 } as const;
-
-export type RuntimeDependencyId = "world" | "worldModels" | "matte";
 
 export interface InstalledRuntimeDependencyPaths
   extends InstalledWorldRuntimePaths {
@@ -137,21 +136,6 @@ function acceleratorLabel(platform: NodeJS.Platform, arch: string): string {
   if (platform === "win32" && arch === "x64") return "NVIDIA CUDA（支持 CPU 回退）";
   if (platform === "darwin" && arch === "arm64") return "Apple Silicon MPS（支持 CPU 回退）";
   return "当前平台暂无预编译运行环境";
-}
-
-export function runtimeDependencyManifestUrl(
-  platform: NodeJS.Platform = process.platform,
-  arch: string = process.arch,
-  environment: NodeJS.ProcessEnv = process.env,
-): string {
-  const override = environment.AI_ANIME_RUNTIME_MANIFEST_URL?.trim();
-  if (override) {
-    return override.replaceAll("{platform}", platform).replaceAll("{arch}", arch);
-  }
-  const base =
-    environment.AI_ANIME_RUNTIME_DOWNLOAD_BASE_URL?.trim().replace(/\/+$/u, "") ||
-    DEFAULT_RUNTIME_MANIFEST_BASE_URL;
-  return `${base}/${platform}-${arch}/manifest.json`;
 }
 
 function pathsAtRoot(
@@ -345,6 +329,7 @@ export class RuntimeDependencyManager {
   readonly paths: InstalledRuntimeDependencyPaths;
   private readonly platform: NodeJS.Platform;
   private readonly arch: string;
+  private readonly fetchImpl: typeof fetch;
   private readonly dependencyRoot: string;
   private readonly worldModels: WorldModelsRuntimeDependencyManager;
   private readonly matte: MatteRuntimeDependencyManager;
@@ -364,6 +349,7 @@ export class RuntimeDependencyManager {
   ) {
     this.platform = options.platform ?? process.platform;
     this.arch = options.arch ?? process.arch;
+    this.fetchImpl = options.fetchImpl ?? fetch;
     const worldPaths = installedWorldRuntimePaths(userDataPath, this.platform);
     this.worldModels = new WorldModelsRuntimeDependencyManager(userDataPath, {
       platform: this.platform,
@@ -538,7 +524,7 @@ export class RuntimeDependencyManager {
     let movedCurrent = false;
     try {
       await mkdir(this.dependencyRoot, { recursive: true });
-      onProgress({ id: "world", phase: "manifest", message: "正在获取国内镜像安装清单…" });
+      onProgress({ id: "world", phase: "manifest", message: "正在获取运行环境安装清单…" });
       const manifest = await this.fetchManifest();
       await this.downloadArchive(manifest.package, archivePath, onProgress);
 
@@ -600,12 +586,10 @@ export class RuntimeDependencyManager {
   }
 
   private async fetchManifest(): Promise<RuntimeDependencyManifest> {
-    const response = await fetch(
-      runtimeDependencyManifestUrl(this.platform, this.arch),
-      { signal: AbortSignal.timeout(30_000) },
+    const manifest = await fetchRuntimeDependencyManifest(
+      "world", this.platform, this.arch, this.fetchImpl,
     );
-    if (!response.ok) throw new Error(`运行环境清单下载失败（HTTP ${response.status}）`);
-    return parseManifest(await response.json(), this.platform, this.arch);
+    return parseManifest(manifest, this.platform, this.arch);
   }
 
   private async downloadArchive(
@@ -616,7 +600,9 @@ export class RuntimeDependencyManager {
     let lastError: unknown;
     for (const url of packageInfo.urls) {
       try {
-        const response = await fetch(url, { signal: AbortSignal.timeout(3_600_000) });
+        const response = await this.fetchImpl(url, {
+          signal: AbortSignal.timeout(3_600_000), redirect: "error",
+        });
         if (!response.ok || !response.body) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -634,13 +620,16 @@ export class RuntimeDependencyManager {
             onProgress({
               id: "world",
               phase: "downloading",
-              message: "正在从国内镜像下载 3D 运行环境…",
+              message: "正在下载 3D 运行环境…",
               transferredBytes,
               totalBytes,
               ...(totalBytes > 0
                 ? { percent: Math.min(99, (transferredBytes / totalBytes) * 100) }
                 : {}),
             });
+          }
+          if (transferredBytes !== packageInfo.downloadSizeBytes) {
+            throw new Error("运行环境安装包大小校验失败");
           }
           await destination.sync();
         } finally {
@@ -652,7 +641,7 @@ export class RuntimeDependencyManager {
         await rm(targetPath, { force: true }).catch(() => undefined);
       }
     }
-    throw new Error(`所有运行环境下载镜像均失败：${String(lastError)}`);
+    throw new Error(`所有运行环境下载地址均失败：${String(lastError)}`);
   }
 
   private async readReceipt(): Promise<InstallReceipt | null> {
