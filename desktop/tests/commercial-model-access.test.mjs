@@ -35,6 +35,41 @@ import {
   mergeModelCatalogs,
 } from "../src/commercial-ipc-support.ts";
 
+test("catalog reference totals preserve omission, explicit limits, and schema prohibitions", () => {
+  for (const scenario of [
+    { name: "unset", capability: {}, schema: {}, expected: undefined },
+    { name: "positive", capability: { referenceTotalMax: 3 }, schema: {}, expected: 3 },
+    { name: "explicit-zero", capability: { referenceTotalMax: 0 }, schema: {}, expected: 0 },
+    {
+      name: "schema-prohibition",
+      capability: {},
+      schema: { properties: { references: { type: "array", maxItems: 0 } } },
+      expected: 0,
+    },
+  ]) {
+    const target = new Map([
+      ["reference-contract-fixture", { modelId: "reference-contract-fixture", maxReferenceTotal: 0 }],
+    ]);
+    mergeModelCapabilities({ items: [{
+      code: "reference-contract-fixture",
+      operation: "VIDEO",
+      capabilityJson: JSON.stringify({
+        referenceImageMax: 3,
+        referenceVideoMax: 0,
+        referenceAudioMax: 0,
+        ...scenario.capability,
+      }),
+      parameterSchemaJson: JSON.stringify(scenario.schema),
+    }] }, target);
+    const projected = target.get("reference-contract-fixture");
+    assert.equal(projected.maxReferenceImages, 3, scenario.name);
+    assert.equal(projected.maxReferenceVideos, 0, scenario.name);
+    assert.equal(projected.maxReferenceAudios, 0, scenario.name);
+    assert.equal(projected.maxReferenceTotal, scenario.expected, scenario.name);
+    assert.equal(Object.hasOwn(projected, "maxReferenceTotal"), scenario.expected !== undefined, scenario.name);
+  }
+});
+
 class MemorySessionStore {
   value = null;
 

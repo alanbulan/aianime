@@ -33,6 +33,9 @@ from ai_anime.modules.creative_canvas.application.video_generation import (
     StartCreativeCanvasTextVideoCommand,
     StartCreativeCanvasVideoEditCommand,
 )
+from ai_anime.modules.creative_canvas.domain.video_generation import (
+    validate_omni_reference_limits,
+)
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
 )
@@ -158,6 +161,71 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
             )
             == "cinematic"
         )
+    finally:
+        configure_model_access(allows_custom_models=False, mode="mixed")
+
+
+@pytest.mark.parametrize(
+    ("limits", "counts", "error"),
+    [
+        ((3, 0, 0, 3), (3, 0, 0), None),
+        ((0, 0, 0, None), (0, 0, 0), None),
+        ((0, 0, 0, None), (1, 0, 0), "image references count must be <= 0"),
+        ((3, 0, 0, None), (4, 0, 0), "image references count must be <= 3"),
+        ((3, 1, 0, 3), (3, 1, 0), "references total count must be <= 3"),
+        ((3, 0, 0, None), (3, 0, 0), None),
+        ((9, 3, 3, None), (9, 3, 1), None),
+        ((3, 0, 0, 0), (3, 0, 0), "references total count must be <= 0"),
+    ],
+    ids=[
+        "three-supported-images",
+        "text-only-without-references",
+        "references-prohibited",
+        "per-media-limit-exceeded",
+        "aggregate-limit-exceeded",
+        "unset-aggregate-limit",
+        "unset-does-not-invent-twelve",
+        "explicit-client-zero-remains-a-prohibition",
+    ],
+)
+def test_projected_video_reference_limits_preserve_absence_and_zero(
+    limits: tuple[int, int, int, int | None],
+    counts: tuple[int, int, int],
+    error: str | None,
+) -> None:
+    images, videos, audios, total = limits
+    capability: dict[str, object] = {
+        "modelId": "reference-contract-fixture",
+        "maxReferenceImages": images,
+        "maxReferenceVideos": videos,
+        "maxReferenceAudios": audios,
+    }
+    if total is not None:
+        capability["maxReferenceTotal"] = total
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_capabilities=[capability],
+    )
+    try:
+        actual = ConfiguredCreativeCanvasVideoModelPolicy().reference_count_limits(
+            "reference-contract-fixture"
+        )
+        assert actual == limits
+        references = [
+            {"type": media_type}
+            for media_type, count in zip(("image", "video", "audio"), counts, strict=True)
+            for _ in range(count)
+        ]
+        kwargs = dict(
+            max_images=actual[0], max_videos=actual[1],
+            max_audios=actual[2], max_total=actual[3],
+        )
+        if error is not None:
+            with pytest.raises(ValueError, match=error):
+                validate_omni_reference_limits(references, **kwargs)
+        else:
+            validate_omni_reference_limits(references, **kwargs)
     finally:
         configure_model_access(allows_custom_models=False, mode="mixed")
 

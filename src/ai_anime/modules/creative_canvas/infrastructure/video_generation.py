@@ -216,13 +216,14 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
             capability.max_reference_images,
             capability.max_reference_videos,
             capability.max_reference_audios,
-            capability.max_reference_total,
         )
-        return tuple(
+        per_media = tuple(
             fallback if value is None else value
             for value, fallback in zip(
                 declared,
-                _LEGACY_REFERENCE_COUNT_LIMITS,
+                _LEGACY_REFERENCE_COUNT_LIMITS[:3],
                 strict=True,
             )
         )
+        # A known catalog does not inherit an undeclared aggregate limit.
+        return (*per_media, capability.max_reference_total)
