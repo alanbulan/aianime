@@ -136,6 +136,9 @@ export function VideoConfigChip({
         }}
         className={NODE_TEXT_CONTROL_TRIGGER_CLASS}
       >
+        {!aspectRatio && !outputValue && durationSec === null && (
+          <span>参数未配置</span>
+        )}
         {aspectRatio && (
           <span>
             {aspectRatio === "auto"

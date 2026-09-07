@@ -35,6 +35,24 @@ function configProps(
 }
 
 describe("VideoConfigChip", () => {
+  it("identifies an unconfigured model and updates when its parameters arrive", () => {
+    const { rerender } = render(<VideoConfigChip {...configProps({
+      aspectRatio: null,
+      aspectRatioOptions: [],
+      outputValue: null,
+      outputOptions: [],
+      durationSec: null,
+      durationBounds: null,
+      sceneOptimizeOptions: [],
+      supportsGenerateAudio: false,
+    })} />);
+    expect(screen.getByRole("button", { name: "参数未配置" })).toBeInTheDocument();
+    rerender(<VideoConfigChip {...configProps()} />);
+    expect(screen.queryByText("参数未配置")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("720p").closest("button")!);
+    expect(screen.getByRole("spinbutton", { name: "node.videoNode.duration.title" })).toHaveValue(8);
+  });
+
   it("projects options and routes each configuration command", () => {
     const onChange = vi.fn();
     const onParentClick = vi.fn();

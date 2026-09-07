@@ -197,6 +197,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
     handleClipSubmit,
     handleEraseSubmit,
     submitDisabled,
+    modelConfigurationError,
     handleSubmit,
     hasMainlineContext,
     isUploading,
@@ -599,7 +600,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
                 data-ui-tooltip={
                   isGenerating
                     ? t('node.videoNode.submitBusy')
-                    : t('node.videoNode.submit')
+                    : (modelConfigurationError ?? t('node.videoNode.submit'))
                 }
                 onClick={(event) => {
                   event.stopPropagation();
@@ -615,6 +616,11 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
               </button>
             </div>
           </div>
+          {modelConfigurationError && (
+            <p role="status" className="shrink-0 px-3 pb-2 text-xs leading-5 text-text-muted">
+              {modelConfigurationError}
+            </p>
+          )}
         </OperationPanelShell>
       )}
 

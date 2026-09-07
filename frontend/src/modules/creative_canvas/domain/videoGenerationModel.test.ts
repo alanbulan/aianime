@@ -14,6 +14,7 @@ import {
   videoDurationDefinitionForModel,
   videoExtraParamDefinitionsForModel,
   videoExtraParamsForModel,
+  videoModelParameterDisabledReason,
   videoModelReferenceDisabledReason,
   videoOutputDefinitionForModel,
   videoOutputForAspectRatio,
@@ -133,6 +134,33 @@ describe("videoGenerationModel", () => {
     expect(clampVideoDuration(4.6, { min: 5, max: 12 })).toBe(5);
     expect(clampVideoDuration(9.6, { min: 5, max: 12 })).toBe(10);
     expect(clampVideoDuration(20, { min: 5, max: 12 })).toBe(12);
+  });
+
+  it("selects a declared duration when a custom model has no default", () => {
+    const ranged = videoDurationDefinitionForModel({ minDuration: 4, maxDuration: 15 });
+    expect(ranged).toEqual({ min: 4, max: 15, defaultValue: 4, options: [] });
+    expect(ranged && normalizeVideoDuration(8, ranged)).toBe(8);
+    expect(videoDurationDefinitionForModel({ durationOptions: [10, 5] })).toEqual({
+      min: 5, max: 10, defaultValue: 5, options: [5, 10],
+    });
+    expect(videoDurationDefinitionForModel({})).toBeNull();
+    expect(videoDurationDefinitionForModel({ minDuration: 15, maxDuration: 4 })).toBeNull();
+  });
+
+  it("explains missing video parameters without inventing model capabilities", () => {
+    expect(videoModelParameterDisabledReason({})).toBe(
+      "模型缺少画幅比例、分辨率或尺寸、时长范围配置，请到「设置 → 模型 → 模型参数」补充。",
+    );
+    const model = {
+      aspectRatioOptions: ["16:9"],
+      resolutionOptions: ["720p"],
+      minDuration: 4,
+      maxDuration: 15,
+    };
+    expect(videoModelParameterDisabledReason(model)).toBeNull();
+    expect(videoModelParameterDisabledReason({ ...model, resolutionOptions: [] })).toBe(
+      "模型缺少分辨率或尺寸配置，请到「设置 → 模型 → 模型参数」补充。",
+    );
   });
 
   it("uses explicit catalog capabilities for supported modes", () => {

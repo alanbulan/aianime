@@ -1615,7 +1615,7 @@ function ModelRuntimeOverridesButton({
                     aria-label={t("settings.modelAccess.modelCapabilityOverrides")}
                     className="min-h-32 resize-y font-mono text-xs"
                     value={capabilityDraft}
-                    placeholder={'{\n  "resolutionOptions": ["720p", "1080p"],\n  "ratioOptions": ["16:9", "9:16"],\n  "minDuration": 4,\n  "maxDuration": 10\n}'}
+                    placeholder={'{\n  "resolutionOptions": ["720p", "1080p"],\n  "ratioOptions": ["16:9", "9:16"],\n  "minDuration": 4,\n  "maxDuration": 10,\n  "defaultDuration": 5\n}'}
                     onChange={(event) => setCapabilityDraft(event.target.value)}
                   />
                 </section>

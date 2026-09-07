@@ -25,6 +25,7 @@ export interface VideoExtraParamDefinition {
 
 export interface VideoModelCapabilityDescriptor {
   readonly parameterSchema?: Record<string, unknown>;
+  readonly aspectRatioOptions?: ReadonlyArray<string>;
   readonly resolutionOptions?: ReadonlyArray<string>;
   readonly sizeOptions?: ReadonlyArray<string>;
   readonly supportsGenerateAudio?: boolean;
@@ -286,17 +287,33 @@ export function videoDurationDefinitionForModel(
   if (
     resolvedMin === null ||
     resolvedMax === null ||
-    declaredDefault === null ||
     resolvedMin <= 0 ||
     resolvedMax < resolvedMin
   ) {
     return null;
   }
   const defaultValue = Math.min(
-    Math.max(Math.round(declaredDefault), resolvedMin),
+    Math.max(Math.round(declaredDefault ?? options[0] ?? resolvedMin), resolvedMin),
     resolvedMax,
   );
   return { min: resolvedMin, max: resolvedMax, defaultValue, options };
+}
+
+export function videoModelParameterDisabledReason(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+): string | null {
+  if (!model) return null;
+  const missing: string[] = [];
+  if (!model.aspectRatioOptions?.some(
+    (value) => value === "auto" || /^\d{1,4}:\d{1,4}$/.test(value),
+  )) {
+    missing.push("画幅比例");
+  }
+  if (!videoOutputDefinitionForModel(model)) missing.push("分辨率或尺寸");
+  if (!videoDurationDefinitionForModel(model)) missing.push("时长范围");
+  return missing.length > 0
+    ? `模型缺少${missing.join("、")}配置，请到「设置 → 模型 → 模型参数」补充。`
+    : null;
 }
 
 export function normalizeVideoDuration(

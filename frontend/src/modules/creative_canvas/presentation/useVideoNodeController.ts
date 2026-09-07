@@ -80,6 +80,7 @@ import {
   videoDurationDefinitionForModel,
   videoExtraParamDefinitionsForModel,
   videoExtraParamsForModel,
+  videoModelParameterDisabledReason,
   videoModelReferenceDisabledReason,
   videoOutputDefinitionForModel,
   videoOutputForAspectRatio,
@@ -470,6 +471,7 @@ export function createUseVideoNodeController({
     [selectedVideoModel],
   );
   const durationBounds = durationDefinition;
+  const modelConfigurationError = videoModelParameterDisabledReason(selectedVideoModel);
   const durationSec = durationDefinition
     ? normalizeVideoDuration(
         typeof data.durationSec === "number"
@@ -1406,6 +1408,7 @@ export function createUseVideoNodeController({
     isGenerating ||
     videoModelsLoading ||
     !selectedVideoModel ||
+    Boolean(modelConfigurationError) ||
     !outputDefinition ||
     !outputValue ||
     !durationBounds ||
@@ -2311,6 +2314,7 @@ export function createUseVideoNodeController({
     handleClipSubmit,
     handleEraseSubmit,
     submitDisabled,
+    modelConfigurationError,
     handleSubmit,
     hasMainlineContext,
     isUploading,
