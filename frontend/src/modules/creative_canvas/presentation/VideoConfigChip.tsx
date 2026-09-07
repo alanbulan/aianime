@@ -255,27 +255,29 @@ export function VideoConfigChip({
                 </div>
               ) : (
                 <div className="mb-4 flex items-center gap-3">
-            <Slider
-              min={durationBounds.min}
-              max={durationBounds.max}
-              step={1}
-              value={[durationSec]}
-              onValueChange={([value]) =>
-                onChange({
-                  durationSec: normalizeDuration(value ?? durationSec),
-                })
-              }
-              className="min-w-0 flex-1"
-              trackClassName="h-1"
-              thumbClassName="size-3"
-              aria-label={t("node.videoNode.duration.title")}
-            />
+            {Number.isFinite(durationBounds.max) && (
+              <Slider
+                min={durationBounds.min}
+                max={durationBounds.max}
+                step={1}
+                value={[durationSec]}
+                onValueChange={([value]) =>
+                  onChange({
+                    durationSec: normalizeDuration(value ?? durationSec),
+                  })
+                }
+                className="min-w-0 flex-1"
+                trackClassName="h-1"
+                thumbClassName="size-3"
+                aria-label={t("node.videoNode.duration.title")}
+              />
+            )}
             <div className="flex shrink-0 items-center gap-1">
               <input
                 type="number"
                 inputMode="numeric"
                 min={durationBounds.min}
-                max={durationBounds.max}
+                max={Number.isFinite(durationBounds.max) ? durationBounds.max : undefined}
                 step={1}
                 value={durationDraft}
                 onChange={(event) => handleDurationInput(event.target.value)}

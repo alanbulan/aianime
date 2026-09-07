@@ -24,6 +24,25 @@ import {
 } from "./videoGenerationModel";
 
 describe("videoGenerationModel", () => {
+  it("lets BYOK upstream validate duration and reference capabilities", () => {
+    const model = {
+      routeSelector: "byok:trae:video",
+      minDuration: 4,
+      maxDuration: 10,
+      durationOptions: [5, 10],
+      supportsReferenceVideos: false,
+      maxReferenceImages: 0,
+      referenceVideoMaxSeconds: 5,
+    };
+    const duration = videoDurationDefinitionForModel(model)!;
+    expect(duration.defaultValue).toBe(5);
+    expect(duration.options).toEqual([]);
+    expect(normalizeVideoDuration(30, duration)).toBe(30);
+    expect(videoModelParameterDisabledReason(model)).toBeNull();
+    expect(videoModelReferenceDisabledReason(model, { images: 12, videos: 2, audios: 1 })).toBeNull();
+    expect(videoReferenceDurationLimitsForModel(model, "video")).toEqual({});
+  });
+
   it("projects H3 output and extra parameters from the catalog schema", () => {
     const model = {
       sizeOptions: ["1344x768", "768x1344", "1024x1024"],

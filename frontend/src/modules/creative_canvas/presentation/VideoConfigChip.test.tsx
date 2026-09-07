@@ -35,6 +35,23 @@ function configProps(
 }
 
 describe("VideoConfigChip", () => {
+  it("accepts BYOK duration input without a model maximum", () => {
+    const onChange = vi.fn();
+    render(<VideoConfigChip {...configProps({
+      durationSec: 5,
+      durationBounds: { min: 1, max: Infinity },
+      normalizeDuration: (value) => Math.max(1, Math.round(value)),
+      onChange,
+    })} />);
+    fireEvent.click(screen.getByText("720p").closest("button")!);
+    const input = screen.getByRole("spinbutton", { name: "node.videoNode.duration.title" });
+    expect(input).not.toHaveAttribute("max");
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: "30" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenLastCalledWith({ durationSec: 30 });
+  });
+
   it("identifies an unconfigured model and updates when its parameters arrive", () => {
     const { rerender } = render(<VideoConfigChip {...configProps({
       aspectRatio: null,

@@ -619,6 +619,36 @@ async def test_submit_poll_download_returns_gateway_invocation_id_only(
 
 
 @pytest.mark.asyncio
+async def test_byok_submits_outside_declared_limits_and_reports_upstream_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    generator = _generator(monkeypatch, model_capabilities=[{
+        "modelId": "cloud-video-standard",
+        "videoGenerationMaxSeconds": 5,
+        "videoDurationOptions": [5],
+    }])
+    generator.model_selector = "byok:provider:cloud-video-standard"
+    submitted: list[dict] = []
+
+    async def request_json(method: str, path: str, **kwargs):
+        assert (method, path) == ("POST", "videos")
+        submitted.append(kwargs["payload"])
+        raise CommercialVideoError("BYOK upstream: unsupported duration 30", status=400)
+
+    monkeypatch.setattr(generator, "_request_json", request_json)
+    result = await generator.generate(
+        image_path=None,
+        prompt="生成视频",
+        output_path=str(tmp_path / "video.mp4"),
+        duration=30,
+    )
+    assert submitted[0]["seconds"] == "30"
+    assert submitted[0]["size"] == "1280x720"
+    assert result.status is VideoGenStatus.FAILED
+    assert result.error == "BYOK upstream: unsupported duration 30"
+
+
+@pytest.mark.asyncio
 async def test_router_submit_failure_is_not_retried_by_client(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

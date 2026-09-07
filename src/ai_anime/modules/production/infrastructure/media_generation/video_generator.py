@@ -356,7 +356,10 @@ class CommercialVideoGenerator(VideoGeneratorBase):
             }
         )
         configured_duration = _video_duration_from_config(config, duration)
-        capability = runtime_model_capability(self.model)
+        capability = (
+            None if self.model_selector.startswith("byok:")
+            else runtime_model_capability(self.model)
+        )
         minimum_duration = getattr(
             capability,
             "video_generation_min_seconds",

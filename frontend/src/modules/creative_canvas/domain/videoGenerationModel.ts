@@ -24,6 +24,7 @@ export interface VideoExtraParamDefinition {
 }
 
 export interface VideoModelCapabilityDescriptor {
+  readonly routeSelector?: string;
   readonly parameterSchema?: Record<string, unknown>;
   readonly aspectRatioOptions?: ReadonlyArray<string>;
   readonly resolutionOptions?: ReadonlyArray<string>;
@@ -75,6 +76,7 @@ export function videoReferenceDurationLimitsForModel(
   model: VideoModelCapabilityDescriptor | null | undefined,
   media: "audio" | "video",
 ): VideoReferenceDurationLimitsMs {
+  if (model?.routeSelector?.startsWith("byok:")) return {};
   const prefix = media === "audio" ? "referenceAudio" : "referenceVideo";
   const readSeconds = (suffix: string): number | undefined => {
     const value = (model as Record<string, unknown> | null | undefined)?.[
@@ -272,6 +274,14 @@ export function videoSupportsGenerateAudio(
 export function videoDurationDefinitionForModel(
   model: VideoModelCapabilityDescriptor | null | undefined,
 ): VideoDurationDefinition | null {
+  if (model?.routeSelector?.startsWith("byok:")) {
+    return {
+      min: 1,
+      max: Infinity,
+      defaultValue: Math.max(1, Math.round(model.defaultDuration ?? 5)),
+      options: [],
+    };
+  }
   const min = finiteNumber(model?.minDuration);
   const max = finiteNumber(model?.maxDuration);
   const declaredDefault = finiteNumber(model?.defaultDuration);
@@ -302,7 +312,7 @@ export function videoDurationDefinitionForModel(
 export function videoModelParameterDisabledReason(
   model: VideoModelCapabilityDescriptor | null | undefined,
 ): string | null {
-  if (!model) return null;
+  if (!model || model.routeSelector?.startsWith("byok:")) return null;
   const missing: string[] = [];
   if (!model.aspectRatioOptions?.some(
     (value) => value === "auto" || /^\d{1,4}:\d{1,4}$/.test(value),
@@ -471,6 +481,7 @@ export function videoModelReferenceDisabledReason(
   model: VideoModelCapabilityDescriptor | null | undefined,
   counts: { images: number; videos: number; audios: number },
 ): string | null {
+  if (model?.routeSelector?.startsWith("byok:")) return null;
   if (model?.supportsReferenceImages === false && counts.images > 0) {
     return "该模型不支持图片参考素材";
   }

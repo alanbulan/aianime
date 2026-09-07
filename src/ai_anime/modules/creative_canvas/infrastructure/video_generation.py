@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 
 from ai_anime.modules.asset_world.public import probe_voice_sample_duration_seconds
 from ai_anime.modules.creative_canvas.domain.model_parameters import (
     normalize_canvas_model_parameters,
 )
-from ai_anime.modules.model_usage.public import runtime_model_capability
+from ai_anime.modules.model_usage.public import resolve_model_route, runtime_model_capability
 from ai_anime.shared.utils.async_ops import call_blocking
 
 from .media_process import probe_video_duration
@@ -43,7 +44,13 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         return resolved
 
     def normalize_aspect_ratio(self, model: str | None, value: str | None) -> str:
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            normalized = str(value or "").strip().lower()
+            if not re.fullmatch(r"auto|[1-9]\d{0,3}:[1-9]\d{0,3}", normalized):
+                raise ValueError("video aspect ratio is invalid")
+            return normalized
+        capability = runtime_model_capability(route.model)
         if capability is None:
             raise ValueError("video model capability is required")
         options = capability.video_ratio_options
@@ -57,7 +64,13 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         return normalized
 
     def normalize_resolution(self, model: str | None, value: str | None) -> str:
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            normalized = str(value or "").strip()
+            if not re.fullmatch(r"[A-Za-z0-9._-]{1,32}", normalized):
+                raise ValueError("video output parameter is invalid")
+            return normalized
+        capability = runtime_model_capability(route.model)
         if capability is None:
             raise ValueError("video model capability is required")
         if not (
@@ -78,7 +91,12 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
             duration = int(value)
         except (TypeError, ValueError):
             raise ValueError("video duration is required") from None
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            if duration < 1:
+                raise ValueError("video duration must be positive")
+            return duration
+        capability = runtime_model_capability(route.model)
         if capability is None:
             raise ValueError("video model capability is required")
         minimum = capability.video_generation_min_seconds
@@ -98,7 +116,10 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         )
 
     def normalize_generate_audio(self, model: str | None, value: bool) -> bool:
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            return bool(value)
+        capability = runtime_model_capability(route.model)
         if capability is None:
             raise ValueError("video model capability is required")
         requested = bool(value)
@@ -107,7 +128,10 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         return requested
 
     def normalize_human_review(self, model: str | None, value: bool) -> bool:
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            return bool(value)
+        capability = runtime_model_capability(route.model)
         if capability is None:
             raise ValueError("video model capability is required")
         requested = bool(value)
@@ -120,7 +144,10 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         model: str | None,
         value: Mapping[str, object] | None,
     ) -> dict[str, object]:
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            return normalize_canvas_model_parameters(value)
+        capability = runtime_model_capability(route.model)
         if capability is None:
             raise ValueError("video model capability is required")
         return normalize_canvas_model_parameters(
@@ -136,7 +163,12 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         normalized = str(value or "").strip()
         if not normalized:
             return ""
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            if len(normalized) > 128:
+                raise ValueError("video scene optimize parameter is too long")
+            return normalized
+        capability = runtime_model_capability(route.model)
         if capability is None:
             raise ValueError("video model capability is required")
         options = capability.video_scene_optimize_options
@@ -151,7 +183,10 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         model: str | None,
         media_type: str,
     ) -> tuple[float | None, float | None, float | None, float | None]:
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            return (None, None, None, None)
+        capability = runtime_model_capability(route.model)
         if media_type == "video":
             return (
                 capability.reference_video_min_seconds if capability else None,
@@ -171,7 +206,10 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         self,
         model: str | None,
     ) -> tuple[int | None, int | None, int | None, int | None]:
-        capability = runtime_model_capability(model)
+        route = resolve_model_route(model)
+        if route.selector.startswith("byok:"):
+            return (None, None, None, None)
+        capability = runtime_model_capability(route.model)
         if capability is None:
             return _LEGACY_REFERENCE_COUNT_LIMITS
         declared = (

@@ -22,6 +22,29 @@ beforeEach(() => {
 });
 
 describe("httpCanvasGenerationCatalogGateway", () => {
+  it("provides BYOK video defaults without requiring declared capabilities", () => {
+    const item = {
+      id: "byok-video", code: "custom-video", displayName: "Custom Video", operation: "VIDEO",
+      capabilities: { routeSelector: "byok:provider:custom-video" }, parameterSchema: {},
+    };
+    const [model] = commercialVideoModels({ catalogVersion: "v1", items: [item] });
+    expect(model).toMatchObject({
+      routeSelector: "byok:provider:custom-video",
+      aspectRatioOptions: ["16:9", "9:16", "1:1"],
+      resolutionOptions: ["720p", "1080p", "480p"],
+      defaultDuration: 5,
+    });
+    const [configured] = commercialVideoModels({ catalogVersion: "v2", items: [{
+      ...item,
+      capabilities: { ...item.capabilities, ratioOptions: ["4:3"], defaultDuration: 8 },
+      parameterSchema: { properties: { size: { enum: ["1024x768"] } } },
+    }] });
+    expect(configured).toMatchObject({
+      aspectRatioOptions: ["4:3"], sizeOptions: ["1024x768"], defaultDuration: 8,
+    });
+    expect(configured.resolutionOptions).toBeUndefined();
+  });
+
   it("maps Commercial Gateway SKU codes without exposing upstream providers", () => {
     const catalog = {
       catalogVersion: "catalog-v1",

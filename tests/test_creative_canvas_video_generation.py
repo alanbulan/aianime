@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Mapping
@@ -207,8 +208,9 @@ def test_configured_video_policy_uses_declared_size_and_duration() -> None:
         with pytest.raises(ValueError, match="are not declared"):
             policy.normalize_scene_optimize("VIDEO_SIZED", "anime")
         assert policy.normalize_duration("ENUM_VIDEO", 5) == 5
-        with pytest.raises(ValueError, match="must be one of: 3, 5, 8"):
-            policy.normalize_duration("ENUM_VIDEO", 4)
+        assert policy.normalize_duration("ENUM_VIDEO", 4) == 5
+        with pytest.raises(ValueError, match="最大值"):
+            policy.normalize_duration("ENUM_VIDEO", 9)
     finally:
         configure_model_access(allows_custom_models=False, mode="mixed")
 
@@ -326,6 +328,72 @@ def _use_cases(
         _FixedJobIds(*job_ids),
         scheduler,
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("declared", [False, True])
+async def test_byok_video_enqueues_without_local_capability_gates(
+    tmp_path: Path, declared: bool,
+) -> None:
+    context = _project_context(tmp_path)
+    scheduler = _CapturingScheduler(context)
+    model = "custom-video"
+    configure_model_access(
+        allows_custom_models=True,
+        mode="mixed",
+        model_capabilities=[{
+            "modelId": model,
+            "videoRatioOptions": ["1:1"],
+            "videoResolutionOptions": ["480p"],
+            "videoGenerationMaxSeconds": 5,
+            "maxReferenceImages": 0,
+        }] if declared else [],
+    )
+    use_cases = CreativeCanvasVideoGenerationUseCases(
+        ProjectCreativeCanvasMediaSourceResolver(),
+        ConfiguredCreativeCanvasVideoModelPolicy(),
+        _ReferenceDurations(),
+        _CharacterCatalog(),
+        _FixedJobIds("job-byok"),
+        scheduler,
+    )
+    try:
+        await use_cases.start_text_video(StartCreativeCanvasTextVideoCommand(
+            context=context,
+            project_dir=context.output_dir,
+            options=replace(
+                _options(model=model),
+                model_selector=f"byok:provider:{model}",
+                aspect_ratio="16:9",
+                duration_seconds=30,
+                extra_params={"seed": 42},
+            ),
+        ))
+        payload = scheduler.tasks[0].payload
+        assert payload["model_id"] == "byok:provider:custom-video"
+        assert payload["video_model"] == model
+        assert payload["aspect_ratio"] == "16:9"
+        assert payload["resolution"] == "720p"
+        assert payload["duration_seconds"] == 30
+        assert payload["generate_audio"] is True
+        assert payload["extra_params"] == {"seed": 42}
+    finally:
+        configure_model_access(allows_custom_models=False, mode="mixed")
+
+
+def test_byok_policy_preserves_input_safety_and_cloud_capability_validation() -> None:
+    policy = ConfiguredCreativeCanvasVideoModelPolicy()
+    selector = "byok:provider:custom-video"
+    with pytest.raises(ValueError, match="unsafe model parameter"):
+        policy.normalize_extra_params(selector, {"api_key": "blocked"})
+    with pytest.raises(ValueError, match="positive"):
+        policy.normalize_duration(selector, 0)
+    with pytest.raises(ValueError, match="invalid"):
+        policy.normalize_aspect_ratio(selector, "0:0")
+    with pytest.raises(ValueError, match="capability is required"):
+        policy.normalize_aspect_ratio("cloud:missing-video-capability", "16:9")
+    assert policy.reference_count_limits(selector) == (None, None, None, None)
+    assert policy.reference_duration_limits(selector, "video") == (None, None, None, None)
 
 
 @pytest.mark.asyncio

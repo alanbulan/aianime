@@ -426,10 +426,11 @@ export function createUseVideoNodeController({
   const modelId = selectedVideoModel?.id ?? "";
   const apiModel = selectedVideoModel?.apiModel ?? "";
   const modelSelector = selectedVideoModel?.routeSelector;
+  const isByokModel = modelSelector?.startsWith("byok:") === true;
   const supportedVideoModes = supportedVideoModesForModel(selectedVideoModel);
   const usesTypedReferenceModes =
     videoModelUsesTypedReferenceModes(selectedVideoModel);
-  // 画布只展示目录声明的合法比例；目录未声明时不补造静态选项。
+  // BYOK 未声明参数时，目录投影提供客户端默认选项。
   const aspectRatioOptions = useMemo(() => {
     const configured = (selectedVideoModel?.aspectRatioOptions ?? []).filter(
       (value) => value === "auto" || /^\d{1,4}:\d{1,4}$/.test(value),
@@ -489,7 +490,7 @@ export function createUseVideoNodeController({
     sceneOptimizeOptions,
     defaultSceneOptimizeForModel(selectedVideoModel),
   );
-  const supportsGenerateAudio = videoSupportsGenerateAudio(selectedVideoModel);
+  const supportsGenerateAudio = isByokModel || videoSupportsGenerateAudio(selectedVideoModel);
   const generateAudio = supportsGenerateAudio && Boolean(data.generateAudio);
   const supportsHumanReview = selectedVideoModel?.supportsHumanReview === true;
   const audioReferenceDurationLimits = useMemo(
@@ -500,11 +501,11 @@ export function createUseVideoNodeController({
     () => videoReferenceDurationLimitsForModel(selectedVideoModel, "video"),
     [selectedVideoModel],
   );
-  const maxReferenceImages = selectedVideoModel?.maxReferenceImages ??
-    (usesTypedReferenceModes ? 5 : 9);
-  const maxReferenceVideos = selectedVideoModel?.maxReferenceVideos ?? 3;
-  const maxReferenceAudios = selectedVideoModel?.maxReferenceAudios ?? 3;
-  const maxReferenceTotal = selectedVideoModel?.maxReferenceTotal ?? 12;
+  const maxReferenceImages = isByokModel ? Infinity : (selectedVideoModel?.maxReferenceImages ??
+    (usesTypedReferenceModes ? 5 : 9));
+  const maxReferenceVideos = isByokModel ? Infinity : (selectedVideoModel?.maxReferenceVideos ?? 3);
+  const maxReferenceAudios = isByokModel ? Infinity : (selectedVideoModel?.maxReferenceAudios ?? 3);
+  const maxReferenceTotal = isByokModel ? Infinity : (selectedVideoModel?.maxReferenceTotal ?? 12);
   const humanReview = Boolean(data.humanReview);
   const count: VideoGenCount = (data.count ?? 1) as VideoGenCount;
   useEffect(() => {

@@ -78,6 +78,7 @@ export function commercialVideoModels(
     const properties = schemaProperties(item.parameterSchema);
     const capabilities = item.capabilities;
     const routeSelector = pickString(capabilities, "routeSelector");
+    const isByok = routeSelector?.startsWith("byok:") === true;
     const referenceLimits = optionalRecord(capabilities.referenceLimits);
     const declaredResolutionOptions = stringArray(
       capabilities.resolutionOptions ??
@@ -213,7 +214,12 @@ export function commercialVideoModels(
       ),
       ...(resolutionOptions.length > 0 ? { resolutionOptions } : {}),
       ...(sizeOptions.length > 0 ? { sizeOptions } : {}),
-      ...(aspectRatioOptions.length > 0 ? { aspectRatioOptions } : {}),
+      ...(isByok && resolutionOptions.length === 0 && sizeOptions.length === 0
+        ? { resolutionOptions: ["720p", "1080p", "480p"] }
+        : {}),
+      ...(aspectRatioOptions.length > 0
+        ? { aspectRatioOptions }
+        : isByok ? { aspectRatioOptions: ["16:9", "9:16", "1:1"] } : {}),
       minDuration: finiteNumber(
         capabilities.minDuration ??
           capabilities.minSeconds ??
@@ -231,7 +237,7 @@ export function commercialVideoModels(
           capabilities.defaultSeconds ??
           properties.duration?.default ??
           properties.seconds?.default,
-      ),
+      ) ?? (isByok ? 5 : null),
       ...(durationOptions.length > 0 ? { durationOptions } : {}),
       ...optionalBooleanField(
         "supportsGenerateAudio",

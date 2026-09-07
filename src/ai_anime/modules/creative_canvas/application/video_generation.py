@@ -246,7 +246,7 @@ class CreativeCanvasVideoGenerationUseCases:
         model = self._resolve_model(options.model)
         if not command.image_urls:
             raise InvalidCreativeCanvasVideoGenerationRequest("image_urls is required")
-        max_images = self._models.reference_count_limits(model)[0]
+        max_images = self._models.reference_count_limits(options.model_selector or model)[0]
         if max_images is not None and len(command.image_urls) > max_images:
             raise InvalidCreativeCanvasVideoGenerationRequest(
                 f"image_urls count must be <= {max_images}"
@@ -391,7 +391,7 @@ class CreativeCanvasVideoGenerationUseCases:
         ]
         try:
             max_images, max_videos, max_audios, max_total = (
-                self._models.reference_count_limits(model)
+                self._models.reference_count_limits(options.model_selector or model)
             )
             validate_omni_reference_limits(
                 raw_references,
@@ -425,7 +425,7 @@ class CreativeCanvasVideoGenerationUseCases:
                 item for item in reference_items if item.get("type") == media_type
             ]
             duration_limits = self._models.reference_duration_limits(
-                model,
+                options.model_selector or model,
                 media_type,
             )
             if not media_items or not any(
@@ -551,33 +551,34 @@ class CreativeCanvasVideoGenerationUseCases:
         meta: dict[str, int] | None = None,
     ) -> CreativeCanvasVideoGenerationResult:
         mode_contract = resolve_video_generation_mode(options.gen_mode or "textToVideo")
+        policy_model = options.model_selector or model
         try:
             extra_params = self._models.normalize_extra_params(
-                model,
+                policy_model,
                 options.extra_params,
             )
             aspect_ratio = self._models.normalize_aspect_ratio(
-                model,
+                policy_model,
                 options.aspect_ratio,
             )
             resolution = self._models.normalize_resolution(
-                model,
+                policy_model,
                 options.resolution,
             )
             duration_seconds = self._models.normalize_duration(
-                model,
+                policy_model,
                 options.duration_seconds,
             )
             generate_audio = self._models.normalize_generate_audio(
-                model,
+                policy_model,
                 options.generate_audio,
             )
             human_review = self._models.normalize_human_review(
-                model,
+                policy_model,
                 options.human_review,
             )
             scene_optimize = self._models.normalize_scene_optimize(
-                model,
+                policy_model,
                 options.scene_optimize,
             )
         except ValueError as exc:
