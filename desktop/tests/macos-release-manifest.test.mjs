@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,6 +12,7 @@ const version = "1.1.63";
 const require = createRequire(import.meta.url);
 const updaterRequire = createRequire(require.resolve("electron-updater/package.json"));
 const { dump, load } = updaterRequire("js-yaml");
+const { publishClientRelease } = require("../scripts/publish-client-release.cjs");
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), "macos-release-test-"));
@@ -47,6 +49,71 @@ test("macOS release JSON describes the ZIP updater and DMG installer using actua
     assert.equal(artifact.sha512, createHash("sha512").update(bytes).digest("base64"));
   }
   assert.equal("authenticodeSigned" in manifest, false);
+});
+
+test("macOS cloud plan preserves the handoff and publishes one ZIP with its actual size", async (t) => {
+  const { directory, update, save } = await fixture(t);
+  delete update.files[0].size;
+  await save();
+  const original = await readFile(join(directory, "latest-mac.yml"), "utf8");
+  await prepareMacosReleaseManifest(directory, version, "本次发布说明");
+  const plan = JSON.parse(await readFile(join(directory, "cloud/release.json"), "utf8"));
+  assert.equal(plan.version, version);
+  assert.equal(plan.notes, "本次发布说明");
+  assert.deepEqual(plan.artifacts, [{
+    target: "macos", arch: "x86_64", installer: `../${update.files[0].url}`, manifest: "latest-mac.yml",
+  }]);
+  const cloud = load(await readFile(join(directory, "cloud/latest-mac.yml"), "utf8"));
+  assert.deepEqual(cloud, { ...update, files: [{ ...update.files[0], size: Buffer.byteLength("fixture zip") }] });
+  assert.equal(await readFile(join(directory, "latest-mac.yml"), "utf8"), original);
+});
+
+test("vendored cloud script logs in, uploads the prepared ZIP/YAML, and publishes through HTTP", async (t) => {
+  const { directory, update } = await fixture(t);
+  await prepareMacosReleaseManifest(directory, version, "发布链路测试");
+  const requests = [];
+  const id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  let fileId = 0;
+  const server = createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    requests.push({ method: req.method, url: req.url, headers: req.headers, bytes: Buffer.concat(chunks) });
+    let result;
+    if (req.url === "/api/v1/auth/login") {
+      result = { accessToken: "header.payload.signature", expiresIn: 7200, tenant: { code: "system", isSystem: true }, user: { username: "admin" } };
+    } else if (req.url.endsWith("/uploads")) {
+      result = { fileId: ++fileId };
+    } else if (req.url.endsWith("/content")) {
+      result = { success: true };
+    } else {
+      result = { id, version, status: req.url.endsWith("/publish") ? "PUBLISHED" : "READY" };
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => { server.closeAllConnections(); server.close(resolve); }));
+  const result = await publishClientRelease({
+    gateway: `http://127.0.0.1:${server.address().port}`,
+    plan: join(directory, "cloud/release.json"), publish: true, reason: "构建完成后自动发布",
+  }, { RELEASE_PASSWORD: "fixture-password" });
+  assert.equal(result.status, "PUBLISHED");
+  assert.equal(requests.length, 7);
+  assert.equal(JSON.parse(requests[0].bytes).tenantCode, "system");
+  for (const request of requests.slice(1)) assert.equal(request.headers.authorization, "Bearer header.payload.signature");
+  assert.equal(JSON.parse(requests[1].bytes).fileName, update.files[0].url);
+  assert.equal(requests[2].method, "PUT");
+  assert.equal(Number(requests[2].headers["content-length"]), Buffer.byteLength("fixture zip"));
+  assert.equal(requests[2].bytes.toString(), "fixture zip");
+  const uploadedYaml = load(requests[4].bytes.toString());
+  assert.equal(uploadedYaml.files.length, 1);
+  assert.equal(uploadedYaml.files[0].url, update.files[0].url);
+  const registered = JSON.parse(requests[5].bytes);
+  assert.equal(registered.version, version);
+  assert.equal(registered.artifacts[0].fileId, 1);
+  assert.equal(registered.artifacts[0].manifestFileId, 2);
+  assert.equal(registered.artifacts[0].sha256, createHash("sha256").update(requests[2].bytes).digest("hex"));
+  assert.deepEqual(JSON.parse(requests[6].bytes), { confirmed: true, reason: "构建完成后自动发布" });
 });
 
 for (const [name, mutate, error] of [
@@ -93,4 +160,27 @@ test("Intel workflow installs the locked Chromium runtime before desktop CSP tes
   assert.equal(steps[browser].run, "pnpm --dir frontend test:browser:install");
   const frontend = JSON.parse(await readFile(new URL("../../frontend/package.json", import.meta.url), "utf8"));
   assert.equal(frontend.scripts["test:browser:install"], "playwright install chromium");
+});
+
+test("Intel workflow invokes the cloud script only after verified packaging with a scoped secret", async () => {
+  const workflow = load(await readFile(new URL("../../.github/workflows/build-macos-intel.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs.package.steps;
+  const publishIndex = steps.findIndex((step) => step.name === "Publish verified Intel package to cloud");
+  assert.ok(publishIndex > steps.findIndex((step) => step.id === "artifacts"));
+  assert.ok(publishIndex > steps.findIndex((step) => step.name === "Upload temporary workflow artifact"));
+  const publish = steps[publishIndex];
+  assert.equal(publish.env.RELEASE_PASSWORD, "${{ secrets.RELEASE_PASSWORD }}");
+  assert.equal(publish.env.RELEASE_GATEWAY, "https://aianime.mingcw.com");
+  assert.match(publish.if, /github\.repository == 'alanbulan\/aianime'/);
+  assert.match(publish.if, /refs\/heads\/master/);
+  assert.ok(!publish.if.includes("always()"));
+  assert.match(publish.run, /pnpm --dir desktop release:publish:mac:x64 --reason/);
+  assert.equal(workflow.concurrency["cancel-in-progress"], false);
+  assert.equal(workflow.concurrency.group, "build-macos-intel-${{ github.repository }}");
+  assert.ok(steps.filter((_, index) => index !== publishIndex).every((step) => !step.env?.RELEASE_PASSWORD));
+  const desktop = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  assert.equal(desktop.scripts["release:publish:mac:x64"], "node scripts/publish-client-release.cjs --plan release/cloud/release.json --publish");
+  const upload = steps.find((step) => step.name === "Upload temporary workflow artifact");
+  assert.ok(upload.with.path.includes("${{ steps.artifacts.outputs.cloud_plan_path }}"));
+  assert.ok(upload.with.path.includes("${{ steps.artifacts.outputs.cloud_update_path }}"));
 });

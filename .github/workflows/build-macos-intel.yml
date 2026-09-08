@@ -10,8 +10,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: build-macos-intel-${{ github.ref }}
-  cancel-in-progress: true
+  group: build-macos-intel-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   package:
@@ -122,6 +122,8 @@ jobs:
           printf 'update_path=%s\n' "${update_path}" >>"${GITHUB_OUTPUT}"
           printf 'checksum_path=%s\n' "${checksum_path}" >>"${GITHUB_OUTPUT}"
           printf 'manifest_path=%s\n' "${manifest_path}" >>"${GITHUB_OUTPUT}"
+          printf 'cloud_plan_path=%s\n' "${release_dir}/cloud/release.json" >>"${GITHUB_OUTPUT}"
+          printf 'cloud_update_path=%s\n' "${release_dir}/cloud/latest-mac.yml" >>"${GITHUB_OUTPUT}"
           du -h "${dmg_path}" "${zip_path}" "${update_path}" "${checksum_path}" "${manifest_path}"
 
       - name: Upload temporary workflow artifact
@@ -135,6 +137,8 @@ jobs:
             ${{ steps.artifacts.outputs.update_path }}
             ${{ steps.artifacts.outputs.checksum_path }}
             ${{ steps.artifacts.outputs.manifest_path }}
+            ${{ steps.artifacts.outputs.cloud_plan_path }}
+            ${{ steps.artifacts.outputs.cloud_update_path }}
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
@@ -167,3 +171,16 @@ jobs:
               --title "${GITHUB_REF_NAME}" \
               --verify-tag
           fi
+
+      - name: Publish verified Intel package to cloud
+        if: github.repository == 'alanbulan/aianime' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+        shell: bash
+        env:
+          RELEASE_GATEWAY: https://aianime.mingcw.com
+          RELEASE_TENANT: system
+          RELEASE_USERNAME: admin
+          RELEASE_PASSWORD: ${{ secrets.RELEASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${RELEASE_PASSWORD}" || { echo "Missing RELEASE_PASSWORD Actions secret." >&2; exit 1; }
+          pnpm --dir desktop release:publish:mac:x64 --reason "GitHub Actions ${GITHUB_RUN_ID} 已完成 Intel 安装包构建与校验，自动发布"

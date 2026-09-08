@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 // Reuse the updater's locked YAML parser and its manifest format.
 const require = createRequire(import.meta.url);
 const updaterRequire = createRequire(require.resolve("electron-updater/package.json"));
-const { load } = updaterRequire("js-yaml");
+const { dump, load } = updaterRequire("js-yaml");
 
 async function describeArtifact(directory, file) {
   const sha256 = createHash("sha256");
@@ -24,7 +24,7 @@ async function describeArtifact(directory, file) {
   return { file, size, sha256: sha256.digest("hex"), sha512: sha512.digest("base64") };
 }
 
-export async function prepareMacosReleaseManifest(directory, version) {
+export async function prepareMacosReleaseManifest(directory, version, notes = "") {
   assert.match(version, /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
   const updaterManifest = "latest-mac.yml";
   const update = load(await readFile(join(directory, updaterManifest), "utf8"));
@@ -56,11 +56,29 @@ export async function prepareMacosReleaseManifest(directory, version) {
   };
   const path = join(directory, `release-${version}-macos-x64.json`);
   await writeFile(path, `${JSON.stringify(manifest, null, 2)}\n`);
+  // The cloud updater accepts one ZIP, while the original handoff also retains the DMG.
+  const cloudDirectory = join(directory, "cloud");
+  await mkdir(cloudDirectory, { recursive: true });
+  await writeFile(join(cloudDirectory, updaterManifest), dump({
+    ...update,
+    files: [{ url: zip.file, sha512: zip.sha512, size: zip.size }],
+  }));
+  await writeFile(join(cloudDirectory, "release.json"), `${JSON.stringify({
+    version,
+    notes,
+    artifacts: [{ target: "macos", arch: "x86_64", installer: `../${zip.file}`, manifest: updaterManifest }],
+  }, null, 2)}\n`);
   return path;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const desktopRoot = fileURLToPath(new URL("..", import.meta.url));
   const { version } = JSON.parse(await readFile(join(desktopRoot, "package.json"), "utf8"));
-  console.log(await prepareMacosReleaseManifest(join(desktopRoot, "release"), version));
+  const releaseNotes = await readFile(join(desktopRoot, "../src/ai_anime/release-notes.md"), "utf8");
+  const frontmatter = releaseNotes.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+  assert.ok(frontmatter, "Release notes metadata is missing");
+  assert.equal(load(frontmatter[1]).version, version, "Release notes version does not match the application");
+  console.log(await prepareMacosReleaseManifest(
+    join(desktopRoot, "release"), version, releaseNotes.slice(frontmatter[0].length).trim(),
+  ));
 }

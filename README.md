@@ -826,6 +826,12 @@ git push github v1.1.63
 
 `.github/workflows/build-macos-intel.yml` 使用 GitHub 官方 `macos-15-intel` x86_64 Runner，固定 Node.js、Python、uv、pnpm 和 Meson 版本，然后执行同一条 `pnpm --dir desktop package:mac:x64` 命令。手动运行的 DMG、ZIP、`latest-mac.yml` 和 `SHA256SUMS-macos-x64.txt` 作为 Actions 制品保留 1 天；`v*` 标签构建则放入草稿 GitHub Release，需人工验收后再发布。标签必须和 `desktop/package.json` 的版本完全一致，否则流水线会立即拒绝出包。
 
+在 `alanbulan/aianime` 的 `master` 或 `v*` 标签上，出包、校验和制品归档成功后，Action 会继续执行 `pnpm --dir desktop release:publish:mac:x64`，自动登录 `https://aianime.mingcw.com`、上传 ZIP/YAML、登记并发布云端版本；GitHub Release 本身仍保持草稿。仓库 Actions Secret `RELEASE_PASSWORD` 保存平台发布密码，仅发布步骤读取，默认租户与账号为 `system` / `admin`。缺少 Secret 或任一步失败都会停止，不自动重试写操作。所有 Intel 运行串行，后续运行不取消正在上传或发布的任务。
+
+发布脚本 `desktop/scripts/publish-client-release.cjs` 原样来自[云端仓库](https://gitee.com/mingcheng_software/ai-manga-drama)的 `scripts/operations/publish-client-release.cjs`，固定审核来源提交为 `2848e2c343a8652d8376fd1ffb85c017e504e4db`。按云端接入说明将脚本纳入桌面仓库，避免运行时依赖 Gitee 私有源码下载；更新时重新审核并同步原脚本，不维护第二套发布协议。`release:manifest:mac:x64` 同时生成 `desktop/release/cloud/release.json` 和仅引用 ZIP 的 `cloud/latest-mac.yml`，版本说明来自当前 `src/ai_anime/release-notes.md`。原始 DMG、双构件 YAML 和发布 JSON 保持不变；手动运行的 Actions 制品额外保留云端计划和清单，DMG 不作为云端更新包上传。
+
+本工作流只新增本次 macOS Intel 版本，不修改 Windows、Apple Silicon 或运行依赖。上传与发布不是跨 HTTP 请求事务；失败后先核对线上版本及日志中的文件 ID，不直接重新运行整个构建。版本及构件不可覆盖，后续新包必须使用新版本号。自动发布成功不代表已完成下述目标系统实机验收。
+
 GitHub 托管环境是 macOS 15，不是 Ventura。流水线会校验所有 Mach-O 的 x86_64 架构和不高于 13.4 的最低系统版本，并在 Intel Runner 上完成后端、FFmpeg、字幕、Hermes 和签名冒烟；这仍不等于已在 macOS 13.7.8 实机验收。对外发布前，必须在指定的 Intel Ventura 机器上完成干净安装、启动、登录、视频/字幕生成和退出冒烟。[GitHub 官方 Runner 表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 确认 `macos-15-intel` 是标准 x64 环境；[Runner 图像公告](https://github.com/actions/runner-images/issues/13045) 将它定义为最后一个 x86_64 macOS 图像，当前公布的可用期到 2027 年 8 月，之后需改用 Intel Mac 自托管 Runner。草稿 Release 里每个制品还受 [GitHub Release 单文件小于 2 GiB](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) 的限制，工作流已在上传前显式检查。
 
 GitHub 仓库公开前必须确认源码和历史中不包含密钥或敏感数据；公共仓库使用标准托管 Runner 免费。私有仓库的 macOS Runner 会消耗账户 Actions 额度，超额后按 GitHub 当前计费规则收费。不得将商业配置、密钥、内部发布逻辑或制品推送到现有 `upstream`。
