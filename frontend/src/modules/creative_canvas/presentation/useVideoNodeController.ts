@@ -12,6 +12,7 @@ import {
 import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { isNativeTextEditingDrag } from './canvasInteractionTargets';
 
 import type {
   CanvasEdge,
@@ -1010,6 +1011,9 @@ export function createUseVideoNodeController({
 
   const handleDrop = useCallback(
     async (event: DragEvent<HTMLElement>) => {
+      // Let the focused prompt/input perform its native text drop. Cancelling
+      // the bubbled event here suppresses insertion without uploading a file.
+      if (isNativeTextEditingDrag(event)) return;
       event.preventDefault();
       event.stopPropagation();
       const file = resolveDroppedVideoFile(event.dataTransfer);
@@ -1019,6 +1023,7 @@ export function createUseVideoNodeController({
   );
 
   const handleDragOver = useCallback((event: DragEvent<HTMLElement>) => {
+    if (isNativeTextEditingDrag(event)) return;
     event.preventDefault();
     event.stopPropagation();
   }, []);

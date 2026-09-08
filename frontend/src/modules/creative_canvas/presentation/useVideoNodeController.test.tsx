@@ -20,6 +20,20 @@ function pending<T>() {
   return { promise, resolve, reject };
 }
 
+it("does not cancel native text drag/drop in the video prompt or start an upload", async () => {
+  const h = harness();
+  const event = {
+    target: document.createElement("textarea"),
+    preventDefault: vi.fn(), stopPropagation: vi.fn(),
+    dataTransfer: { types: ["text/plain"], files: [] },
+  } as unknown as Parameters<typeof h.result.current.handleDrop>[0];
+  act(() => h.result.current.handleDragOver(event));
+  await act(async () => h.result.current.handleDrop(event));
+  expect(event.preventDefault).not.toHaveBeenCalled();
+  expect(event.stopPropagation).not.toHaveBeenCalled();
+  expect(h.upload).not.toHaveBeenCalled();
+});
+
 function harness(source: string | null = null) {
   let data = { videoUrl: source, aspectRatio: "16:9" } as Parameters<ReturnType<typeof createUseVideoNodeController>>[0]["data"];
   let nodeExists = true;

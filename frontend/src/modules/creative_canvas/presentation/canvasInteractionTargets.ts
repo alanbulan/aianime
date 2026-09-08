@@ -51,3 +51,12 @@ export function isSpacePanKey(event: Pick<KeyboardEvent, 'code' | 'key'>): boole
     || event.key === 'Spacebar'
   );
 }
+
+export function isNativeTextEditingDrag(
+  event: { target: EventTarget | null; dataTransfer: Pick<DataTransfer, 'types'> },
+): boolean {
+  const types = Array.from(event.dataTransfer.types ?? []);
+  return isTypingTarget(event.target)
+    && types.includes('text/plain')
+    && !types.includes('Files');
+}

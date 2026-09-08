@@ -35,6 +35,7 @@ import { COMMERCIAL_LEASE_SIGNING_KEYS } from "./commercial-trust.js";
 import { CommercialDesktopUpdater } from "./commercial-updater.js";
 import { COMMERCIAL_CHANNELS } from "./commercial-ipc.js";
 import { installDesktopSessionSecurity } from "./desktop-session-security.js";
+import { installDesktopApplicationMenu, installDesktopTextContextMenu } from "./desktop-editing.js";
 import { appendModelRouteAudit } from "./model-route-audit.js";
 import {
   registerRuntimeDependencyIpc,
@@ -99,6 +100,7 @@ async function createMainWindow(localBackend: LocalBackend): Promise<void> {
     },
   });
   mainWindow = window;
+  installDesktopTextContextMenu(window, Menu);
   const emitMaximizedState = () => {
     if (!window.isDestroyed()) {
       window.webContents.send(WINDOW_CHANNELS.maximizedChanged, window.isMaximized());
@@ -330,14 +332,16 @@ async function stopApplication(): Promise<void> {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  Menu.setApplicationMenu(null);
   registerWindowIpc();
   app.on("second-instance", () => {
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
   });
-  app.whenReady().then(startApplication).catch((error: unknown) => {
+  app.whenReady().then(() => {
+    installDesktopApplicationMenu(Menu);
+    return startApplication();
+  }).catch((error: unknown) => {
     const message = error instanceof Error ? error.stack || error.message : String(error);
     dialog.showErrorBox("AI anime failed to start", message);
     app.quit();

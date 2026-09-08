@@ -33,6 +33,7 @@ import {
 } from "../src/commercial.ts";
 import { COMMERCIAL_LEASE_SIGNING_KEYS } from "../src/commercial-trust.ts";
 import { installDesktopSessionSecurity } from "../src/desktop-session-security.ts";
+import { installDesktopApplicationMenu, installDesktopTextContextMenu } from "../src/desktop-editing.ts";
 import { developmentHermesCliPath } from "../src/hermes-runtime.ts";
 import { appendModelRouteAudit } from "../src/model-route-audit.ts";
 import {
@@ -278,6 +279,7 @@ async function createMainWindow() {
     },
   });
   mainWindow = window;
+  installDesktopTextContextMenu(window, Menu);
   window.webContents.on("console-message", (_event, ...args) => {
     const details = args[0];
     if (details && typeof details === "object") {
@@ -442,14 +444,16 @@ async function startApplication() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  Menu.setApplicationMenu(null);
   registerWindowIpc();
   app.on("second-instance", () => {
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
   });
-  app.whenReady().then(startApplication).catch((error) => {
+  app.whenReady().then(() => {
+    installDesktopApplicationMenu(Menu);
+    return startApplication();
+  }).catch((error) => {
     const message = error instanceof Error ? error.stack || error.message : String(error);
     void stopServices().finally(() => {
       dialog.showErrorBox("AI anime failed to start", message);

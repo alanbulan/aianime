@@ -3,12 +3,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isCanvasPaneTarget,
+  isNativeTextEditingDrag,
   isSpacePanKey,
   isTypingTarget,
   PAN_ACTIVATION_KEY_CODE,
 } from './canvasInteractionTargets';
 
 describe('Canvas interaction targets', () => {
+  it('leaves plain text drops in editors native without exempting file uploads or the canvas', () => {
+    const input = document.createElement('textarea');
+    const dataTransfer = { types: ['text/plain', 'text/html'] };
+    expect(isNativeTextEditingDrag({ target: input, dataTransfer })).toBe(true);
+    expect(isNativeTextEditingDrag({ target: document.createElement('div'), dataTransfer })).toBe(false);
+    expect(isNativeTextEditingDrag({ target: input, dataTransfer: { types: ['Files', 'text/plain'] } })).toBe(false);
+  });
   it('recognizes the empty React Flow pane but excludes interactive descendants', () => {
     const wrapper = document.createElement('div');
     const pane = document.createElement('div');
