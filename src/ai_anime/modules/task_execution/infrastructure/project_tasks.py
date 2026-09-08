@@ -40,18 +40,16 @@ class LocalProjectTaskGateway:
         task = self._native_task(context, reference)
         return _snapshot(task) if task is not None else None
 
+    def get_by_key(self, context: Any, task_key: str) -> ProjectTask | None:
+        task = self._task_manager_provider().get_task_by_key_for_project(context, task_key)
+        return _snapshot(task) if task is not None else None
+
     def delete_for_project(
         self,
         context: Any,
-        reference: ProjectTaskRef,
-    ) -> None:
-        self._task_manager_provider().delete_task_for_project(
-            context,
-            reference.task_type,
-            reference.episode,
-            beat_num=reference.beat_num,
-            scope=reference.scope,
-        )
+        task: ProjectTask,
+    ) -> bool:
+        return self._task_manager_provider().delete_task_for_project(context, task)
 
     async def cancel_for_project(
         self,

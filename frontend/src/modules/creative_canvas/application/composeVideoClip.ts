@@ -5,7 +5,12 @@ import {
   type ComposeCanvasVideoDependencies,
 } from "./composeCanvasVideo";
 
-export interface ComposeVideoClipParams {
+export interface VideoClipOptions {
+  readonly muted?: boolean;
+  readonly repeatCount?: 1 | 2;
+}
+
+export interface ComposeVideoClipParams extends VideoClipOptions {
   readonly projectId: string;
   readonly nodeId: string;
   readonly sourceUrl: string;
@@ -28,6 +33,9 @@ export async function composeVideoClip(
   params: ComposeVideoClipParams,
   dependencies: ComposeVideoClipDependencies,
 ): Promise<ComposeVideoClipResult> {
+  const repeatCount = params.repeatCount ?? 1;
+  const selectionMs = params.endMs - params.startMs;
+  const itemId = `item_${params.nodeId}_${dependencies.now()}`;
   const { url } = await composeCanvasVideo(
     {
       projectId: params.projectId,
@@ -37,15 +45,14 @@ export async function composeVideoClip(
           {
             trackId: `track_${params.nodeId}_video`,
             kind: "video",
-            items: [
-              {
-                itemId: `item_${params.nodeId}_${dependencies.now()}`,
-                sourceUrl: params.sourceUrl,
-                timelineStart: 0,
-                sourceStart: params.startMs / 1000,
-                sourceEnd: params.endMs / 1000,
-              },
-            ],
+            items: Array.from({ length: repeatCount }, (_, index) => ({
+              itemId: index === 0 ? itemId : `${itemId}_${index}`,
+              sourceUrl: params.sourceUrl,
+              timelineStart: index * selectionMs / 1000,
+              sourceStart: params.startMs / 1000,
+              sourceEnd: params.endMs / 1000,
+              muted: params.muted ?? false,
+            })),
           },
         ],
       },
@@ -54,6 +61,6 @@ export async function composeVideoClip(
   );
   return {
     url,
-    durationMs: Math.round(params.endMs - params.startMs),
+    durationMs: Math.round(selectionMs * repeatCount),
   };
 }

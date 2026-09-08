@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { VideoClipPanel } from "./VideoClipPanel";
@@ -9,6 +9,25 @@ afterEach(() => {
 });
 
 describe("VideoClipPanel frame strip", () => {
+  it("submits mute/repeat options and opens the existing subtitle removal flow", () => {
+    const onSubmit = vi.fn();
+    const onRemoveSubtitles = vi.fn();
+    const props = {
+      videoUrl: "/static/clip.mp4", durationMs: 2_000, clipStartMs: 0, clipEndMs: 2_000,
+      captureFrameStrip: vi.fn(() => new Promise<never>(() => {})),
+      onChange: vi.fn(), onExit: vi.fn(), onSubmit, onRemoveSubtitles,
+    };
+    const { rerender } = render(<VideoClipPanel {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: "输出静音视频" }));
+    fireEvent.click(screen.getByRole("button", { name: "循环 2 次" }));
+    fireEvent.click(screen.getByRole("button", { name: "提交剪辑" }));
+    expect(onSubmit).toHaveBeenCalledWith(0, 2_000, { muted: true, repeatCount: 2 });
+    fireEvent.click(screen.getByRole("button", { name: "去字幕" }));
+    expect(onRemoveSubtitles).toHaveBeenCalledOnce();
+    rerender(<VideoClipPanel {...props} isSubmitting />);
+    for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
+  });
+
   it("loads eight 160px thumbnails through the injected port", async () => {
     const captureFrameStrip = vi.fn().mockResolvedValue([
       { timeMs: 500, url: "data:image/jpeg;base64,frame" },

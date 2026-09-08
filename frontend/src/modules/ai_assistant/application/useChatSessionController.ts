@@ -52,6 +52,7 @@ export type ChatSessionSocket = {
 };
 
 export type ChatSessionPorts = {
+  onResourceChanges: Parameters<typeof useSuperChatFrameController>[0]["onResourceChanges"];
   appendChatNotification: (
     scope: ChatScope,
     text: string,
@@ -257,6 +258,7 @@ export function useChatSessionController({
   }, [markTurnInactive]);
 
   const handleFrame = useSuperChatFrameController({
+    onResourceChanges: ports.onResourceChanges,
     desiredScope,
     showToolEvents: settings.showToolEvents,
     messagesRef,

@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import { useUpdateNodeInternals } from '@xyflow/react';
-import { CONSTANTS, Viewer } from '@photo-sphere-viewer/core';
+import type { Viewer } from '@photo-sphere-viewer/core';
 
 import { dataUrlToBlob } from '@/shared/media/data-url';
 
@@ -41,15 +41,6 @@ import {
   panoZoomToFov,
   waitPanoFrames,
 } from '@/features/viewer-kit/public';
-
-const {
-  ROTATE_UP,
-  ROTATE_DOWN,
-  ROTATE_LEFT,
-  ROTATE_RIGHT,
-  ZOOM_IN,
-  ZOOM_OUT,
-} = CONSTANTS.ACTIONS;
 
 interface PanoLivePosition {
   yawDeg: number;
@@ -286,9 +277,12 @@ export function createUsePano360ViewerNodeController({
       const fovDeg = clampPanoFov(dataRef.current.fovDeg || 70);
       let cancelled = false;
       let viewer: Viewer | null = null;
-      const rafId = requestAnimationFrame(() => {
+      const rafId = requestAnimationFrame(async () => {
         if (cancelled) return;
         try {
+          const { Viewer, CONSTANTS } = await import('@photo-sphere-viewer/core');
+          if (cancelled) return;
+          const { ROTATE_UP, ROTATE_DOWN, ROTATE_LEFT, ROTATE_RIGHT, ZOOM_IN, ZOOM_OUT } = CONSTANTS.ACTIONS;
           viewer = new Viewer({
             container: host,
             defaultZoomLvl: panoFovToZoom(fovDeg),

@@ -1,4 +1,8 @@
 // Copyright (c) 2026 AI anime
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateAssistantResourceChanges } from "./application/resourceChanges";
+import type { ResourceChange } from "./domain/resourceChange";
 import {
   useIngestAutomationControllerWithPorts,
   type IngestAutomationPorts,
@@ -143,7 +147,7 @@ export function buildChatModelEntries(
   ];
 }
 
-const chatSessionPorts: ChatSessionPorts = {
+const chatSessionPorts: Omit<ChatSessionPorts, "onResourceChanges"> = {
   appendChatNotification,
   cancelChatBestEffort,
   clearActiveTurn,
@@ -178,9 +182,13 @@ const activeConversationPorts: ActiveConversationPorts = {
 };
 
 export function useChatSession(options: UseChatSessionOptions) {
+  const queryClient = useQueryClient();
+  const onResourceChanges = useCallback((changes: readonly ResourceChange[]) => {
+    void invalidateAssistantResourceChanges(queryClient, changes);
+  }, [queryClient]);
   return useChatSessionController({
     ...options,
-    ports: chatSessionPorts,
+    ports: { ...chatSessionPorts, onResourceChanges },
   });
 }
 

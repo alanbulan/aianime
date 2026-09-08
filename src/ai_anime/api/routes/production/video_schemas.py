@@ -1,9 +1,24 @@
-"""Inbound schemas for production episode video endpoints."""
+"""Request and response schemas for production episode video endpoints."""
 
 import re
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class ProductionVideoTaskAcceptedResponse(BaseModel):
+    ok: Literal[True] = True
+    task_type: Literal["single_video", "compose_episode"]
+    task_id: str = Field(min_length=1)
+    task_key: str = Field(min_length=1)
+    backend: str
+    queue: str | None
+    message: str
+
+
+class ProductionVideoRejectedResponse(BaseModel):
+    ok: Literal[False] = False
+    error: str
 
 
 class VideoReferenceAssetDeleteRequest(BaseModel):
@@ -84,6 +99,8 @@ class SingleVideoRequest(BaseModel):
 
 
 __all__ = [
+    "ProductionVideoTaskAcceptedResponse",
+    "ProductionVideoRejectedResponse",
     "GlobalOptimizeRequest",
     "VideoReferenceAssetAudioTrimRequest",
     "VideoReferenceAssetCropRequest",

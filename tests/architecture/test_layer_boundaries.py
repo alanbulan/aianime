@@ -5329,7 +5329,12 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
     video_schema_source = video_schemas.read_text(encoding="utf-8")
     assert "class SingleVideoRequest(" in video_schema_source
     assert "model: Optional[str] = None" in video_schema_source
-    assert "backend" not in video_schema_source.lower()
+    request_schema = next(
+        node for node in ast.parse(video_schema_source).body
+        if isinstance(node, ast.ClassDef) and node.name == "SingleVideoRequest"
+    )
+    # Provider selection stays out of requests; task receipts expose the scheduler backend.
+    assert "backend" not in ast.get_source_segment(video_schema_source, request_schema).lower()
     model_specific_names = ("seedance", "happyhorse", "grok", "huimeng")
     for path in (video_runner, reference_pipeline):
         lowered = path.read_text(encoding="utf-8").lower()

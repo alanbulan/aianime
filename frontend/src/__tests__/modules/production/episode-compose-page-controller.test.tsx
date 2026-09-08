@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
 
 import type { Beat, Episode } from "@/modules/narrative_planning/public";
 import { createUseEpisodeComposePageController } from "@/modules/production/application/use-episode-compose-page-controller";
@@ -105,11 +106,12 @@ function renderController() {
 describe("episode compose page controller", () => {
   beforeEach(() => {
     composeEpisode.mockReset();
-    composeEpisode.mockResolvedValue({ ok: true });
+    composeEpisode.mockResolvedValue({ ok: true, task_id: "compose-2", task_key: "task:compose_episode:project:demo:2" });
     downloadFile.mockReset();
     exportEpisode.mockReset();
     exportEpisode.mockResolvedValue(new Blob(["data"]));
     taskStart.mockReset();
+    vi.mocked(toast.error).mockClear();
     updateProject.mockReset();
     updateProject.mockResolvedValue({});
     finalVideoUrl = "/static/final.mp4";
@@ -152,6 +154,14 @@ describe("episode compose page controller", () => {
       resolution: "1080x1920",
     });
     expect(taskStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the backend rejection without starting task tracking", async () => {
+    composeEpisode.mockRejectedValueOnce(new Error("本集没有剧本"));
+    const { result } = renderController();
+    await act(async () => { await result.current.handleCompose(); });
+    expect(taskStart).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("本集没有剧本");
   });
 
   it("recomposes an existing video with the selected portrait frame and subtitles", async () => {

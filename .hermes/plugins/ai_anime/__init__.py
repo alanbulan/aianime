@@ -77,7 +77,7 @@ SCRIPT_WORKFLOW_TOOL_ERROR = (
 )
 SINGLE_VIDEO_TOOL_ERROR = (
     "Single-video generation is only available through ai_anime_start_single_video; "
-    "do not bypass its role-priority default and explicit model selection rules with ai_anime_post."
+    "do not bypass its project-selection default and explicit model selection rules with ai_anime_post."
 )
 VIDEO_PROMPT_OPTIMIZATION_TOOL_ERROR = (
     "Single-beat video prompt optimization is only available through "
@@ -454,7 +454,9 @@ def _request(
                     },
                 }
             text = resp.read().decode("utf-8", errors="replace")
-            return _with_chat_error_hints(_decode_response(resp.status, text))
+            return _with_resource_changes(
+                _with_chat_error_hints(_decode_response(resp.status, text)), method, api_path
+            )
     except HTTPError as exc:
         text = exc.read().decode("utf-8", errors="replace")
         return _with_chat_error_hints({
@@ -467,6 +469,32 @@ def _request(
         return {"ok": False, "error": f"network_error: {exc.reason}"}
     except TimeoutError:
         return {"ok": False, "error": "request_timeout"}
+
+
+def _with_resource_changes(response: dict[str, Any], method: str, path: str) -> dict[str, Any]:
+    """Describe committed API writes so live clients can refresh affected resources."""
+    if method.upper() not in {"POST", "PUT", "PATCH", "DELETE"} or response.get("ok") is not True:
+        return response
+    parts = unquote(urlparse(path).path).strip("/").split("/")
+    change: dict[str, Any]
+    if parts[:3] == ["api", "v1", "styles"]:
+        change = {"resource": "styles"}
+    elif parts == ["api", "v1", "projects"]:
+        change = {"resource": "projects"}
+    elif len(parts) >= 4 and parts[:3] == ["api", "v1", "projects"]:
+        resource = parts[4] if len(parts) > 4 else "project"
+        if resource in {"tasks", "workflow"}:
+            return response  # Async work publishes task completion through the task center.
+        if resource == "freezone":
+            resource = "assets"
+        elif resource not in {"characters", "scenes", "props", "episodes"}:
+            resource = "project"
+        change = {"project_id": parts[3], "resource": resource}
+        if resource == "episodes" and len(parts) > 5 and parts[5].isdigit():
+            change["episode"] = int(parts[5])
+    else:
+        return response
+    return {**response, "resource_changes": [change]}
 
 
 _DECISION_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$")
@@ -650,7 +678,9 @@ def _request_multipart_file(
     try:
         with urlopen(req, timeout=DEFAULT_TIMEOUT_SECONDS) as resp:
             text = resp.read().decode("utf-8", errors="replace")
-            return _with_chat_error_hints(_decode_response(resp.status, text))
+            return _with_resource_changes(
+                _with_chat_error_hints(_decode_response(resp.status, text)), method, api_path
+            )
     except HTTPError as exc:
         text = exc.read().decode("utf-8", errors="replace")
         return _with_chat_error_hints(
@@ -910,15 +940,17 @@ def _handle_get(args: dict[str, Any], **_: Any) -> str:
         normalized_path = _normalize_api_path(path)
         episode_collection = _episode_collection_read(normalized_path)
         if episode_collection is not None:
-            project, _episode, collection = episode_collection
-            if collection == "identities":
-                return _handle_get_character_media(
-                    {
-                        "project_id": project,
-                        "media_kind": "identity",
-                    }
-                )
-            normalized_path = f"/api/v1/projects/{project}/scenes"
+            project, episode, collection = episode_collection
+            target = (
+                "ai_anime_get_character_media(media_kind='identity')"
+                if collection == "identities"
+                else f"/projects/{project}/scenes"
+            )
+            return tool_error(
+                f"Episode-scoped {collection} collections are not supported (episode {episode}). "
+                f"Use {target} for project-wide results, or read the episode script "
+                "to identify resources used by this episode. No project-wide query was performed."
+            )
         return _read_tool_result(
             _request(
                 "GET",
@@ -2114,11 +2146,7 @@ def _start_production_workflow(args: dict[str, Any]) -> dict[str, Any]:
     project = _project_from_args(args)
     args = _apply_production_preflight(args, project)
     explicit_video_model = str(args.get("video_model") or "").strip()
-    body: dict[str, Any] = {
-        "video_routing_policy": (
-            "project_selection" if explicit_video_model else "role_priority"
-        )
-    }
+    body: dict[str, Any] = {"video_routing_policy": "project_selection"}
     if explicit_video_model:
         body["video_model"] = explicit_video_model
     for key in (
@@ -3352,8 +3380,8 @@ def _handle_start_single_video(args: dict[str, Any], **_: Any) -> str:
     Standard generation uses saved ``video_prompt``/``keyframe_prompt``; advanced
     reference generation requires a non-empty ``final_prompt``, supplied directly,
     inside ``video_config_json``, or already saved. Unspecified configuration stays
-    unchanged. An explicitly selected model uses the same routing as the web UI;
-    omitting the model retains the agent's configured role-priority default.
+    unchanged. Model routing matches the web UI; omitting the model inherits
+    the project's video model selection.
     """
     try:
         project = _project_from_args(args)
@@ -3369,7 +3397,7 @@ def _handle_start_single_video(args: dict[str, Any], **_: Any) -> str:
         model = str(body.get("model") or "").strip()
         if str(body.get("model_selector") or "").strip() and not model:
             raise ValueError("model is required when model_selector is provided")
-        body["video_routing_policy"] = "project_selection" if model else "role_priority"
+        body["video_routing_policy"] = "project_selection"
         return tool_result(_request("POST", f"/api/v1/projects/{project}/episodes/{episode}/beats/{beat}/video", body=body))
     except Exception as exc:
         return tool_error(str(exc))
@@ -3743,9 +3771,9 @@ TOOLS = (
             "resumes every missing prerequisite including voice checks and Seedance final prompts, "
             "processes all requested episodes, and returns one "
             "parent task_key. Call it exactly once and wait only for that task_key; do not chain "
-            "individual stage tools. Video generation follows the configured cloud/BYOK role priority "
+            "individual stage tools. Video generation inherits the project video model selection "
             "by default. Set video_model only when the user explicitly names a model for this run; "
-            "never infer it from the workbench dropdown. Before submission, omitted user-owned choices "
+            "omit it to use the saved workbench selection, matching the web UI. Before submission, omitted user-owned choices "
             "are collected through blocking structured decision cards. When the user explicitly delegates "
             "to your recommendation, set use_recommended_defaults=true and still pass any content-derived "
             "values you can infer reliably to avoid duplicate questions. "
@@ -3805,7 +3833,7 @@ TOOLS = (
                     "type": "string",
                     "description": (
                         "Optional explicit catalog model selector for this run. Set only when the user "
-                        "explicitly requests that model; otherwise omit it so cloud/BYOK role priority applies."
+                        "explicitly requests that model; otherwise omit it to inherit the project selection."
                     ),
                 },
                 "video_resolution": {"type": "string"},
@@ -4606,7 +4634,7 @@ TOOLS = (
             "Generate one beat's video (单 beat 视频, single_video task), POST /episodes/{ep}/beats/"
             "{beat}/video. Accepts the same generation configuration fields as the web endpoint. "
             "Pass model/model_selector only for a model explicitly selected by the user; omit both "
-            "to use the configured role priority. Standard generation uses saved video_prompt "
+            "to inherit the project video model selection. Standard generation uses saved video_prompt "
             "(keyframe_prompt for keyframe mode). Advanced reference generation requires a non-empty "
             "final_prompt, supplied directly, in video_config_json, or already saved. Omitted settings "
             "keep their saved values. Image/reference modes require their corresponding visual assets; "

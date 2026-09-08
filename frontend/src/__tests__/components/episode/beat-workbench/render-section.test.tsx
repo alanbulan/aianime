@@ -657,7 +657,7 @@ describe("RenderSection", () => {
 
     await user.click(screen.getByRole("button", { name: "打开导演世界" }));
     expect(stageManifestMock).toHaveBeenLastCalledWith("demo", 1, 5, true);
-    expect(screen.getByTestId("render-director-world-dialog")).toBeInTheDocument();
+    expect(await screen.findByTestId("render-director-world-dialog")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "场景背面" }));
     expect(updateBackgroundAnchorMock).toHaveBeenCalledWith({ anchorId: "reverse" });

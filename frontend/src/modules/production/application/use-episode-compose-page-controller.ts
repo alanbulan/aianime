@@ -193,8 +193,8 @@ export function createUseEpisodeComposePageController(
           resolution,
         });
         task.start({ scope: response.scope, taskId: response.task_id });
-      } catch {
-        toast.error(t("common.error"));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : t("common.error"));
       }
     };
 

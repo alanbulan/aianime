@@ -64,7 +64,11 @@ class CancellationStore(Protocol):
 
 
 class ProjectTaskGateway(Protocol):
-    def list_for_project(self, context: Any) -> list[ProjectTask]: ...
+    def list_for_project(self, context: Any) -> list[ProjectTask]:
+        """Return project tasks in descending update/creation order."""
+        ...
+
+    def get_by_key(self, context: Any, task_key: str) -> ProjectTask | None: ...
 
     def get_for_project(
         self,
@@ -75,8 +79,10 @@ class ProjectTaskGateway(Protocol):
     def delete_for_project(
         self,
         context: Any,
-        reference: ProjectTaskRef,
-    ) -> None: ...
+        task: ProjectTask,
+    ) -> bool:
+        """Delete only the unchanged completed snapshot; report actual deletion."""
+        ...
 
     async def cancel_for_project(
         self,

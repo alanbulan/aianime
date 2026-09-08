@@ -180,6 +180,11 @@ async def test_project_task_status_uses_exact_creation_key(tmp_path, monkeypatch
         scope="character:林晚晴:identity:学生时期",
     )
 
+    def no_full_scan(_context):
+        pytest.fail("按 task_key 查询不应读取全部项目任务")
+
+    monkeypatch.setattr(manager, "list_tasks_for_project", no_full_scan)
+
     async def fake_resolve_project_context(**kwargs):
         return ctx
 
@@ -202,6 +207,73 @@ async def test_project_task_status_uses_exact_creation_key(tmp_path, monkeypatch
     assert response["ok"] is True
     assert response["data"]["task_key"] == task_key
     assert response["data"]["episode"] == 0
+
+
+@pytest.mark.asyncio
+async def test_project_task_status_does_not_read_another_project_key(tmp_path, monkeypatch):
+    from dataclasses import replace
+
+    ctx = _ctx(tmp_path, role="viewer")
+    other = replace(ctx, project_id="proj_other")
+    manager = TaskStateManager()
+    manager.create_task_for_project(other, "single_video", 1, beat_num=1)
+
+    async def resolve(**_kwargs):
+        return ctx
+
+    monkeypatch.setattr(tasks_route, "resolve_project_context", resolve)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
+    response = await tasks_route.get_project_task_by_key(
+        ctx.project_id,
+        task_key=manager._project_key("single_video", other.project_id, 1, beat_num=1),
+        user={"username": "bob"},
+    )
+    assert response["data"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("change", ["restart", "status", "delete"])
+async def test_clear_completed_preserves_changed_task_snapshot(tmp_path, monkeypatch, change):
+    ctx = _ctx(tmp_path)
+    manager = TaskStateManager()
+    old = manager.create_task_for_project(ctx, "single_video", 1, status="completed")
+    list_tasks = manager.list_tasks_for_project
+
+    def snapshot_then_change(context):
+        snapshot = list_tasks(context)
+        if change == "restart":
+            new, reserved = manager.reserve_task_for_project(context, "single_video", 1)
+            assert reserved and new.task_id != old.task_id
+        else:
+            with manager._connect_context(context) as conn:
+                if change == "status":
+                    conn.execute("UPDATE task_states SET status = 'failed' WHERE task_id = ?", (old.task_id,))
+                else:
+                    conn.execute("DELETE FROM task_states WHERE task_id = ?", (old.task_id,))
+        return snapshot
+
+    async def resolve(**_kwargs):
+        return ctx
+
+    monkeypatch.setattr(manager, "list_tasks_for_project", snapshot_then_change)
+    monkeypatch.setattr(tasks_route, "resolve_project_context", resolve)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
+    response = await tasks_route.clear_project_completed_tasks(ctx.project_id, user={"username": "bob"})
+    assert response == {"ok": True, "data": {"deleted": 0}}
+    current = manager.get_task_for_project(ctx, "single_video", 1)
+    if change == "restart":
+        assert current is not None and current.task_id != old.task_id
+        assert current.status == "submitting"
+    elif change == "status":
+        assert current is not None and current.status == "failed"
+    else:
+        assert current is None
 
 
 @pytest.mark.asyncio

@@ -27,20 +27,19 @@ class ProjectTaskUseCases:
         tasks = self._gateway.list_for_project(context)
         task_type_filter = (task_type or "").strip()
         status_filter = (status or "").strip().lower()
-        return sorted(
-            (
-                task
-                for task in tasks
-                if (episode is None or task.episode == episode)
-                and (not task_type_filter or task.task_type == task_type_filter)
-                and (
-                    not status_filter
-                    or effective_task_status(task).strip().lower() == status_filter
-                )
-            ),
-            key=lambda task: task.updated_at or task.created_at or "",
-            reverse=True,
-        )
+        return [
+            task
+            for task in tasks
+            if (episode is None or task.episode == episode)
+            and (not task_type_filter or task.task_type == task_type_filter)
+            and (
+                not status_filter
+                or effective_task_status(task).strip().lower() == status_filter
+            )
+        ]
+
+    def get_by_key(self, context: Any, task_key: str) -> ProjectTask | None:
+        return self._gateway.get_by_key(context, task_key)
 
     def get_for_project(
         self,
@@ -54,16 +53,7 @@ class ProjectTaskUseCases:
         for task in self._gateway.list_for_project(context):
             if effective_task_status(task) != "completed":
                 continue
-            self._gateway.delete_for_project(
-                context,
-                ProjectTaskRef(
-                    task_type=task.task_type,
-                    episode=task.episode,
-                    beat_num=task.beat_num,
-                    scope=task.scope,
-                ),
-            )
-            deleted += 1
+            deleted += int(self._gateway.delete_for_project(context, task))
         return deleted
 
     async def cancel(

@@ -30,10 +30,9 @@ export type {
   DirectorStageSourceType,
   DirectorWorldSource,
 } from "./three-d/directorManifest";
-export { ThreeDDirectorDialog } from "./three-d/ThreeDDirectorDialog";
+export { ThreeDDirectorDialog, PanoCaptureDialog } from "./viewerDialogs";
 export type { ThreeDDirectorCaptureMeta } from "./three-d/ThreeDDirectorDialog";
 export type { ThreeDSceneSnapshot } from "./three-d/engine/viewerApp";
-export { PanoCaptureDialog } from "./pano/PanoCaptureDialog";
 export type {
   PanoCaptureResult,
   PanoViewerManifest,

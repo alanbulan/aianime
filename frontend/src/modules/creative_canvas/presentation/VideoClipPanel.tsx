@@ -8,9 +8,10 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { Check, Loader2, Repeat, Type as TypeIcon, VolumeX, X } from 'lucide-react';
+import { Check, Loader2, Repeat, Eraser, VolumeX, X } from 'lucide-react';
 
 import type { CaptureVideoFrameStrip } from '../application/videoFrameStrip';
+import type { VideoClipOptions } from '../application/composeVideoClip';
 import { resolveImageDisplayUrl } from '../domain/imageData';
 import {
   VIDEO_CLIP_MIN_DURATION_MS,
@@ -29,7 +30,8 @@ export interface VideoClipPanelProps {
   captureFrameStrip: CaptureVideoFrameStrip;
   onChange: (patch: { clipStartMs?: number | null; clipEndMs?: number | null }) => void;
   onExit: () => void;
-  onSubmit: (start: number, end: number) => void;
+  onSubmit: (start: number, end: number, options?: VideoClipOptions) => void;
+  onRemoveSubtitles?: () => void;
 }
 
 const THUMB_COUNT = 8;
@@ -56,6 +58,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
   onChange,
   onExit,
   onSubmit,
+  onRemoveSubtitles,
 }: VideoClipPanelProps) {
   const { totalMs, startMs, endMs, selectionMs } = useMemo(
     () =>
@@ -69,6 +72,8 @@ export const VideoClipPanel = memo(function VideoClipPanel({
 
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>(null);
+  const [muted, setMuted] = useState(false);
+  const [repeat, setRepeat] = useState(false);
   const [thumbs, setThumbs] = useState<string[]>([]);
   const [thumbsState, setThumbsState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
@@ -146,8 +151,8 @@ export const VideoClipPanel = memo(function VideoClipPanel({
   const endPct = totalMs ? (endMs / totalMs) * 100 : 100;
   const handleSubmit = useCallback(() => {
     if (!totalMs || isSubmitting) return;
-    onSubmit(startMs, endMs);
-  }, [endMs, isSubmitting, onSubmit, startMs, totalMs]);
+    onSubmit(startMs, endMs, { muted, repeatCount: repeat ? 2 : 1 });
+  }, [endMs, isSubmitting, muted, onSubmit, repeat, startMs, totalMs]);
 
   const startDrag = useCallback(
     (mode: DragMode) => (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -171,17 +176,20 @@ export const VideoClipPanel = memo(function VideoClipPanel({
         onClick={onExit}
         disabled={isSubmitting}
         data-ui-tooltip="退出剪辑"
+        aria-label="退出剪辑"
       >
         <X className="h-4 w-4" />
       </button>
-      <button
+      {onRemoveSubtitles && <button
         type="button"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-dark/72"
-        data-ui-tooltip="字幕（待实现）"
-        disabled
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/80 hover:bg-muted disabled:opacity-55"
+        data-ui-tooltip="去字幕"
+        aria-label="去字幕"
+        onClick={onRemoveSubtitles}
+        disabled={isSubmitting}
       >
-        <TypeIcon className="h-4 w-4" />
-      </button>
+        <Eraser className="h-4 w-4" />
+      </button>}
 
       <div
         ref={trackRef}
@@ -255,17 +263,23 @@ export const VideoClipPanel = memo(function VideoClipPanel({
 
       <button
         type="button"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-dark/72"
-        data-ui-tooltip="静音（待实现）"
-        disabled
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/80 hover:bg-muted aria-pressed:bg-foreground aria-pressed:text-background disabled:opacity-55"
+        data-ui-tooltip={muted ? '输出静音视频' : '保留原声'}
+        aria-label="输出静音视频"
+        aria-pressed={muted}
+        onClick={() => setMuted((value) => !value)}
+        disabled={isSubmitting}
       >
         <VolumeX className="h-4 w-4" />
       </button>
       <button
         type="button"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-dark/72"
-        data-ui-tooltip="循环（待实现）"
-        disabled
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/80 hover:bg-muted aria-pressed:bg-foreground aria-pressed:text-background disabled:opacity-55"
+        data-ui-tooltip={repeat ? `循环 2 次，输出 ${formatSeconds(selectionMs * 2)}` : '循环 2 次'}
+        aria-label="循环 2 次"
+        aria-pressed={repeat}
+        onClick={() => setRepeat((value) => !value)}
+        disabled={isSubmitting}
       >
         <Repeat className="h-4 w-4" />
       </button>
@@ -279,6 +293,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
           isSubmitting
         }
         data-ui-tooltip={isSubmitting ? '剪辑中…' : '提交剪辑'}
+        aria-label={isSubmitting ? '剪辑中…' : '提交剪辑'}
       >
         {isSubmitting ? (
           <Loader2 className="h-4 w-4 animate-spin" />

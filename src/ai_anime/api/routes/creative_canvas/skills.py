@@ -106,6 +106,7 @@ async def freezone_ai_staging_prop(
 @router.post(
     "/projects/{project}/freezone/sketch-from-context",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_sketch_from_context(
@@ -147,6 +148,7 @@ async def freezone_sketch_from_context(
 @router.post(
     "/projects/{project}/freezone/frame-from-context",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_frame_from_context(
@@ -190,6 +192,7 @@ async def freezone_frame_from_context(
 @router.post(
     "/projects/{project}/freezone/scene-360",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_scene_360(

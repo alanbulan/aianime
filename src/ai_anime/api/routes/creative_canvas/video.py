@@ -29,7 +29,6 @@ from ai_anime.modules.creative_canvas.public import (
     AddCreativeCanvasVideoAssetCommand,
     CreativeCanvasVideoAssetMissing,
     CreativeCanvasVideoAssetSourceMissing,
-    CreativeCanvasTaskReceipt,
     CreativeCanvasTaskStartFailed,
     CreativeCanvasOmniVideoReference,
     CreativeCanvasVideoCharacterMissing,
@@ -317,7 +316,12 @@ async def freezone_video_edit(
     )
 
 
-@router.post("/projects/{project}/freezone/extract-frames", tags=["freezone-video"])
+@router.post(
+    "/projects/{project}/freezone/extract-frames",
+    response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
+    tags=["freezone-video"],
+)
 async def freezone_extract_frames(
     project: str,
     body: FreezoneExtractFramesRequest,
@@ -344,10 +348,15 @@ async def freezone_extract_frames(
         raise HTTPException(400, str(exc)) from exc
     except CreativeCanvasVideoProcessingSourceMissing as exc:
         raise HTTPException(404, str(exc)) from exc
-    return _video_processing_response(result)
+    return {"ok": True, "data": result.to_dict()}
 
 
-@router.post("/projects/{project}/freezone/analyze-shots", tags=["freezone-video"])
+@router.post(
+    "/projects/{project}/freezone/analyze-shots",
+    response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
+    tags=["freezone-video"],
+)
 async def freezone_analyze_shots(
     project: str,
     body: FreezoneAnalyzeShotsRequest,
@@ -375,11 +384,13 @@ async def freezone_analyze_shots(
         raise HTTPException(400, str(exc)) from exc
     except CreativeCanvasVideoProcessingSourceMissing as exc:
         raise HTTPException(404, str(exc)) from exc
-    return _video_processing_response(result)
+    return {"ok": True, "data": result.to_dict()}
 
 
 @router.post(
     "/projects/{project}/freezone/analyze-video-story",
+    response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-video"],
 )
 async def freezone_analyze_video_story(
@@ -409,12 +420,13 @@ async def freezone_analyze_video_story(
         raise HTTPException(400, str(exc)) from exc
     except CreativeCanvasVideoProcessingSourceMissing as exc:
         raise HTTPException(404, str(exc)) from exc
-    return _video_processing_response(result)
+    return {"ok": True, "data": result.to_dict()}
 
 
 @router.post(
     "/projects/{project}/freezone/video/upscale",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-video"],
 )
 async def freezone_video_upscale(
@@ -459,12 +471,13 @@ async def freezone_video_upscale(
             503,
             f"failed to start freezone video upscale task: {exc}",
         ) from exc
-    return _video_processing_response(result)
+    return {"ok": True, "data": result.to_dict()}
 
 
 @router.post(
     "/projects/{project}/freezone/video/erase",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-video"],
 )
 async def freezone_video_erase(
@@ -508,12 +521,13 @@ async def freezone_video_erase(
             503,
             f"failed to start freezone video erase task: {exc}",
         ) from exc
-    return _video_processing_response(result)
+    return {"ok": True, "data": result.to_dict()}
 
 
 @router.post(
     "/projects/{project}/freezone/video/audio-separate",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-video"],
 )
 async def freezone_audio_separate(
@@ -554,12 +568,13 @@ async def freezone_audio_separate(
             503,
             f"failed to start freezone audio separate task: {exc}",
         ) from exc
-    return _video_processing_response(result)
+    return {"ok": True, "data": result.to_dict()}
 
 
 @router.post(
     "/projects/{project}/freezone/video/compose",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-video"],
 )
 async def freezone_video_compose(
@@ -625,22 +640,7 @@ async def freezone_video_compose(
             503,
             f"failed to start freezone video compose task: {exc}",
         ) from exc
-    return _video_processing_response(result)
-
-
-def _video_processing_response(result: CreativeCanvasTaskReceipt) -> dict:
-    data = {
-        "task_type": result.task_type,
-        "job_id": result.job_id,
-        "task_key": result.task_key,
-        "task_episode": result.task_episode,
-        "task_scope": result.task_scope,
-        "backend": result.backend,
-        "queue": result.queue,
-    }
-    if result.task_id:
-        data["task_id"] = result.task_id
-    return {"ok": True, "data": data}
+    return {"ok": True, "data": result.to_dict()}
 
 
 async def _resolve_editor_project(project: str, user: dict):

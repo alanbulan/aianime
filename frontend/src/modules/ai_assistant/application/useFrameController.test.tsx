@@ -1,5 +1,9 @@
 // Copyright (c) 2026 AI anime
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { queryKeys } from "@/lib/query-keys";
+import { invalidateAssistantResourceChanges } from "./resourceChanges";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useSuperChatFrameController,
@@ -20,6 +24,7 @@ function message(
 
 function createOptions(overrides: Partial<ControllerOptions> = {}): ControllerOptions {
   return {
+    onResourceChanges: vi.fn(),
     desiredScope: { kind: "project", id: "project-a" },
     showToolEvents: false,
     messagesRef: { current: [] },
@@ -66,6 +71,42 @@ function applyLastMessageUpdate(
 }
 
 describe("useSuperChatFrameController", () => {
+  it("refreshes the visible character query after an assistant write, including hidden tool results", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+    let facePrompt = "旧外貌";
+    const otherProjectRead = vi.fn(async () => "其他项目");
+    const options = createOptions({
+      onResourceChanges: (changes) => { void invalidateAssistantResourceChanges(client, changes); },
+    });
+    const { result } = renderHook(() => ({
+      frame: useSuperChatFrameController(options),
+      characters: useQuery({ queryKey: queryKeys.characters("project-a"), queryFn: async () => facePrompt }),
+      other: useQuery({ queryKey: queryKeys.characters("project-b"), queryFn: otherProjectRead }),
+    }), { wrapper: ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> });
+    await waitFor(() => expect(result.current.characters.data).toBe("旧外貌"));
+    await waitFor(() => expect(result.current.other.data).toBe("其他项目"));
+    facePrompt = "新外貌";
+    act(() => result.current.frame({
+      type: "tool.result", name: "ai_anime_update_character_face_prompt", success: true,
+      result: [{ type: "content", content: { type: "text", text: JSON.stringify({
+        ok: true, data: { name: "角色" },
+        resource_changes: [{ project_id: "project-a", resource: "characters" }],
+      }) } }],
+    }));
+    await waitFor(() => expect(result.current.characters.data).toBe("新外貌"));
+    expect(otherProjectRead).toHaveBeenCalledTimes(1);
+    client.clear();
+  });
+
+  it("does not refresh resources for a failed tool or ordinary chat completion", () => {
+    const options = createOptions();
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+    act(() => result.current({ type: "tool.result", success: false, result: {
+      ok: false, resource_changes: [{ resource: "characters", project_id: "project-a" }],
+    } }));
+    act(() => result.current({ type: "chat.done" }));
+    expect(options.onResourceChanges).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.spyOn(Date, "now").mockReturnValue(1_000);
     vi.spyOn(Math, "random").mockReturnValue(0.5);

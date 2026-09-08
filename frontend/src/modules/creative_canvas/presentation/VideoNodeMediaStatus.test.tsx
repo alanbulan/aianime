@@ -10,6 +10,7 @@ import {
   VideoLoadErrorOverlay,
   VideoMetadataLoadingOverlay,
   VideoUploadingState,
+  VideoUploadErrorOverlay,
 } from "./VideoNodeMediaStatus";
 
 vi.mock("react-i18next", () => ({
@@ -20,6 +21,13 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("VideoNodeMediaStatus", () => {
+  it("shows the upload failure and lets the user select another video", () => {
+    const upload = vi.fn();
+    render(<VideoUploadErrorOverlay error="上传连接中断" onUpload={upload} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("上传连接中断");
+    fireEvent.click(screen.getByRole("button", { name: "重新选择视频" }));
+    expect(upload).toHaveBeenCalledOnce();
+  });
   it("shows the uploading state", () => {
     render(<VideoUploadingState />);
 

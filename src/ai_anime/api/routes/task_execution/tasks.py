@@ -97,11 +97,9 @@ async def get_project_task_by_key(
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="viewer"
     )
-    tasks = await asyncio.to_thread(project_task_use_cases().list_for_project, ctx)
-    for task in tasks:
-        payload = serialize_project_task(task, context=ctx)
-        if payload["task_key"] == task_key:
-            return {"ok": True, "data": payload}
+    task = await asyncio.to_thread(project_task_use_cases().get_by_key, ctx, task_key)
+    if task is not None:
+        return {"ok": True, "data": serialize_project_task(task, context=ctx)}
     return {"ok": True, "data": None, "message": "Task not found"}
 
 

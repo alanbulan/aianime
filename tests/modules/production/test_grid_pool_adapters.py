@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 from datetime import datetime
 from pathlib import Path
+import os
 from types import SimpleNamespace
 
 import pytest
@@ -98,7 +99,62 @@ async def test_list_pool_returns_none_without_opening_store(
 
 
 @pytest.mark.asyncio
-async def test_list_pool_projects_hashes_urls_and_closes_store(
+@pytest.mark.parametrize("hash_version", ["legacy", "v2"])
+@pytest.mark.parametrize("change", ["none", "content", "asset"])
+async def test_sketch_staleness_agrees_for_candidates_selection_and_workflow(
+    tmp_path, monkeypatch, hash_version, change
+):
+    from ai_anime.shared.utils.path_resolver import canonical_scene_master_path
+
+    context = _context(tmp_path)
+    _configure_state_roots(monkeypatch, tmp_path)
+    project = Path(context.output_dir)
+    beat = {"beat_number": 5, "visual_description": "hero enters", "scene_ref": {"scene_id": "room"}}
+    master = canonical_scene_master_path(project, "room")
+    cell = project / "grids/ep002/sketch/beat_05.png"
+    canonical = project / "sketches/ep002/beat_05.png"
+    for path in (master, cell, canonical):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"original")
+    base = 1_800_000_000
+    os.utime(master, (base, base))
+    for path in (cell, canonical):
+        os.utime(path, (base + 10, base + 10))
+    image = PoolImage(
+        id="sketch", mode="1x1", grid_index=1, cell_index=1,
+        grid_path="", cell_path="sketch/beat_05.png", row=0, col=0,
+        original_beat=5, type="sketch", content_hash=pool_indexer.compute_image_hash(cell),
+        beat_content_hash=pool_indexer.compute_beat_content_hash(
+            beat, project_dir=project if hash_version == "v2" else None
+        ),
+    )
+    pool_indexer.save_pool_index(PoolIndex(episode=2, images=[image]), project / "grids/ep002")
+    if change == "content":
+        beat["visual_description"] = "hero leaves"
+    elif change == "asset":
+        master.write_bytes(b"changed")
+        os.utime(master, (base + 20, base + 20))
+
+    async def script_data(_context, _episode):
+        return {"beats": [beat]}
+
+    monkeypatch.setattr(LocalGridPoolGateway, "_script_data", staticmethod(script_data))
+    gateway = LocalGridPoolGateway(lambda *_args, **_kwargs: "/local/sketch.png")
+    expected = change != "none"
+    assert (await gateway.list_pool(context, 2)).images[0].stale is expected
+    assert (await gateway.sketch_candidates(context, 2, 5)).candidates[0].stale is expected
+    assert pool_indexer.stale_canonical_sketch_numbers(project, 2, [beat]) == ([5] if expected else [])
+    command = SelectGridPoolImageCommand(episode_num=2, beat_num=5, pool_id="sketch")
+    if expected:
+        with pytest.raises(GridPoolImageStale):
+            await gateway.select(context, command)
+        command = SelectGridPoolImageCommand(episode_num=2, beat_num=5, pool_id="sketch", force=True)
+    await gateway.select(context, command)
+    assert canonical.read_bytes() == cell.read_bytes()
+
+
+@pytest.mark.asyncio
+async def test_list_pool_projects_staleness_urls_and_closes_store(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -142,8 +198,6 @@ async def test_list_pool_projects_hashes_urls_and_closes_store(
     )
     store = _Store()
     loaded_paths: list[Path] = []
-    hash_calls: list[tuple[dict, dict[str, str]]] = []
-    stale_calls: list[tuple[PoolImage, dict[int, str], object]] = []
     url_calls: list[tuple[str, Path]] = []
 
     def load_pool(path):
@@ -153,15 +207,6 @@ async def test_list_pool_projects_hashes_urls_and_closes_store(
     async def make_store(candidate):
         assert candidate is context
         return store
-
-    def compute_hash(beat, sketch_colors, project_dir=None):
-        assert project_dir == context.output_dir
-        hash_calls.append((beat, sketch_colors))
-        return "current-hash"
-
-    def is_stale(image, beat_hashes, script_mt):
-        stale_calls.append((image, beat_hashes, script_mt))
-        return image.type == "sketch"
 
     def media_url(candidate, relative_path, local_path=None):
         assert candidate is context
@@ -174,27 +219,10 @@ async def test_list_pool_projects_hashes_urls_and_closes_store(
         "make_sqlite_store_for_context",
         make_store,
     )
-    monkeypatch.setattr(
-        grid_pool.pool_indexer,
-        "compute_beat_content_hash",
-        compute_hash,
-    )
-    monkeypatch.setattr(grid_pool.pool_indexer, "is_pool_image_stale", is_stale)
-
     listing = await LocalGridPoolGateway(media_url).list_pool(context, 2)
 
     assert listing is not None
     assert loaded_paths == [grids_dir]
-    assert hash_calls == [
-        (
-            {"beat_number": 5, "visual_description": "hero enters"},
-            {"hero": "#112233"},
-        )
-    ]
-    assert stale_calls == [
-        (pool.images[0], {5: "current-hash"}, None),
-        (pool.images[1], {5: "current-hash"}, None),
-    ]
     assert url_calls == [
         (
             "grids/ep002/render/beat_05.png",
@@ -300,20 +328,7 @@ async def test_sketch_candidates_filter_sort_project_and_close_store(
         "make_sqlite_store_for_context",
         make_store,
     )
-    monkeypatch.setattr(
-        grid_pool.pool_indexer,
-        "compute_beat_content_hash",
-        lambda _beat, sketch_colors, project_dir=None: f"hash:{sketch_colors['hero']}",
-    )
-    monkeypatch.setattr(
-        grid_pool.pool_indexer,
-        "is_pool_image_stale",
-        lambda image, beat_hashes, script_mt: (
-            image.id == "new"
-            and beat_hashes == {5: "hash:#112233"}
-            and script_mt is None
-        ),
-    )
+    pool.get_image("new").beat_content_hash = "outdated-content"
 
     candidates = await LocalGridPoolGateway(
         lambda _context, relative_path, local_path=None: f"/files/{relative_path}"
@@ -399,16 +414,6 @@ async def test_select_rejects_stale_sketch_and_closes_store(
         grid_pool.project_stores,
         "make_sqlite_store_for_context",
         make_store,
-    )
-    monkeypatch.setattr(
-        grid_pool.pool_indexer,
-        "compute_beat_content_hash",
-        lambda _beat, sketch_colors, project_dir=None: "current-hash",
-    )
-    monkeypatch.setattr(
-        grid_pool.pool_indexer,
-        "is_pool_image_stale",
-        lambda _image, beat_hashes, _script_mt: beat_hashes == {1: "current-hash"},
     )
     monkeypatch.setattr(
         grid_pool.pool_indexer,

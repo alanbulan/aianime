@@ -93,6 +93,27 @@ export default defineConfig(({ mode }) => {
           });
         },
       },
+      {
+        name: "guard-heavy-tool-loading",
+        generateBundle(_options, bundle) {
+          const visited = new Set<string>();
+          const visit = (file: string) => {
+            if (visited.has(file)) return;
+            visited.add(file);
+            const chunk = bundle[file];
+            if (!chunk || chunk.type !== "chunk") return;
+            for (const [id, module] of Object.entries(chunk.modules)) {
+              if (module.renderedLength > 0 && /\/node_modules\/(?:playcanvas|three|mediabunny|@photo-sphere-viewer\/core)\//.test(id.replaceAll("\\", "/"))) {
+                this.error(`Heavy tool dependency is included in initial loading: ${id}`);
+              }
+            }
+            chunk.imports.forEach(visit);
+          };
+          for (const chunk of Object.values(bundle)) {
+            if (chunk.type === "chunk" && chunk.isEntry) visit(chunk.fileName);
+          }
+        },
+      },
     ],
     define: {
       __APP_VERSION__: JSON.stringify(APP_VERSION),

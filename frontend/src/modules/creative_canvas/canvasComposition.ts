@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { applyStoryboardTextOverlay, getStoryboardReferenceFrameHeight } from './infrastructure/browserStoryboardExportRuntime';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
+import { uuidGenerator } from './infrastructure/idGenerator';
 import {
   browserImageRuntimeGateway,
   loadImageElement,
@@ -574,6 +575,7 @@ export const useStyleNodeController = createUseStyleNodeController({
   useCanvasStyleTemplates,
 });
 export const useVideoNodeController = createUseVideoNodeController({
+  newUploadRequestId: uuidGenerator.next,
   useStore: useCanvasStore,
   readGraph: () =>
     useCanvasStore.getState() as unknown as {

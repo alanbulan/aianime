@@ -41,6 +41,8 @@ describe("Production episode compose queries", () => {
           return HttpResponse.json({
             ok: true,
             task_type: "compose_episode",
+            task_id: "compose-2",
+            task_key: "task:compose_episode:project:demo:2",
             message: "started",
           });
         },
@@ -65,6 +67,24 @@ describe("Production episode compose queries", () => {
       add_bgm: true,
       resolution: "1080x1920",
     });
+  });
+
+  it.each([
+    [{ ok: false, error: "本集没有剧本" }, "本集没有剧本"],
+    [{ ok: true, task_type: "compose_episode" }, "合成任务回执不完整"],
+    [{ ok: true, task_id: 12, task_key: "key" }, "合成任务回执不完整"],
+    [{ ok: true, task_id: "id", task_key: " " }, "合成任务回执不完整"],
+  ])("rejects an unsuccessful or incomplete task receipt", async (payload, message) => {
+    server.use(http.post(
+      "http://localhost:3000/api/v1/projects/demo/episodes/2/videos/compose",
+      () => HttpResponse.json(payload),
+    ));
+    const { result } = renderHook(() => useComposeEpisode("demo", 2), { wrapper });
+    await expect(result.current.mutateAsync({
+      addSubtitles: true, addBgm: false, resolution: "1080x1920",
+    })).rejects.toThrow(String(message));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBeUndefined();
   });
 
   it("loads an existing final video through the Production gateway", async () => {

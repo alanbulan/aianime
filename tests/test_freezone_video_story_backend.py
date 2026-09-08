@@ -17,6 +17,7 @@ from ai_anime.modules.creative_canvas.application.job_results import (
 )
 from ai_anime.modules.creative_canvas.public import (
     AnalyzeCreativeCanvasShotsJobCommand,
+    CreativeCanvasTaskReceipt,
     build_video_story_analysis_prompt,
     creative_canvas_job_execution_use_cases,
 )
@@ -78,7 +79,7 @@ def _patch_job_result_queries(
 
 
 def _receipt(task_type: str, job_id: str):
-    return SimpleNamespace(
+    return CreativeCanvasTaskReceipt(
         task_type=task_type,
         job_id=job_id,
         task_key=f"{task_type}:{job_id}",

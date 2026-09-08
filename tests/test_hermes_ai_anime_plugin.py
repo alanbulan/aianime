@@ -49,6 +49,36 @@ def complete_style_config(**overrides):
     return config
 
 
+@pytest.mark.parametrize("method,ok,changed", [("PATCH", True, True), ("PATCH", False, False), ("GET", True, False)])
+def test_only_successful_api_writes_publish_resource_changes(ai_anime_plugin, monkeypatch, method, ok, changed):
+    import json
+    from email.message import Message
+
+    monkeypatch.setenv("AI_ANIME_API_URL", "http://127.0.0.1:8000")
+    monkeypatch.setenv("AI_ANIME_AGENT_TOKEN", "test-token")
+
+    class Response:
+        status = 200
+        headers = Message()
+        headers["Content-Type"] = "application/json"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def read(self):
+            return json.dumps({"ok": ok, "data": {"name": "角色", "updated_fields": ["face_prompt"]}}).encode()
+
+    monkeypatch.setattr(ai_anime_plugin, "urlopen", lambda *_args, **_kwargs: Response())
+    response = ai_anime_plugin._request(method, "/projects/project-1/characters/角色", body={"face_prompt": "新外貌"})
+    if changed:
+        assert response["resource_changes"] == [{"project_id": "project-1", "resource": "characters"}]
+    else:
+        assert "resource_changes" not in response
+
+
 def test_question_tool_blocks_on_canonical_decision_endpoint(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
@@ -655,7 +685,7 @@ def test_complete_generation_uses_one_canonical_production_endpoint(
             "POST",
             "/api/v1/projects/project-1/workflow/production",
             {
-                "video_routing_policy": "role_priority",
+                "video_routing_policy": "project_selection",
                 "episodes": [1, 2],
                 "rebuild": True,
                 "target_beats": 12,
@@ -740,7 +770,7 @@ def test_complete_generation_uses_bound_project_instead_of_model_supplied_id(
             "POST",
             "/api/v1/projects/project-bound/workflow/production",
             {
-                "video_routing_policy": "role_priority",
+                "video_routing_policy": "project_selection",
                 "episodes": [1],
                 "rebuild": False,
                 "video_resolution": "720p",
@@ -809,7 +839,7 @@ def test_complete_generation_preflight_resolves_every_missing_user_choice(
         "POST",
         "/api/v1/projects/project-1/workflow/production",
         {
-            "video_routing_policy": "role_priority",
+            "video_routing_policy": "project_selection",
             "rebuild": False,
             "add_subtitles": True,
             "add_bgm": True,
@@ -849,7 +879,7 @@ def test_complete_generation_uses_recommended_defaults_without_duplicate_questio
             "POST",
             "/api/v1/projects/project-1/workflow/production",
             {
-                "video_routing_policy": "role_priority",
+                "video_routing_policy": "project_selection",
                 "rebuild": False,
                 "add_subtitles": True,
                 "add_bgm": True,
@@ -932,7 +962,7 @@ def test_new_story_production_preflight_collects_creative_parameters(
     ]
     assert production_bodies == [
         {
-            "video_routing_policy": "role_priority",
+            "video_routing_policy": "project_selection",
             "episodes": [1],
             "filename": "story.txt",
             "rebuild": False,
@@ -1364,7 +1394,7 @@ def test_single_video_tool_forwards_full_config_and_false_values(
 
     assert result == {"ok": True}
     assert requests[0].model_dump(exclude_unset=True) == {
-        **overrides, "video_routing_policy": "role_priority",
+        **overrides, "video_routing_policy": "project_selection",
     }
 
 
@@ -1380,7 +1410,7 @@ def test_single_video_tool_does_not_override_saved_config_with_omitted_values(
     ai_anime_plugin._handle_start_single_video(
         {"episode": 1, "beat": 2, "ratio": None, "final_prompt": None, "generate_audio": None}
     )
-    assert calls == [{"video_routing_policy": "role_priority"}]
+    assert calls == [{"video_routing_policy": "project_selection"}]
 
 
 def test_single_video_tool_rejects_a_selector_without_its_model(
@@ -1521,79 +1551,28 @@ def test_normalize_api_path_encodes_unicode_segments_without_double_encoding(
     assert ai_anime_plugin._normalize_api_path(expected) == expected
 
 
-def test_generic_get_canonicalizes_episode_identity_collection(
+@pytest.mark.parametrize("collection,target", [
+    ("identities", "ai_anime_get_character_media"),
+    ("scenes", "/projects/project-1/scenes"),
+])
+def test_generic_get_rejects_episode_collection_without_broadening_scope(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
+    collection: str,
+    target: str,
 ) -> None:
     monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
-    calls: list[str] = []
 
-    def fake_request(method: str, path: str, *, query=None, body=None):
-        assert method == "GET"
-        calls.append(path)
-        if path.endswith("/characters"):
-            return {
-                "ok": True,
-                "status_code": 200,
-                "data": [{"name": "白石夏音", "role": "主角"}],
-            }
-        return {
-            "ok": True,
-            "status_code": 200,
-            "data": [
-                {
-                    "identity_id": "白石夏音_学生时期",
-                    "identity_name": "学生时期",
-                    "appearance_details": "校服",
-                    "age_group": "youth",
-                    "image_url": "",
-                }
-            ],
-        }
+    def unexpected_request(*args, **kwargs):
+        pytest.fail("Unsupported episode reads must not query project-wide resources")
 
-    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
-
+    monkeypatch.setattr(ai_anime_plugin, "_request", unexpected_request)
     result = ai_anime_plugin._handle_get(
-        {"path": "/projects/project-1/episodes/1/identities"}
+        {"path": f"/projects/project-1/episodes/1/{collection}"}
     )
-
-    assert result["ok"] is True
-    assert result["media_count"] == 0
-    assert result["characters"][0]["identities"] == [
-        {
-            "title": "学生时期",
-            "identity_id": "白石夏音_学生时期",
-            "identity_name": "学生时期",
-            "appearance_details": "校服",
-            "age_group": "youth",
-            "image_url": "",
-        }
-    ]
-    assert calls == [
-        "/api/v1/projects/project-1/characters",
-        "/api/v1/projects/project-1/characters/%E7%99%BD%E7%9F%B3%E5%A4%8F%E9%9F%B3/identities",
-    ]
-
-
-def test_generic_get_canonicalizes_episode_scene_collection(
-    ai_anime_plugin,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
-    calls: list[tuple[str, str]] = []
-
-    def fake_request(method: str, path: str, *, query=None, body=None):
-        calls.append((method, path))
-        return {"ok": True, "status_code": 200, "data": []}
-
-    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
-
-    result = ai_anime_plugin._handle_get(
-        {"path": "/projects/project-1/episodes/1/scenes"}
-    )
-
-    assert result["ok"] is True
-    assert calls == [("GET", "/api/v1/projects/project-1/scenes")]
+    assert "Episode-scoped" in result["tool_error"]
+    assert target in result["tool_error"]
+    assert "episode 1" in result["tool_error"]
 
 
 def test_generic_post_cannot_bypass_production_workflow_tool(
@@ -1615,7 +1594,7 @@ def test_generic_post_cannot_bypass_production_workflow_tool(
     assert "ai_anime_run_production_workflow" in result["tool_error"]
 
 
-def test_generic_post_cannot_bypass_role_priority_single_video_tool(
+def test_generic_post_cannot_bypass_project_selection_single_video_tool(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1635,7 +1614,7 @@ def test_generic_post_cannot_bypass_role_priority_single_video_tool(
     )
 
     assert "ai_anime_start_single_video" in result["tool_error"]
-    assert "role-priority" in result["tool_error"]
+    assert "project-selection" in result["tool_error"]
 
 
 @pytest.mark.parametrize(

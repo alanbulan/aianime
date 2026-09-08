@@ -22,7 +22,7 @@ function contentSecurityPolicy(
   scriptSources: readonly string[],
 ): string {
   const connectSourceList = ["'self'", "blob:", ...new Set(connectSources)].join(" ");
-  const scriptSourceList = ["'self'", ...new Set(scriptSources)].join(" ");
+  const scriptSourceList = ["'self'", "'wasm-unsafe-eval'", ...new Set(scriptSources)].join(" ");
   return [
     "default-src 'self';",
     `script-src ${scriptSourceList};`,

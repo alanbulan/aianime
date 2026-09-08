@@ -56,6 +56,7 @@ describe("composeVideoClip", () => {
               timelineStart: 0,
               sourceStart: 0.25,
               sourceEnd: 2.75,
+              muted: false,
             },
           ],
         },
@@ -92,5 +93,22 @@ describe("composeVideoClip", () => {
       "project-1",
       expect.objectContaining({ resolution: "720p" }),
     );
+  });
+
+  it("renders two consecutive muted clips and reports the full output duration", async () => {
+    const deps = dependencies();
+    await expect(composeVideoClip({
+      projectId: "project-1", nodeId: "video-1", sourceUrl: "source.mp4",
+      startMs: 500, endMs: 2_500, quality: "720P", muted: true, repeatCount: 2,
+    }, deps)).resolves.toEqual({ url: "clip.mp4", durationMs: 4_000 });
+    expect(deps.composeGateway.submit).toHaveBeenCalledWith("project-1", {
+      resolution: "720p",
+      tracks: [{ trackId: "track_video-1_video", kind: "video", items: [
+        { itemId: "item_video-1_1234", sourceUrl: "source.mp4", timelineStart: 0,
+          sourceStart: 0.5, sourceEnd: 2.5, muted: true },
+        { itemId: "item_video-1_1234_1", sourceUrl: "source.mp4", timelineStart: 2,
+          sourceStart: 0.5, sourceEnd: 2.5, muted: true },
+      ] }],
+    });
   });
 });

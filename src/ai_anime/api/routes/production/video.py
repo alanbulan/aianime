@@ -6,6 +6,8 @@ from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.routes.production.video_schemas import (
     GlobalOptimizeRequest,
+    ProductionVideoTaskAcceptedResponse,
+    ProductionVideoRejectedResponse,
     VideoReferenceAssetAudioTrimRequest,
     VideoReferenceAssetCropRequest,
     VideoReferenceAssetDeleteRequest,
@@ -207,7 +209,10 @@ async def global_optimize_video(
     return {"ok": True, **scheduled.as_dict()}
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video",
+    response_model=ProductionVideoTaskAcceptedResponse | ProductionVideoRejectedResponse,
+)
 async def generate_single_video(
     project: str,
     episode_num: int,
@@ -260,7 +265,10 @@ async def generate_single_video(
     return {"ok": True, **scheduled.as_dict()}
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/videos/compose")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/videos/compose",
+    response_model=ProductionVideoTaskAcceptedResponse | ProductionVideoRejectedResponse,
+)
 async def compose_video(
     project: str,
     episode_num: int,

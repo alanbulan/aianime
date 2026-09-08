@@ -20,6 +20,20 @@ export function VideoUploadingState() {
   );
 }
 
+export function VideoUploadErrorOverlay({
+  error,
+  onUpload,
+}: { error: string; onUpload: () => void }) {
+  return (
+    <div role="alert" className="nodrag absolute inset-x-2 bottom-2 z-20 flex flex-col gap-1 rounded-md border border-destructive/30 bg-background/95 p-2 text-[11px] text-destructive">
+      <span className="break-words [overflow-wrap:anywhere]">视频上传失败：{error}</span>
+      <button type="button" className="self-start underline" onClick={onUpload}>
+        重新选择视频
+      </button>
+    </div>
+  );
+}
+
 export interface VideoGenerationHistoryPreviewProps {
   videoUrl: string;
   onClose: () => void;

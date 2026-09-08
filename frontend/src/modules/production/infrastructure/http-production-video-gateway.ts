@@ -890,15 +890,25 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     );
   },
   async composeEpisode(project, episode, command) {
-    return api
-      .post(p`api/v1/projects/${project}/episodes/${episode}/videos/compose`, {
+    const response = await jsonWithBackendError<ProductionTaskResponse | ProductionErrorResponse>(
+      api.post(p`api/v1/projects/${project}/episodes/${episode}/videos/compose`, {
         json: {
           add_subtitles: command.addSubtitles,
           add_bgm: command.addBgm,
           resolution: command.resolution,
         },
-      })
-      .json<ProductionTaskResponse>();
+        throwHttpErrors: false,
+      }),
+    );
+    if (response?.ok === false) throw new Error(response.error);
+    if (
+      response?.ok !== true ||
+      typeof response.task_id !== "string" || !response.task_id.trim() ||
+      typeof response.task_key !== "string" || !response.task_key.trim()
+    ) {
+      throw new Error("合成任务回执不完整，请刷新任务列表确认后重试");
+    }
+    return response;
   },
   async exportEpisode(project, episode, kind) {
     if (kind === "zip") {

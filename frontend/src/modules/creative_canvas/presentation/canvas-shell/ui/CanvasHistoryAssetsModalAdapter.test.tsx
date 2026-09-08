@@ -190,7 +190,7 @@ describe('CanvasHistoryAssetsModalAdapter', () => {
     expect(mocks.download).toHaveBeenCalledWith('/image.png');
   });
 
-  it('adapts image, video, and world viewer lifecycles', () => {
+  it('adapts image, video, and world viewer lifecycles', async () => {
     const closeImageViewer = vi.fn();
     const navigateImageViewer = vi.fn();
     const closeVideoViewer = vi.fn();
@@ -214,7 +214,7 @@ describe('CanvasHistoryAssetsModalAdapter', () => {
 
     expect(screen.getByText('image:/image-a.png')).toBeInTheDocument();
     expect(screen.getByText('video:/video-a.mp4')).toBeInTheDocument();
-    expect(screen.getByText('close-world')).toBeInTheDocument();
+    expect(await screen.findByText('close-world')).toBeInTheDocument();
     expect(mocks.buildManifest).toHaveBeenCalledWith({
       project: 'project-a',
       url: '/world-a.sog',

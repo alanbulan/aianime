@@ -36,12 +36,14 @@ import {
   turnCompletedInHistory,
 } from "@/modules/ai_assistant/application/messageTimeline";
 import { settleRunningToolMessages } from "@/modules/ai_assistant/domain/toolMessage";
+import { toolResourceChanges, type ResourceChange } from "../domain/resourceChange";
 
 type MutableValue<T> = {
   current: T;
 };
 
 type FrameControllerOptions = {
+  onResourceChanges: (changes: readonly ResourceChange[]) => void;
   desiredScope: ChatScope;
   showToolEvents: boolean;
   messagesRef: MutableValue<ChatMessage[]>;
@@ -71,6 +73,7 @@ type FrameControllerOptions = {
 };
 
 export function useSuperChatFrameController({
+  onResourceChanges,
   desiredScope,
   showToolEvents,
   messagesRef,
@@ -103,6 +106,8 @@ export function useSuperChatFrameController({
   // "show tool events" tore down and reopened the live chat socket.
   const showToolEventsRef = useRef(showToolEvents);
   showToolEventsRef.current = showToolEvents;
+  const resourceChangesRef = useRef(onResourceChanges);
+  resourceChangesRef.current = onResourceChanges;
 
   return useCallback((frame: ServerFrame) => {
     switch (frame.type) {
@@ -390,6 +395,10 @@ export function useSuperChatFrameController({
         }
         break;
       case "tool.result":
+        if (frame.success !== false && !frame.error) {
+          const changes = toolResourceChanges(frame.result);
+          if (changes.length) resourceChangesRef.current(changes);
+        }
         if (
           typeof frame.turn_id === "string"
           && cancelledTurnIdsRef.current.has(frame.turn_id)

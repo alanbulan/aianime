@@ -101,6 +101,7 @@ async def freezone_image_style_templates(
 @router.post(
     "/projects/{project}/freezone/gen",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_gen(
@@ -168,6 +169,7 @@ async def freezone_gen(
 @router.post(
     "/projects/{project}/freezone/multi-view",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_multi_view(
@@ -201,6 +203,7 @@ async def freezone_multi_view(
 @router.post(
     "/projects/{project}/freezone/relight",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_relight(
@@ -240,6 +243,7 @@ async def freezone_relight(
 @router.post(
     "/projects/{project}/freezone/template-edit",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_template_edit(
@@ -273,6 +277,7 @@ async def freezone_template_edit(
 @router.post(
     "/projects/{project}/freezone/edit",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_edit(
@@ -304,6 +309,7 @@ async def freezone_edit(
 @router.post(
     "/projects/{project}/freezone/marks/detect",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_mark_detect(
@@ -343,6 +349,7 @@ async def freezone_mark_detect(
 @router.post(
     "/projects/{project}/freezone/image/reverse-prompt",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_image_reverse_prompt(
@@ -468,6 +475,7 @@ async def freezone_upscale(
 @router.post(
     "/projects/{project}/freezone/outpaint",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_outpaint(
@@ -496,6 +504,7 @@ async def freezone_outpaint(
 @router.post(
     "/projects/{project}/freezone/redraw",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-image"],
 )
 async def freezone_redraw(

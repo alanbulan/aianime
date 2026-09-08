@@ -19,6 +19,7 @@ function createHarness(cachedMessages: ChatMessage[] = []) {
     socketOptions?.onConnectingChange(false);
   });
   const ports: ChatSessionPorts = {
+    onResourceChanges: vi.fn(),
     appendChatNotification: vi.fn(async () => ({
       delivered: true,
       message: null,

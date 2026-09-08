@@ -20,9 +20,9 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 | `add_subtitles` | bool | 剧集合成时是否默认烧录字幕 | `true` |
 | `add_bgm` | bool | 剧集合成时是否默认调用 `AUDIO_MUSIC` 生成并混入配乐 | `false` |
 
-视频选择规则：智能体完整生产默认省略 `video_model`，由后端按实际视频用途和设置页中的云端/BYOK 全局角色优先级选择，不自动继承工作台下拉框；用户明确点名本次模型时可传当前目录中的 `video_model` 作为单次覆盖。单 beat 局部人工生成可传 `model`，未指定时由后端解析项目配置和用途分配。项目 `video_resolution` 是画布/合成尺寸，不等于供应商生成清晰度枚举；单次生成分辨率必须使用所选模型能力（例如 Seedance 2.0 标准版为 480p/720p/1080p，Fast 为 480p/720p）。逐步确认模式一次只启动一个 eligible beat；连续完整生产只提交一个 `production_workflow` 父任务，由后端逐 beat 调度，助手不得自行批量提交。
+视频选择规则：智能体完整生产默认省略 `video_model`，由后端继承工作台项目视频模型选择，与网页策略一致；用户明确点名本次模型时可传当前目录中的 `video_model` 作为单次覆盖。单 beat 局部人工生成可传 `model`，未指定时由后端解析项目配置和用途分配。项目 `video_resolution` 是画布/合成尺寸，不等于供应商生成清晰度枚举；单次生成分辨率必须使用所选模型能力（例如 Seedance 2.0 标准版为 480p/720p/1080p，Fast 为 480p/720p）。逐步确认模式一次只启动一个 eligible beat；连续完整生产只提交一个 `production_workflow` 父任务，由后端逐 beat 调度，助手不得自行批量提交。
 
-单 beat AI 生成使用 `ai_anime_start_single_video`，支持与网页相同的画幅 `ratio`、时长 `duration`、模式 `mode`、完整配置 `video_config_json`、最终提示词 `final_prompt` 和音频等配置字段。`video_config_json` 是 JSON 对象字符串，先与已保存配置合并，再由显式顶层字段覆盖；省略字段保留已保存配置，`false` 和空对象不能当作未传。高级参考模型必须有非空 `final_prompt`，可直接传入、放在配置中或事先保存。只有用户明确点名模型时才传 `model`，有对应路由时同时传 `model_selector`；未指定模型时 AI 工具按全局角色优先级选择。
+单 beat AI 生成使用 `ai_anime_start_single_video`，支持与网页相同的画幅 `ratio`、时长 `duration`、模式 `mode`、完整配置 `video_config_json`、最终提示词 `final_prompt` 和音频等配置字段。`video_config_json` 是 JSON 对象字符串，先与已保存配置合并，再由显式顶层字段覆盖；省略字段保留已保存配置，`false` 和空对象不能当作未传。高级参考模型必须有非空 `final_prompt`，可直接传入、放在配置中或事先保存。只有用户明确点名模型时才传 `model`，有对应路由时同时传 `model_selector`；未指定模型时 AI 工具继承项目视频模型选择，与网页一致。
 
 单 Beat 视频面板的“AI 优化”使用 `ai_anime_optimize_video_prompt`。可传 `manual_prompt_reference` 和 `prompt_guidance`；工具读取 Beat 已保存的模式、时长、画幅、参考素材与文字配置，并将提示词指导及生成后的 `final_prompt` 写回同一个 `video_config_json`，工作台随后从该字段显示结果。
 

@@ -141,15 +141,8 @@ class LocalGridPoolGateway:
 
         script_data = await self._script_data(context, episode_num)
         sketch_colors = script_data.get("sketch_colors", {}) or {}
-        beat_hashes: dict[int, str] = {}
-        for beat in script_data.get("beats", []):
-            beat_num = beat.get("beat_number")
-            if beat_num is not None:
-                beat_hashes[beat_num] = pool_indexer.compute_beat_content_hash(
-                    beat,
-                    sketch_colors=sketch_colors,
-                    project_dir=context.output_dir,
-                )
+        beats = {beat["beat_number"]: beat for beat in script_data.get("beats", []) if beat.get("beat_number") is not None}
+        asset_fingerprints: dict[str, str] = {}
 
         images = tuple(
             self._image_view(
@@ -157,7 +150,9 @@ class LocalGridPoolGateway:
                 episode_num,
                 grids_dir,
                 image,
-                beat_hashes,
+                beats,
+                sketch_colors,
+                asset_fingerprints,
             )
             for image in pool.images
         )
@@ -174,7 +169,9 @@ class LocalGridPoolGateway:
         episode_num: int,
         grids_dir: Path,
         image,
-        beat_hashes: dict[int, str],
+        beats: dict[int, dict],
+        sketch_colors: dict[str, str],
+        asset_fingerprints: dict[str, str],
     ) -> GridPoolImageView:
         cell_url = ""
         if image.cell_path:
@@ -210,8 +207,11 @@ class LocalGridPoolGateway:
             grid_url=grid_url,
             stale=pool_indexer.is_pool_image_stale(
                 image,
-                beat_hashes,
-                None,
+                beats.get(image.original_beat),
+                project_dir=context.output_dir,
+                image_path=grids_dir / image.cell_path if image.cell_path else None,
+                sketch_colors=sketch_colors,
+                asset_fingerprints=asset_fingerprints,
             ),
             model=image.model,
             model_selector=image.model_selector,
@@ -250,19 +250,16 @@ class LocalGridPoolGateway:
 
         script_data = await self._script_data(context, episode_num)
         sketch_colors = script_data.get("sketch_colors", {}) or {}
-        beat_hashes: dict[int, str] = {}
+        beats: dict[int, dict] = {}
         for beat in script_data.get("beats", []) or []:
             raw_beat_num = beat.get("beat_number")
             try:
                 parsed_beat_num = int(raw_beat_num)
             except (TypeError, ValueError):
                 continue
-            beat_hashes[parsed_beat_num] = pool_indexer.compute_beat_content_hash(
-                beat,
-                sketch_colors=sketch_colors,
-                project_dir=context.output_dir,
-            )
+            beats[parsed_beat_num] = beat
 
+        asset_fingerprints: dict[str, str] = {}
         candidates: list[BeatSketchCandidateView] = []
         for image in pool.images:
             if image.type != "sketch" or int(image.original_beat or 0) != beat_num:
@@ -294,8 +291,11 @@ class LocalGridPoolGateway:
                     ),
                     stale=pool_indexer.is_pool_image_stale(
                         image,
-                        beat_hashes,
-                        None,
+                        beats.get(image.original_beat),
+                        project_dir=project_dir,
+                        image_path=cell_path,
+                        sketch_colors=sketch_colors,
+                        asset_fingerprints=asset_fingerprints,
                     ),
                     model=image.model,
                     model_selector=image.model_selector,
@@ -334,19 +334,18 @@ class LocalGridPoolGateway:
         if pool_image.type == "sketch":
             script_data = await self._script_data(context, command.episode_num)
             sketch_colors = script_data.get("sketch_colors", {}) or {}
-            beats = script_data.get("beats", [])
-            beat_hashes: dict[int, str] = {}
-            beat_index = pool_image.original_beat - 1
-            if 0 <= beat_index < len(beats):
-                beat_hashes[pool_image.original_beat] = (
-                    pool_indexer.compute_beat_content_hash(
-                        beats[beat_index],
-                        sketch_colors=sketch_colors,
-                        project_dir=context.output_dir,
-                    )
-                )
+            beat = next(
+                (beat for beat in script_data.get("beats", []) if beat.get("beat_number") == pool_image.original_beat),
+                None,
+            )
             if (
-                pool_indexer.is_pool_image_stale(pool_image, beat_hashes, None)
+                pool_indexer.is_pool_image_stale(
+                    pool_image,
+                    beat,
+                    project_dir=project_dir,
+                    image_path=grids_dir / pool_image.cell_path if pool_image.cell_path else None,
+                    sketch_colors=sketch_colors,
+                )
                 and not command.force
             ):
                 raise GridPoolImageStale()

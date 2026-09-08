@@ -79,6 +79,9 @@ export interface VideoNodeData extends NodeDisplayData {
   heightPx?: number | null;
   durationMs?: number | null;
   isUploading?: boolean;
+  /** 上传身份随节点保留，视口裁剪卸载组件时仍可完成当前请求。 */
+  uploadRequestId?: string | null;
+  uploadError?: string | null;
   isAnalyzing?: boolean;
   analysisResult?: string | null;
   analysisError?: string | null;

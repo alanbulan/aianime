@@ -104,21 +104,43 @@ def _file_fingerprint(path: Path, cache: Dict[str, str]) -> str:
 
 
 def is_pool_image_stale(
-    img: PoolImage,
-    beat_hashes: Dict[int, str],
-    script_mt,
+    img: PoolImage | None,
+    beat: dict | None,
+    *,
+    project_dir: Union[str, Path],
+    image_path: Path | None = None,
+    sketch_colors: Optional[Dict[str, str]] = None,
+    asset_fingerprints: Optional[Dict[str, str]] = None,
 ) -> bool:
-    """统一 stale 判断：优先内容 hash，回退到 mtime。"""
-    if img.type != "sketch":
+    """候选、人工选择和工作流共用草图正文及资产依赖过期规则。"""
+    if img is not None and img.type != "sketch":
         return False
-    if img.beat_content_hash:
-        current_hash = beat_hashes.get(img.original_beat)
-        if current_hash is None:
+    stored_hash = img.beat_content_hash if img is not None else None
+    if beat is None:
+        return bool(stored_hash)
+    if stored_hash:
+        current_hash = compute_beat_content_hash(
+            beat,
+            sketch_colors=sketch_colors,
+            project_dir=project_dir if stored_hash.startswith("v2:") else None,
+            asset_fingerprints=asset_fingerprints,
+        )
+        if current_hash != stored_hash:
+            return True
+        if stored_hash.startswith("v2:"):
             return False
-        if current_hash.startswith("v2:") and not img.beat_content_hash.startswith("v2:"):
-            return bool(script_mt and (not img.generated_at or img.generated_at < script_mt))
-        return current_hash != img.beat_content_hash
-    return bool(script_mt and (not img.generated_at or img.generated_at < script_mt))
+
+    # 旧 hash 不含资产指纹，以被检查图片的时间检查后续资产变化。
+    if image_path is not None and image_path.exists():
+        image_mtime = image_path.stat().st_mtime_ns
+    elif img is not None and img.generated_at is not None:
+        image_mtime = int(img.generated_at.timestamp() * 1_000_000_000)
+    else:
+        return False
+    return any(
+        path.exists() and path.stat().st_mtime_ns > image_mtime
+        for path in _beat_visual_dependency_paths(Path(project_dir), beat)
+    )
 
 
 def build_beat_sketch_paths(
@@ -189,30 +211,14 @@ def stale_canonical_sketch_numbers(
             ),
             None,
         )
-        dependency_paths = _beat_visual_dependency_paths(project_path, beat)
-        dependency_is_newer = any(
-            path.exists() and path.stat().st_mtime_ns > canonical.stat().st_mtime_ns
-            for path in dependency_paths
-        )
-        if pool_image is None or not pool_image.beat_content_hash:
-            if dependency_is_newer:
-                stale.append(beat_num)
-            continue
-
-        current_hash = compute_beat_content_hash(
+        if is_pool_image_stale(
+            pool_image,
             beat,
             sketch_colors=sketch_colors,
             project_dir=project_path,
+            image_path=canonical,
             asset_fingerprints=fingerprint_cache,
-        )
-        stored_hash = pool_image.beat_content_hash
-        if stored_hash.startswith("v2:"):
-            if stored_hash != current_hash:
-                stale.append(beat_num)
-            continue
-
-        legacy_hash = compute_beat_content_hash(beat, sketch_colors=sketch_colors)
-        if stored_hash != legacy_hash or dependency_is_newer:
+        ):
             stale.append(beat_num)
 
     return list(dict.fromkeys(stale))

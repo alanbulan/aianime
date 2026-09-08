@@ -18,17 +18,7 @@
  * 任何一步失败都返回原文件——转码是尽力而为的兼容性优化，不能挡住上传。
  */
 
-import {
-  ALL_FORMATS,
-  BlobSource,
-  BufferTarget,
-  canEncodeVideo,
-  Conversion,
-  Input,
-  Mp4OutputFormat,
-  Output,
-  QUALITY_HIGH,
-} from "mediabunny";
+import type { BufferTarget } from "mediabunny";
 
 export interface EnsureWebSafeVideoResult {
   file: File;
@@ -51,6 +41,8 @@ async function transcodeWithWebCodecs(
   file: File,
   onProgress?: (progress: number) => void,
 ): Promise<File> {
+  const { ALL_FORMATS, BlobSource, BufferTarget, Conversion, Input, Mp4OutputFormat,
+    Output, QUALITY_HIGH } = await import("mediabunny");
   const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
   try {
     const audioTrack = await input.getPrimaryAudioTrack();
@@ -127,6 +119,7 @@ export async function ensureWebSafeVideo(
     return { file, transcoded: false };
   }
 
+  const { ALL_FORMATS, BlobSource, Input, canEncodeVideo } = await import("mediabunny");
   let videoCodec: string | null = null;
   let audioCodec: string | null = null;
   let canDecodeSource = false;

@@ -358,7 +358,7 @@ def test_available_commands_notification_is_exposed_to_chat_clients(
 
     assert event is not None
     assert event.type == "available_commands"
-    assert [item["name"] for item in event.raw] == ["help", "model", "tools"]
+    assert [item["name"] for item in event.raw] == ["model", "tools"]
     assert all(item["kind"] == "command" for item in event.raw)
     assert all(item["name"] != "compact" for item in event.raw)
 

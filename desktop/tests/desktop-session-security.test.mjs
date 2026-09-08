@@ -2,6 +2,9 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createServer } from "node:http";
+import { once } from "node:events";
+import { createRequire } from "node:module";
 
 import { installDesktopSessionSecurity } from "../src/desktop-session-security.ts";
 
@@ -127,6 +130,49 @@ test("renderer content security policy keeps matte traffic local", () => {
   });
 
   const policy = response.responseHeaders["Content-Security-Policy"][0];
+  assert.match(policy, /script-src [^;]*'wasm-unsafe-eval'/);
+  assert.doesNotMatch(policy, /(?:^|\s)'unsafe-eval'(?:\s|;)/);
   assert.match(policy, /connect-src [^;]*blob:/);
   assert.doesNotMatch(policy, /huggingface|hf\.co|jsdelivr|unpkg/);
+});
+
+test("desktop CSP permits WASM in Chromium pages and workers while blocking JavaScript eval", async (t) => {
+  const { chromium } = createRequire(new URL("../../frontend/package.json", import.meta.url))("playwright");
+  const { receiveHeaders } = createPermissionHarness();
+  let response;
+  receiveHeaders({ responseHeaders: {} }, (value) => { response = value; });
+  const policy = response.responseHeaders["Content-Security-Policy"][0];
+  const compile = `WebAssembly.compile(new Uint8Array([0,97,115,109,1,0,0,0]))`;
+  const script = `
+    window.result = (async () => {
+      let evalBlocked = false;
+      try { (0, eval)('1 + 1'); } catch { evalBlocked = true; }
+      await ${compile};
+      const worker = new Worker('/worker.js');
+      const workerResult = await new Promise((resolve, reject) => {
+        worker.onmessage = ({ data }) => resolve(data);
+        worker.onerror = reject;
+      });
+      worker.terminate();
+      return { pageWasm: true, workerWasm: workerResult, evalBlocked };
+    })();`;
+  const server = createServer((request, res) => {
+    res.setHeader("Content-Security-Policy", policy);
+    res.setHeader("Content-Type", request.url === "/" ? "text/html" : "text/javascript");
+    res.end(request.url === "/"
+      ? '<!doctype html><script src="/main.js"></script>'
+      : request.url === "/worker.js"
+        ? `${compile}.then(() => postMessage(true), (error) => postMessage(String(error)));`
+        : script);
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(`http://127.0.0.1:${server.address().port}/`);
+  assert.deepEqual(await page.evaluate(() => window.result), {
+    pageWasm: true, workerWasm: true, evalBlocked: true,
+  });
 });

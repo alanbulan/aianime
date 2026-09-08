@@ -4085,7 +4085,8 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("freezoneAiGateway");
     expect(composition).toContain("browserGenerationRuntimeGateway");
     expect(composition).toContain("getRuntimeDiagnostics()");
-    expect(composition).not.toContain("uuidGenerator");
+    // 控制器可注入身份生成器，节点工厂的装配仍归独立组合根。
+    expect(composition).not.toContain("new CanvasNodeFactory(");
     expect(composition).not.toContain("webImageSplitGateway");
     expect(composition).not.toContain("browserToolImageGateway");
     expect(composition).toContain("browserImageRuntimeGateway");

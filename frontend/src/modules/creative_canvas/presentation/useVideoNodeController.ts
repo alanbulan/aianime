@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import type { VideoClipOptions } from "../application/composeVideoClip";
 import {
   useCallback,
   useEffect,
@@ -280,6 +281,7 @@ export function createUseVideoNodeController({
   useCanvasVideoModels,
   useCanvasVideoCameraTemplates,
   uploadCanvasAsset,
+  newUploadRequestId,
   translateCanvasText,
   submitVideoGeneration,
   completeVideoGenerationTask,
@@ -303,6 +305,7 @@ export function createUseVideoNodeController({
   useCanvasVideoModels: VideoNodeUseVideoModels;
   useCanvasVideoCameraTemplates: VideoNodeUseVideoCameraTemplates;
   uploadCanvasAsset: VideoNodeUploadCanvasAsset;
+  newUploadRequestId: () => string;
   translateCanvasText: VideoNodeTranslateCanvasText;
   submitVideoGeneration: VideoNodeSubmitVideoGeneration;
   completeVideoGenerationTask: VideoNodeCompleteVideoGenerationTask;
@@ -359,6 +362,7 @@ export function createUseVideoNodeController({
     setVideoEl(el);
   }, []);
   const transientUrlRef = useRef<string | null>(null);
+  const mountedRef = useRef(false);
   const [transientPreviewUrl, setTransientPreviewUrl] = useState<
     string | null
   >(null);
@@ -932,27 +936,35 @@ export function createUseVideoNodeController({
       URL.revokeObjectURL(transientUrlRef.current);
       transientUrlRef.current = null;
     }
-    setTransientPreviewUrl(null);
+    if (mountedRef.current) setTransientPreviewUrl(null);
   }, []);
 
   const processFile = useCallback(
     async (file: File) => {
-      if (!isVideoFile(file)) return;
+      if (!isVideoFile(file) || !mountedRef.current) return;
       if (!projectId) {
         console.error("[video-node] missing project context");
         return;
       }
+      const requestId = newUploadRequestId();
+      const isCurrentUpload = () => readNode(id)?.data.uploadRequestId === requestId;
       clearTransientPreview();
       const previewUrl = URL.createObjectURL(file);
       transientUrlRef.current = previewUrl;
       setTransientPreviewUrl(previewUrl);
-      updateNodeData(id, { sourceFileName: file.name, isUploading: true });
+      updateNodeData(id, {
+        sourceFileName: file.name,
+        isUploading: true,
+        uploadRequestId: requestId,
+        uploadError: null,
+      });
       try {
         // HEVC（飞书录屏/iPhone）等 Web 不兼容编码先在浏览器内转成 H.264 再上传，
         // 否则 Edge 等无对应解码器的浏览器只有声音没画面。见 videoTranscode.ts。
         // 转码期间 UI 统一走「上传中」loading，不单独显示转码进度。
         const prepared = await ensureWebSafeVideo(file);
-        if (prepared.transcoded) {
+        if (!isCurrentUpload()) return;
+        if (prepared.transcoded && mountedRef.current) {
           // 源编码在本浏览器可能根本解不了（Edge+HEVC），本地预览也换成转码产物。
           clearTransientPreview();
           const preparedUrl = URL.createObjectURL(prepared.file);
@@ -965,15 +977,22 @@ export function createUseVideoNodeController({
           prepared.file.name,
           { disableTimeout: true },
         );
+        if (!isCurrentUpload()) return;
         updateNodeData(id, {
           videoUrl: uploaded.url,
           previewImageUrl: null,
           sourceFileName: file.name,
           isUploading: false,
+          uploadRequestId: null,
+          uploadError: null,
         });
+        clearTransientPreview();
       } catch (error) {
+        if (!isCurrentUpload()) return;
         console.error("[video-node] upload failed", error);
-        updateNodeData(id, { isUploading: false });
+        const message = error instanceof Error ? error.message : "视频上传失败，请重试";
+        updateNodeData(id, { isUploading: false, uploadRequestId: null, uploadError: message });
+        toast.error(`视频上传失败：${message}`);
         clearTransientPreview();
       }
     },
@@ -1220,12 +1239,15 @@ export function createUseVideoNodeController({
     updateNodeData(id, { genMode: "allReference" });
   }, [genMode, upstreamCounts.images, id, updateNodeData, usesTypedReferenceModes]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      // onlyRenderVisibleElements 会卸载视口外的节点，只释放视图资源。
+      // 请求是否仍有效由节点中的 uploadRequestId 决定。
+      mountedRef.current = false;
       clearTransientPreview();
-    },
-    [clearTransientPreview],
-  );
+    };
+  }, [clearTransientPreview, id, projectId]);
 
   const videoSource = useMemo(
     () => resolveVideoNodeSource(data.videoUrl, transientPreviewUrl),
@@ -1313,7 +1335,7 @@ export function createUseVideoNodeController({
   }, [id, updateNodeData]);
 
   const handleClipSubmit = useCallback(
-    async (startMs: number, endMs: number) => {
+    async (startMs: number, endMs: number, options?: VideoClipOptions) => {
       if (isComposingClip) return;
       const sourceUrl = data.videoUrl;
       if (!sourceUrl) return;
@@ -1332,6 +1354,7 @@ export function createUseVideoNodeController({
           startMs,
           endMs,
           quality: clipQuality,
+          ...options,
         });
         const position = findNodePosition(
           id,

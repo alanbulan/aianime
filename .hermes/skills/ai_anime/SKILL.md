@@ -246,9 +246,9 @@ GET ${AI_ANIME_API_URL}/api/v1/projects/${AI_ANIME_PROJECT_ID}/pipeline/status
 ## 5. 全局默认规则
 
 - 视频模型选择：
-  - 智能体完整生产默认不传单次模型覆盖，由后端按视频用途和设置页中的云端/BYOK 全局角色优先级解析；不得自动继承工作台项目 `video_model`。只有用户明确点名本次使用某个模型时，才把当前模型目录中的对应选择器作为 `video_model` 传入，覆盖仅作用于本次任务。
+  - 智能体完整生产默认不传单次模型覆盖，由后端继承工作台项目 `video_model`，与网页的项目模型选择策略一致。只有用户明确点名本次使用某个模型时，才把当前模型目录中的对应选择器作为 `video_model` 传入，覆盖仅作用于本次任务。
   - 单 beat 人工重做可传用户明确指定的 `model`；未指定时由后端解析项目配置和用途分配。
-  - AI 单 beat 工具 `ai_anime_start_single_video` 支持网页相同的生成参数，包括 `ratio`、`video_config_json` 和 `final_prompt`。用户明确指定模型时传目录中的 `model`，需要区分云端/BYOK 路由时同时传 `model_selector`；未指定模型时省略两者，保留全局角色优先级。不要把基础 `video_prompt` 当作高级参考模型的最终提示词。
+  - AI 单 beat 工具 `ai_anime_start_single_video` 支持网页相同的生成参数，包括 `ratio`、`video_config_json` 和 `final_prompt`。用户明确指定模型时传目录中的 `model`，需要区分云端/BYOK 路由时同时传 `model_selector`；未指定模型时省略两者，继承项目视频模型选择，与网页一致。不要把基础 `video_prompt` 当作高级参考模型的最终提示词。
   - 单 Beat 面板“AI 优化”使用 `ai_anime_optimize_video_prompt`。它读取并更新与工作台相同的 `video_config_json`，把 `prompt_guidance` 和生成后的 `final_prompt` 保存回 Beat；不接收视频模型参数，也不改变助手与人工面板各自的模型选择规则。
   - 逐 beat 子任务与并发由 `production_workflow` 父任务负责；助手不自行批量提交。
 - 不要同时加载 `playbooks/init.md` 和 `playbooks/episode.md`

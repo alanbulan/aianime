@@ -37,6 +37,10 @@ from ai_anime.modules.project_workspace.public import (
     require_project_home_node,
 )
 from ai_anime.modules.task_execution.domain.queue import normalize_queue_kind
+from ai_anime.modules.task_execution.domain.project_task import (
+    ProjectTask,
+    effective_task_status,
+)
 from ai_anime.modules.task_execution.domain.task_identity import (
     project_task_scope_from_key,
     project_task_state_key,
@@ -373,11 +377,14 @@ class TaskStateManager:
         with self._connect(username, project) as conn:
             conn.execute("DELETE FROM task_states WHERE task_key = ?", (task_key,))
 
-    def _delete_expired_project_key(self, ctx: ProjectContext, task_key: str) -> None:
+    def _delete_expired_project_key(
+        self, ctx: ProjectContext, task_key: str, task_id: str, expires_at: str
+    ) -> None:
         with self._connect_context(ctx) as conn:
             conn.execute(
-                "DELETE FROM task_states WHERE task_key = ? AND project_id = ?",
-                (task_key, ctx.project_id),
+                "DELETE FROM task_states WHERE task_key = ? AND project_id = ? "
+                "AND task_id = ? AND expires_at = ?",
+                (task_key, ctx.project_id, task_id, expires_at),
             )
 
     @staticmethod
@@ -1263,16 +1270,23 @@ class TaskStateManager:
         scope: str | None = None,
     ) -> Optional[TaskState]:
         key = self._project_key(task_type, ctx.project_id, episode, beat_num, scope)
+        return self.get_task_by_key_for_project(ctx, key)
+
+    def get_task_by_key_for_project(
+        self, ctx: ProjectContext, task_key: str
+    ) -> Optional[TaskState]:
         with self._connect_context(ctx) as conn:
             row = conn.execute(
                 "SELECT * FROM task_states WHERE task_key = ? AND project_id = ?",
-                (key, ctx.project_id),
+                (task_key, ctx.project_id),
             ).fetchone()
 
         if not row:
             return None
         if self._is_expired(row["expires_at"]):
-            self._delete_expired_project_key(ctx, key)
+            self._delete_expired_project_key(
+                ctx, task_key, row["task_id"], row["expires_at"]
+            )
             return None
         return self._row_to_state(row)
 
@@ -1305,31 +1319,34 @@ class TaskStateManager:
     def delete_task_for_project(
         self,
         ctx: ProjectContext,
-        task_type: str,
-        episode: int,
-        beat_num: int = None,
-        scope: str | None = None,
-    ):
-        key = self._project_key(task_type, ctx.project_id, episode, beat_num, scope)
+        task: ProjectTask,
+    ) -> bool:
+        if effective_task_status(task) != "completed":
+            return False
+        key = self._project_key(
+            task.task_type, ctx.project_id, task.episode, task.beat_num, task.scope
+        )
         with self._connect_context(ctx) as conn:
-            conn.execute(
-                "DELETE FROM task_states WHERE task_key = ? AND project_id = ?",
-                (key, ctx.project_id),
+            deleted = conn.execute(
+                "DELETE FROM task_states WHERE task_key = ? AND project_id = ? "
+                "AND task_id = ? AND status = ? AND progress = ? AND current_task = ?",
+                (key, ctx.project_id, task.task_id, task.status, task.progress, task.current_task),
             )
-        logger.debug("Project task deleted: %s", key)
+            return deleted.rowcount > 0
 
     def list_tasks_for_project(self, ctx: ProjectContext) -> List[TaskState]:
         tasks: list[TaskState] = []
-        expired_keys: list[str] = []
+        expired_keys: list[tuple[str, str, str]] = []
         with self._connect_context(ctx) as conn:
             rows = conn.execute(
-                "SELECT * FROM task_states WHERE project_id = ? ORDER BY updated_at DESC",
+                "SELECT * FROM task_states WHERE project_id = ? "
+                "ORDER BY COALESCE(NULLIF(updated_at, ''), created_at, '') DESC",
                 (ctx.project_id,),
             ).fetchall()
 
             for row in rows:
                 if self._is_expired(row["expires_at"]):
-                    expired_keys.append(row["task_key"])
+                    expired_keys.append((row["task_key"], row["task_id"], row["expires_at"]))
                     continue
                 try:
                     tasks.append(self._row_to_state(row))
@@ -1342,13 +1359,11 @@ class TaskStateManager:
 
             if expired_keys:
                 conn.executemany(
-                    "DELETE FROM task_states WHERE task_key = ? AND project_id = ?",
-                    [(key, ctx.project_id) for key in expired_keys],
+                    "DELETE FROM task_states WHERE task_key = ? AND project_id = ? "
+                    "AND task_id = ? AND expires_at = ?",
+                    [(key, ctx.project_id, task_id, expires_at) for key, task_id, expires_at in expired_keys],
                 )
 
-        tasks.sort(
-            key=lambda task: task.updated_at or task.created_at or "", reverse=True
-        )
         return tasks
 
     def count_active_tasks_for_project(self, ctx: ProjectContext) -> int:

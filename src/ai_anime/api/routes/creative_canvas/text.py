@@ -14,7 +14,6 @@ from ai_anime.api.routes.creative_canvas.text_schemas import (
 )
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.modules.creative_canvas.public import (
-    CreativeCanvasTaskReceipt,
     CreativeCanvasTextProcessingSourceMissing,
     InvalidCreativeCanvasTextProcessingRequest,
     StartCreativeCanvasStoryScriptCommand,
@@ -33,6 +32,7 @@ router = APIRouter()
 @router.post(
     "/projects/{project}/freezone/text/translate",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-text"],
 )
 async def freezone_text_translate(
@@ -69,12 +69,13 @@ async def freezone_text_translate(
             503,
             f"failed to start text translate task: {exc}",
         ) from exc
-    return _text_processing_response(result)
+    return {"ok": True, "data": result.to_dict()}
 
 
 @router.post(
     "/projects/{project}/freezone/text/story-script",
     response_model=FreezoneJobAcceptedResponse,
+    response_model_exclude_unset=True,
     tags=["freezone-text"],
 )
 async def freezone_story_script_generate(
@@ -123,22 +124,7 @@ async def freezone_story_script_generate(
             503,
             f"failed to start story script task: {exc}",
         ) from exc
-    return _text_processing_response(result)
-
-
-def _text_processing_response(result: CreativeCanvasTaskReceipt) -> dict:
-    data = {
-        "task_type": result.task_type,
-        "job_id": result.job_id,
-        "task_key": result.task_key,
-        "task_episode": result.task_episode,
-        "task_scope": result.task_scope,
-        "backend": result.backend,
-        "queue": result.queue,
-    }
-    if result.task_id:
-        data["task_id"] = result.task_id
-    return {"ok": True, "data": data}
+    return {"ok": True, "data": result.to_dict()}
 
 
 async def _resolve_editor_project(project: str, user: dict):

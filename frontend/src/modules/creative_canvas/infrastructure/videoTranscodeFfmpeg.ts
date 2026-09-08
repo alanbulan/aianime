@@ -13,6 +13,7 @@ import coreJsUrl from "@ffmpeg/core?url";
 import coreWasmUrl from "@ffmpeg/core/wasm?url";
 
 let ffmpegSingleton: Promise<FFmpeg> | null = null;
+let transcodeQueue: Promise<void> = Promise.resolve();
 
 function loadFfmpeg(): Promise<FFmpeg> {
   if (!ffmpegSingleton) {
@@ -29,7 +30,17 @@ function loadFfmpeg(): Promise<FFmpeg> {
   return ffmpegSingleton;
 }
 
-export async function transcodeWithFfmpeg(
+export function transcodeWithFfmpeg(
+  file: File,
+  onProgress?: (progress: number) => void,
+): Promise<Blob> {
+  // 单个 FFmpeg 实例拥有同一内存文件系统和进度源，整项任务必须串行。
+  const result = transcodeQueue.then(() => transcodeFile(file, onProgress));
+  transcodeQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+async function transcodeFile(
   file: File,
   onProgress?: (progress: number) => void,
 ): Promise<Blob> {

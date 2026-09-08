@@ -1,10 +1,10 @@
 {
   "browser": {
     "operation_count": 299,
-    "sha256": "aff1effcb2ed3570d61d2187d4d87423ca27d3c5292ef1d9233a6bef4d5b8420"
+    "sha256": "78165697104d78b5cad90fa6fa9bc334afe73eb95af7415ca4a354e3b2f7d066"
   },
   "desktop": {
     "operation_count": 301,
-    "sha256": "a242b499cf522313bb40abfce296826846a682741b43178365a35755f2ddb81c"
+    "sha256": "334d104228dede1d77f6cb5919b4c5918bfa20bd3ea131d3216910024630c5a2"
   }
 }

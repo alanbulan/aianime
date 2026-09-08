@@ -46,6 +46,7 @@ import {
   VideoLoadErrorOverlay,
   VideoMetadataLoadingOverlay,
   VideoUploadingState,
+  VideoUploadErrorOverlay,
 } from './VideoNodeMediaStatus';
 import { OperationPanelShell } from './OperationPanelShell';
 import { PromptMentionEditor } from './PromptMentionEditor';
@@ -351,6 +352,10 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
           <VideoLoadErrorOverlay />
         )}
 
+        {data.uploadError && !isUploading && !isGenerating && (
+          <VideoUploadErrorOverlay error={data.uploadError} onUpload={handleUploadClick} />
+        )}
+
         {videoSource && !hasMetadata && !isUploading && !isGenerating && (
           <VideoMetadataLoadingOverlay />
         )}
@@ -433,9 +438,14 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
           setClipError(null);
           updateNodeData(id, { isClipMode: false });
         }}
-        onSubmit={(start, end) => {
-          void handleClipSubmit(start, end);
+        onSubmit={(start, end, options) => {
+          void handleClipSubmit(start, end, options);
         }}
+        onRemoveSubtitles={() => updateNodeData(id, {
+          isClipMode: false,
+          subtitleEraseMode: 'smart',
+          subtitleEraseBox: null,
+        })}
       />
 
       {showVideoOpsPanel && (
