@@ -82,3 +82,15 @@ test("Intel workflow uploads the verified release JSON with the existing Mac pac
   const draft = steps.find((step) => step.name === "Save tagged build to a draft release");
   assert.equal(draft.env.MANIFEST_PATH, "${{ steps.artifacts.outputs.manifest_path }}");
 });
+
+test("Intel workflow installs the locked Chromium runtime before desktop CSP tests", async () => {
+  const workflow = load(await readFile(new URL("../../.github/workflows/build-macos-intel.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs.package.steps;
+  const prerequisites = steps.findIndex((step) => step.name === "Install build prerequisites");
+  const browser = steps.findIndex((step) => step.name === "Install Chromium for desktop security tests");
+  const tests = steps.findIndex((step) => step.name === "Test desktop packaging contracts");
+  assert.ok(prerequisites >= 0 && browser > prerequisites && tests > browser);
+  assert.equal(steps[browser].run, "pnpm --dir frontend test:browser:install");
+  const frontend = JSON.parse(await readFile(new URL("../../frontend/package.json", import.meta.url), "utf8"));
+  assert.equal(frontend.scripts["test:browser:install"], "playwright install chromium");
+});

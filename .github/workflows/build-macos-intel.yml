@@ -82,6 +82,10 @@ jobs:
           pnpm --dir desktop install --frozen-lockfile
           pnpm --dir frontend install --frozen-lockfile
 
+      - name: Install Chromium for desktop security tests
+        shell: bash
+        run: pnpm --dir frontend test:browser:install
+
       - name: Test desktop packaging contracts
         shell: bash
         run: pnpm --dir desktop test
