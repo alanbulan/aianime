@@ -29,6 +29,9 @@ for (const [name, hash] of Object.entries(sources)) {
   download(`https://raw.githubusercontent.com/sparkle-project/Sparkle/${version}/sparkle-cli/${name}`, name, hash);
 }
 execFileSync("clang", ["-fobjc-arc", "-mmacosx-version-min=13.0", "-F", root,
+  // Match Sparkle's ConfigCommon.xcconfig definitions for the official CLI.
+  "-DSPU_OBJC_DIRECT=__attribute__((objc_direct))",
+  "-DSPU_OBJC_DIRECT_MEMBERS=__attribute__((objc_direct_members))",
   "-framework", "Sparkle", "-framework", "Cocoa", "-Wl,-rpath,@executable_path/../Frameworks",
   ...Object.keys(sources).filter((name) => name.endsWith(".m")).map((name) => join(root, name)),
   "-o", join(root, "sparkle")], { stdio: "inherit" });
