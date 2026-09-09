@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, existsSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,11 +28,15 @@ const sources = {
 for (const [name, hash] of Object.entries(sources)) {
   download(`https://raw.githubusercontent.com/sparkle-project/Sparkle/${version}/sparkle-cli/${name}`, name, hash);
 }
+// Keep the official CLI's own app identity separate from the app it updates.
+const helperContents = join(root, "Sparkle.app/Contents");
+mkdirSync(join(helperContents, "MacOS"), { recursive: true });
+copyFileSync(fileURLToPath(new URL("../build/sparkle-info.plist", import.meta.url)), join(helperContents, "Info.plist"));
 execFileSync("clang", ["-fobjc-arc", "-mmacosx-version-min=13.0", "-F", root,
   // Match Sparkle's ConfigCommon.xcconfig definitions for the official CLI.
   "-DSPU_OBJC_DIRECT=__attribute__((objc_direct))",
   "-DSPU_OBJC_DIRECT_MEMBERS=__attribute__((objc_direct_members))",
-  "-framework", "Sparkle", "-framework", "Cocoa", "-Wl,-rpath,@executable_path/../Frameworks",
+  "-framework", "Sparkle", "-framework", "Cocoa", "-Wl,-rpath,@executable_path/../../../../Frameworks",
   ...Object.keys(sources).filter((name) => name.endsWith(".m")).map((name) => join(root, name)),
-  "-o", join(root, "sparkle")], { stdio: "inherit" });
+  "-o", join(helperContents, "MacOS/sparkle")], { stdio: "inherit" });
 console.log(`Verified and built official Sparkle ${version} (${process.arch})`);

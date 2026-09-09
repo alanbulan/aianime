@@ -40,7 +40,7 @@ async function bundle(name, version) {
 <key>SmokeMarkerPath</key><string>${marker}</string></dict></plist>`);
   execFileSync("clang", ["-fobjc-arc", "-mmacosx-version-min=13.0", "-framework", "Cocoa", source, "-o", join(contents, "MacOS/Smoke")]);
   await cp(join(runtime, "Sparkle.framework"), join(contents, "Frameworks/Sparkle.framework"), { recursive: true, verbatimSymlinks: true });
-  await cp(join(runtime, "sparkle"), join(contents, "MacOS/sparkle"));
+  await cp(join(runtime, "Sparkle.app"), join(contents, "Helpers/Sparkle.app"), { recursive: true });
   execFileSync("codesign", ["--force", "--deep", "--sign", "-", path], { stdio: "pipe" });
   return path;
 }

@@ -45,8 +45,8 @@ mac:
   extraFiles:
     - from: runtime/sparkle/Sparkle.framework
       to: Frameworks/Sparkle.framework
-    - from: runtime/sparkle/sparkle
-      to: MacOS/sparkle
+    - from: runtime/sparkle/Sparkle.app
+      to: Helpers/Sparkle.app
     - from: runtime/sparkle/LICENSE
       to: Resources/Sparkle-LICENSE
   identity: "-"

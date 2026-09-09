@@ -30,7 +30,7 @@ for (const fail of [false, true]) {
     });
     const checked = fail ? assert.rejects(install, /signature/) : install;
     const { executable, args, options } = await launched;
-    assert.equal(executable, join(directory, "App.app/Contents/MacOS/sparkle"));
+    assert.equal(executable, join(directory, "App.app/Contents/Helpers/Sparkle.app/Contents/MacOS/sparkle"));
     assert.equal(options.detached, true);
     assert.ok(!args.includes("--defer-install"));
     const feedUrl = args[args.indexOf("--feed-url") + 1];

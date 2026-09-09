@@ -66,7 +66,7 @@ export async function installSparkleUpdate(
   feed = `<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><title>AI anime</title><item><sparkle:version>${xml(update.version)}</sparkle:version><sparkle:shortVersionString>${xml(update.version)}</sparkle:shortVersionString><enclosure url="${origin}${zipPath}" length="${archive.size}" type="application/octet-stream" sparkle:edSignature="${xml(update.edSignature)}" /></item></channel></rss>`;
   try {
     await new Promise<void>((resolve, reject) => {
-      const child = launch(join(bundlePath, "Contents", "MacOS", "sparkle"), [bundlePath,
+      const child = launch(join(bundlePath, "Contents/Helpers/Sparkle.app/Contents/MacOS/sparkle"), [bundlePath,
         "--check-immediately", "--feed-url", `${origin}${feedPath}`,
         "--user-agent-name", "AI anime", "--interactive"], {
         detached: true, stdio: ["ignore", "ignore", "pipe"],
