@@ -46,6 +46,7 @@ export function subscribeCommercialUpdateDownloadProgress(
 }
 
 export type { CommercialUpdateDownloadProgress };
+export { commercialUpdateFailureKey } from "@/modules/platform_release/domain/commercial-release";
 
 export function seedCommercialBootstrapRelease(
   queryClient: QueryClient,

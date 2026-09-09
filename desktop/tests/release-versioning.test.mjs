@@ -28,7 +28,8 @@ function fixture() {
     join(root, "frontend/vite.config.ts"),
     'const DEFAULT_APP_VERSION = "1.1.10";\n',
   );
-  writeFileSync(join(root, "README.md"), "当前客户端版本：`1.1.10`。\n");
+  writeFileSync(join(root, "README.md"), "产品概览\n");
+  writeFileSync(join(root, "README_ENGINEERING.md"), "当前客户端版本：`1.1.10`。\n");
   writeFileSync(
     join(root, "docs/cloud-integration-handoff.md"),
     "客户端 `1.1.10` 固定使用网关。\n",
@@ -55,6 +56,7 @@ test("workspace bump synchronizes every product version and release note", () =>
     targetVersion: "1.1.11",
   });
   assert.equal(readWorkspaceVersion(root), "1.1.11");
+  assert.equal(readFileSync(join(root, "README.md"), "utf8"), "产品概览\n");
   assert.match(
     readFileSync(join(root, "src/ai_anime/release-notes.md"), "utf8"),
     /修复视频下载和助手任务状态误判/,

@@ -39,6 +39,16 @@ mac:
   category: public.app-category.graphics-design
   extendInfo:
     NSMicrophoneUsageDescription: AI anime 使用麦克风在本机将语音转换为文字。
+    SUPublicEDKey: Q0SFM5vJOtJt3oEU4Gy38/y9ktTWA+hu5X0pLCfoBA8=
+    SUVerifyUpdateBeforeExtraction: true
+    SUEnableAutomaticChecks: false
+  extraFiles:
+    - from: runtime/sparkle/Sparkle.framework
+      to: Frameworks/Sparkle.framework
+    - from: runtime/sparkle/sparkle
+      to: MacOS/sparkle
+    - from: runtime/sparkle/LICENSE
+      to: Resources/Sparkle-LICENSE
   identity: "-"
   hardenedRuntime: false
   minimumSystemVersion: 15.0.0

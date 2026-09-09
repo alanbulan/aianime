@@ -124,6 +124,16 @@ echo "Packaged FFmpeg H.264/subtitles/MP4/decode smoke passed."
 
 codesign --verify --deep --strict "$app_path"
 
+test -x "${app_path}/Contents/MacOS/sparkle"
+test -d "${app_path}/Contents/Frameworks/Sparkle.framework"
+test -f "${resources}/Sparkle-LICENSE"
+test "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "${app_path}/Contents/Info.plist")" = 'Q0SFM5vJOtJt3oEU4Gy38/y9ktTWA+hu5X0pLCfoBA8='
+test "$(/usr/libexec/PlistBuddy -c 'Print :SUVerifyUpdateBeforeExtraction' "${app_path}/Contents/Info.plist")" = 'true'
+sparkle_status=0
+"${app_path}/Contents/MacOS/sparkle" >"${temporary_root}/sparkle-help.txt" 2>&1 || sparkle_status=$?
+test "$sparkle_status" -eq 1
+grep -q 'check-immediately' "${temporary_root}/sparkle-help.txt"
+
 artifact_arch="$expected_arch"
 if [[ "$artifact_arch" == "x86_64" ]]; then
   artifact_arch="x64"

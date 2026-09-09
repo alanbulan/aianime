@@ -1589,7 +1589,7 @@ test("release update commands delegate only the selected artifact id", async () 
         downloaded.push(artifactId);
         return { version: "1.1.6" };
       },
-      install: () => {
+      install: async () => {
         installs += 1;
       },
     },

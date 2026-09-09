@@ -90,9 +90,19 @@ jobs:
         shell: bash
         run: pnpm --dir desktop test
 
+      - name: Verify native Sparkle update and signature rejection
+        shell: bash
+        run: pnpm --dir desktop runtime:sparkle && pnpm --dir desktop test:sparkle:mac
+
       - name: Build and verify Intel package
         shell: bash
         run: pnpm --dir desktop package:mac:x64
+
+      - name: Sign update archive with Sparkle Ed25519
+        shell: bash
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: pnpm --dir desktop release:sign:mac
 
       - name: Prepare package manifest
         id: artifacts

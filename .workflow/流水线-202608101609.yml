@@ -111,7 +111,7 @@ stages:
 
       git config user.name "Gitee Go"
       git config user.email "noreply@gitee.com"
-      git add README.md pyproject.toml uv.lock desktop/package.json frontend/vite.config.ts src/ai_anime/release-notes.md docs/cloud-integration-handoff.md
+      git add README_ENGINEERING.md pyproject.toml uv.lock desktop/package.json frontend/vite.config.ts src/ai_anime/release-notes.md docs/cloud-integration-handoff.md
       git commit \
         -m "chore(release): 自动升级版本至 v${VERSION}" \
         -m "来源提交：${SOURCE_COMMIT}" \

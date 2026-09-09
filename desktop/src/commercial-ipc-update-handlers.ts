@@ -36,11 +36,11 @@ export function registerCommercialUpdateHandlers(
     }
     return options.releaseUpdater.download(artifactId);
   });
-  context.handle(channels.installUpdate, () => {
+  context.handle(channels.installUpdate, async () => {
     if (!options.releaseUpdater) {
       throw new CommercialApiError("客户端尚未配置更新器");
     }
-    options.releaseUpdater.install();
+    await options.releaseUpdater.install();
     return { accepted: true };
   });
 }

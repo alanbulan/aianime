@@ -1,21 +1,19 @@
 ---
-version: 1.1.64
+version: 1.1.65
 attention: medium
 ---
-# v1.1.64
+# v1.1.65
 
 ## User-facing Highlights (zh)
 
-- **Mac 文字编辑**: 恢复原生编辑菜单和复制、粘贴、剪切、撤销、全选快捷键，补齐输入框右键编辑菜单；开发版与安装版使用同一实现。
-- **提示词拖放**: 修复视频节点把文字拖入输入框误当作文件上传、导致没有反馈的问题；保留视频文件上传行为。
-- **近期修复**: 包含视频模型参数与默认时长提示、BYOK 视频参数校验、网页助手合同和媒体任务状态更新等本地更新。
-- **版本同步**: Python 包、Electron 安装器、前端版本兜底、依赖锁文件和 README 已统一更新为 1.1.64。
-- **更新提示**: 更新窗口将展示本版本记录；安装完成后请重新启动客户端，使本地后端、Hermes 和 Electron 主进程全部切换到新版本。
+- **Mac 更新**：使用官方 Sparkle 安装器和独立 Ed25519 签名验证更新包，不再依赖 Squirrel.Mac 的 Developer ID 签名连续性；Windows 更新方式保持不变。
+- **安装状态**：修复点击更新后窗口立即消失的问题；安装期间持续显示状态，系统安装失败时保留错误提示并允许重试。
+- **旧版迁移**：Mac 1.1.63 / 1.1.64 用户需要手动安装一次本版 DMG，才能使用新的自动更新链路。首次安装仍可能出现 macOS 的未识别开发者提示。
+- **发布流程**：Mac Action 增加错误签名拒绝、原生替换与重启测试，以及更新 ZIP 签名；同步修正工程手册迁移后的版本脚本路径。
 
 ## User-facing Highlights (en)
 
-- **Mac text editing**: Restore native editing commands and shortcuts, and add text context menus using the same implementation in development and packaged apps.
-- **Prompt drag and drop**: Stop video nodes from cancelling native text drops into editors while preserving video file uploads.
-- **Recent fixes**: Include local updates to video model options and default durations, BYOK video validation, web assistant contracts and media task state updates.
-- **Version synchronization**: Python, Electron, frontend fallback, dependency lock, and README versions are synchronized to 1.1.64.
-- **Update notice**: Restart the desktop client after installation so the local backend, Hermes, and Electron main process all use the new version.
+- **Mac updates**: Use the official Sparkle installer and independent Ed25519 update signatures. Windows keeps its existing update mechanism.
+- **Installation state**: Keep the update dialog visible while installing and show asynchronous failures with a retry option.
+- **Migration**: Mac 1.1.63 / 1.1.64 users must manually install this DMG once to adopt the new update mechanism. Gatekeeper may still warn during the initial installation.
+- **Release workflow**: Verify signature rejection, native replacement and relaunch before packaging; sign update ZIPs and fix version synchronization after the engineering manual move.

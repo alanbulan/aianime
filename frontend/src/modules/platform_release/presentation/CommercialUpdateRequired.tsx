@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   downloadCommercialUpdate,
   installCommercialUpdate,
+  commercialUpdateFailureKey,
   subscribeCommercialUpdateDownloadProgress,
   type CommercialUpdateDownloadProgress,
   useCommercialRelease,
@@ -18,6 +19,9 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
   const [installState, setInstallState] = useState<
     "idle" | "downloading" | "installing" | "error"
   >("idle");
+  const [installErrorKey, setInstallErrorKey] = useState(
+    "app.commercialUpdate.installFailed",
+  );
   const [downloadProgress, setDownloadProgress] =
     useState<CommercialUpdateDownloadProgress | null>(null);
   const [downloadStartedAt, setDownloadStartedAt] = useState<number | null>(null);
@@ -34,12 +38,11 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
       await downloadCommercialUpdate(artifactId);
       setInstallState("installing");
       await installCommercialUpdate();
-      setInstallState("idle");
-      await release.refetch();
-    } catch {
+    } catch (error) {
+      setInstallErrorKey(commercialUpdateFailureKey(error));
       setInstallState("error");
     }
-  }, [artifactId, isInstalling, release]);
+  }, [artifactId, isInstalling]);
 
   useEffect(
     () => subscribeCommercialUpdateDownloadProgress(setDownloadProgress),
@@ -61,18 +64,18 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
           {t("app.commercialUpdate.requiredDescription")}
         </p>
         {release.isError || installState === "error" ? (
-          <p className="mt-3 text-sm leading-6 text-destructive">
+          <p role="alert" className="mt-3 text-sm leading-6 text-destructive">
             {t(
               installState === "error"
-                ? "app.commercialUpdate.installFailed"
+                ? installErrorKey
                 : "app.commercialUpdate.checkFailed",
             )}
           </p>
         ) : null}
         {artifactId !== null ? (
           <div className="mt-6 space-y-2">
-            {installState !== "idle" ? (
-              <CommercialUpdateProgressView progress={downloadProgress} startedAt={downloadStartedAt} status={installState === 'error' ? 'failed' : installState === 'installing' ? 'finalizing' : 'running'} />
+            {isInstalling ? (
+              <CommercialUpdateProgressView progress={downloadProgress} startedAt={downloadStartedAt} status={installState === 'installing' ? 'finalizing' : 'running'} />
             ) : null}
             <Button
               type="button"

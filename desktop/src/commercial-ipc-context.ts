@@ -56,7 +56,7 @@ export interface RegisterCommercialIpcOptions {
   onLoggedOut: () => void | Promise<void>;
   releaseUpdater?: {
     download(artifactId: string): Promise<{ version: string }>;
-    install(): void;
+    install(): Promise<void>;
   };
   saveInvocationResult?: (
     id: string,

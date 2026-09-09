@@ -24,7 +24,7 @@ async function fixture(t) {
     await writeFile(join(directory, url), content);
     files.push({ url, sha512: createHash("sha512").update(content).digest("base64"), size: content.length });
   }
-  const update = { version, files, path: files[0].url, sha512: files[0].sha512, releaseDate: "2026-09-05T13:07:32.150Z" };
+  const update = { version, files, sparkleEdSignature: Buffer.alloc(64, 1).toString("base64"), path: files[0].url, sha512: files[0].sha512, releaseDate: "2026-09-05T13:07:32.150Z" };
   const save = () => writeFile(join(directory, "latest-mac.yml"), dump(update));
   await save();
   return { directory, update, save };
@@ -118,6 +118,7 @@ test("vendored cloud script logs in, uploads the prepared ZIP/YAML, and publishe
 
 for (const [name, mutate, error] of [
   ["wrong version", (u) => { u.version = "1.1.62"; }, /version/],
+  ["missing signature", (u) => { delete u.sparkleEdSignature; }, /signature/],
   ["wrong ZIP hash", (u) => { u.files[0].sha512 = "wrong"; }, /SHA-512/],
   ["wrong DMG size", (u) => { u.files[1].size += 1; }, /size/],
   ["missing DMG entry", (u) => { u.files.pop(); }, /one updater entry/],
@@ -142,6 +143,12 @@ test("macOS release manifest rejects a missing package", async (t) => {
 test("Intel workflow uploads the verified release JSON with the existing Mac packages", async () => {
   const workflow = load(await readFile(new URL("../../.github/workflows/build-macos-intel.yml", import.meta.url), "utf8"));
   const steps = workflow.jobs.package.steps;
+  const native = steps.findIndex((step) => step.name === "Verify native Sparkle update and signature rejection");
+  const build = steps.findIndex((step) => step.name === "Build and verify Intel package");
+  const sign = steps.findIndex((step) => step.name === "Sign update archive with Sparkle Ed25519");
+  assert.ok(native >= 0 && native < build && sign > build && sign < steps.findIndex((step) => step.id === "artifacts"));
+  assert.equal(steps[sign].env.SPARKLE_ED_PRIVATE_KEY, "${{ secrets.SPARKLE_ED_PRIVATE_KEY }}");
+  assert.ok(steps.filter((_, index) => index !== sign).every((step) => !step.env?.SPARKLE_ED_PRIVATE_KEY));
   const prepare = steps.find((step) => step.id === "artifacts");
   assert.ok(prepare.run.includes("pnpm --dir desktop release:manifest:mac:x64"));
   const upload = steps.find((step) => step.name === "Upload temporary workflow artifact");

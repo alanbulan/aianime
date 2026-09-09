@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   downloadCommercialUpdate,
   installCommercialUpdate,
+  commercialUpdateFailureKey,
   subscribeCommercialUpdateDownloadProgress,
   type CommercialUpdateDownloadProgress,
   subscribeOpenVersionUpdateDialog,
@@ -27,6 +28,9 @@ export function VersionUpdateDialog() {
   const [installState, setInstallState] = useState<
     "idle" | "downloading" | "installing" | "error"
   >("idle");
+  const [installErrorKey, setInstallErrorKey] = useState(
+    "app.commercialUpdate.installFailed",
+  );
   const [downloadProgress, setDownloadProgress] =
     useState<CommercialUpdateDownloadProgress | null>(null);
   const [downloadStartedAt, setDownloadStartedAt] = useState<number | null>(null);
@@ -44,9 +48,10 @@ export function VersionUpdateDialog() {
       await downloadCommercialUpdate(artifactId);
       setInstallState("installing");
       await installCommercialUpdate();
-      setInstallState("idle");
-      setOpen(false);
-    } catch {
+      // Acknowledgement is not installation completion. Stay visible until
+      // the native updater closes the application, or reports a failure.
+    } catch (error) {
+      setInstallErrorKey(commercialUpdateFailureKey(error));
       setInstallState("error");
     }
   }, [artifactId, isInstalling]);
@@ -75,7 +80,10 @@ export function VersionUpdateDialog() {
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => { if (!isInstalling) setOpen(nextOpen); }}
+    >
       <DialogContent
         showCloseButton={false}
         overlayClassName="bg-scrim backdrop-blur-md supports-backdrop-filter:backdrop-blur-md"
@@ -116,12 +124,12 @@ export function VersionUpdateDialog() {
           </div>
           {commercialUpdateAvailable && artifactId !== null ? (
             <div className="mt-7 space-y-2">
-              {installState !== "idle" ? (
-                <CommercialUpdateProgressView progress={downloadProgress} startedAt={downloadStartedAt} status={installState === 'error' ? 'failed' : installState === 'installing' ? 'finalizing' : 'running'} />
+              {isInstalling ? (
+                <CommercialUpdateProgressView progress={downloadProgress} startedAt={downloadStartedAt} status={installState === 'installing' ? 'finalizing' : 'running'} />
               ) : null}
               {installState === "error" ? (
-                <p className="text-center text-[12.5px] leading-5 text-destructive">
-                  {t("app.commercialUpdate.installFailed")}
+                <p role="alert" className="text-center text-[12.5px] leading-5 text-destructive">
+                  {t(installErrorKey)}
                 </p>
               ) : null}
               <Button

@@ -15,7 +15,9 @@ export function CommercialUpdateProgressView({
   const { t } = useTranslation();
   const transferred = formatBytes(progress?.transferred ?? 0);
   const speed = formatBytes(progress?.bytesPerSecond ?? 0);
-  const detail = progress && progress.total > 0
+  const detail = status === 'finalizing'
+    ? t("app.commercialUpdate.preparingInstall")
+    : progress && progress.total > 0
     ? t("app.commercialUpdate.downloadProgress", {
         transferred,
         total: formatBytes(progress.total),
@@ -28,7 +30,7 @@ export function CommercialUpdateProgressView({
 
   return (
     <div className="space-y-2" aria-live="polite">
-      <TaskProgress local startedAt={startedAt} task={{ status, progress: (progress?.percent ?? 0) / 100 }} aria-label={detail} />
+      <TaskProgress local startedAt={startedAt} task={{ status, progress: status === 'finalizing' ? 1 : (progress?.percent ?? 0) / 100 }} aria-label={detail} />
       <p className="text-center text-[11px] tabular-nums text-muted-foreground">
         {detail}
       </p>

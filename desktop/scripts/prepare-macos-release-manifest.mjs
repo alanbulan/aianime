@@ -29,6 +29,7 @@ export async function prepareMacosReleaseManifest(directory, version, notes = ""
   const updaterManifest = "latest-mac.yml";
   const update = load(await readFile(join(directory, updaterManifest), "utf8"));
   assert.equal(update.version, version, "Updater version does not match the application");
+  assert.match(update.sparkleEdSignature ?? "", /^[A-Za-z0-9+/]{86}==$/, "Sparkle update signature is missing");
   assert.ok(Array.isArray(update.files), "Updater files are missing");
   assert.ok(typeof update.releaseDate === "string" && Number.isFinite(Date.parse(update.releaseDate)),
     "Updater release date is missing or invalid");

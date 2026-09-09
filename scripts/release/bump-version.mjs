@@ -68,11 +68,11 @@ export function readWorkspaceVersion(root) {
       ),
     ],
     [
-      "README.md",
+      "README_ENGINEERING.md",
       requiredMatch(
-        read(root, "README.md"),
+        read(root, "README_ENGINEERING.md"),
         /当前客户端版本：`([^`]+)`。/,
-        "README.md",
+        "README_ENGINEERING.md",
       ),
     ],
   ]);
@@ -182,12 +182,12 @@ export function bumpWorkspaceVersion(root, targetVersion, context = {}) {
   );
   write(
     root,
-    "README.md",
+    "README_ENGINEERING.md",
     replaceRequired(
-      read(root, "README.md"),
+      read(root, "README_ENGINEERING.md"),
       /当前客户端版本：`[^`]+`。/,
       `当前客户端版本：\`${targetVersion}\`。`,
-      "README.md",
+      "README_ENGINEERING.md",
     ),
   );
   write(

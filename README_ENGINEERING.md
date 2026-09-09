@@ -2,7 +2,7 @@
 
 AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、Electron 主进程、FastAPI 本地 sidecar、Python 业务运行时、SQLite、FFmpeg 和 Hermes ACP 组成，最终用户不需要单独安装 Python、Node.js 或 FFmpeg。
 
-当前客户端版本：`1.1.64`。
+当前客户端版本：`1.1.65`。
 
 `master` 分支已接入 Gitee Go 自动版本流水线。普通代码提交会先串行执行根 uv.lock 锁定环境下的 Python Ruff 与全量测试、前端完整回归（含架构、组件和 Chromium 浏览器）与类型检查、前端 CE 构建、Electron 测试与类型检查；全部通过后自动递增补丁版本，生成中英文更新记录，并以 `chore(release): 自动升级版本至 vX.Y.Z` 提交回写仓库。流水线生成的版本提交会被守卫识别，不会再次递增；前端测试构件同时保存在本次 Gitee Go 构建产物中。Windows NSIS 和 macOS 安装包仍需在对应系统构建，避免把错误平台的 Python sidecar 打进安装包。
 
@@ -844,7 +844,13 @@ GitHub 仓库公开前必须确认源码和历史中不包含密钥或敏感数�
 
 Apple Silicon 包最低版本仍为 15.0。Windows 允许无证书打包，两个 macOS 包均使用本地 ad-hoc 签名，不要求打包机配置开发者账号或证书；对外分发时仍需 Developer ID 签名与公证，才能避免 Gatekeeper 的未识别开发者拦截。
 
-更新由 `electron-updater` 处理。`electron-builder` 会生成 `latest.yml` / `latest-mac.yml`，云端直接托管 YAML 和对应安装包，具体接口见 [云端交接文档](docs/cloud-integration-handoff.md)。
+更新下载继续由 `electron-updater` 处理，保留 Gateway 鉴权、SHA-512 校验和缓存；Windows 的 NSIS 安装方式不变。macOS 安装使用固定版本、固定 SHA-256 的官方 Sparkle 2.9.6 框架及命令行工具，使用应用 `Info.plist` 中的 Ed25519 公钥验证更新 ZIP，再由原生安装器替换并重启应用。它不要求 Apple Developer ID，但不消除首次手动安装时的 Gatekeeper 提示。
+
+Mac 出包前运行 `runtime:sparkle`；出包后使用 `SPARKLE_ED_PRIVATE_KEY` 运行 `release:sign:mac`，再按现有 `release:manifest:mac:x64`、`release:publish:mac:x64` 顺序发布。签名写入 `latest-mac.yml` 的 `sparkleEdSignature`，云端单 ZIP 清单保留该字段；缺少签名会停止发布或下载。私钥只由签名步骤读取，不进入制品、仓库或日志。公钥一旦交付不能随意轮换；Windows 管理员的一次性初始化脚本 `setup-sparkle-key.mjs` 将私钥放入 GitHub Secret，并在 `%LOCALAPPDATA%/AI-anime-release-keys/sparkle-ed25519.dpapi` 保留当前 Windows 账户可解密的备份。
+
+1.1.63 / 1.1.64 使用旧的 Squirrel.Mac，不能通过本次代码修复旧安装器；这些用户必须手动安装一次含 Sparkle 的新版 DMG，之后才能使用新更新链路。安装请求会保持“正在安装”，异步错误留在窗口中显示并允许重试，不再把请求已接收当成完成关闭窗口。Action 在出包前通过隔离测试应用验证错误签名拒绝、有效签名替换及重启；此测试不是完整产品的 Ventura 实机安装或生成验收。
+
+`electron-builder` 生成 `latest.yml` / `latest-mac.yml`，云端继续托管 YAML 和对应安装包，接口见 [云端交接文档](docs/cloud-integration-handoff.md)。
 
 ### 发布前检查
 

@@ -1,9 +1,10 @@
 // Copyright (c) 2026 AI anime
 
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { hostname } from "node:os";
 import {
   app,
+  autoUpdater as nativeAutoUpdater,
   BrowserWindow,
   clipboard,
   dialog,
@@ -33,6 +34,7 @@ import {
 } from "./commercial.js";
 import { COMMERCIAL_LEASE_SIGNING_KEYS } from "./commercial-trust.js";
 import { CommercialDesktopUpdater } from "./commercial-updater.js";
+import { installSparkleUpdate } from "./commercial-sparkle-installer.js";
 import { COMMERCIAL_CHANNELS } from "./commercial-ipc.js";
 import { installDesktopSessionSecurity } from "./desktop-session-security.js";
 import { installDesktopApplicationMenu, installDesktopTextContextMenu } from "./desktop-editing.js";
@@ -180,6 +182,7 @@ async function registerCommercialGatewayIpc(
   const device = await deviceIdentity.summary();
   const releaseUpdater = new CommercialDesktopUpdater(
     electronUpdater.autoUpdater,
+    nativeAutoUpdater,
     (artifactId) => client.releaseUpdateFeed(artifactId),
     (progress) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -189,6 +192,8 @@ async function registerCommercialGatewayIpc(
         );
       }
     },
+    process.platform,
+    (update) => installSparkleUpdate(resolve(process.execPath, "../../.."), update),
   );
   registerCommercialIpc({
     ipcMain,

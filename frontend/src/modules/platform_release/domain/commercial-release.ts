@@ -261,3 +261,16 @@ function boundedNumber(
   }
   return value;
 }
+
+export function commercialUpdateFailureKey(error: unknown): string {
+  const code = error && typeof error === "object" && "code" in error
+    ? error.code
+    : null;
+  if (code === "UPDATE_SIGNATURE_INVALID") {
+    return "app.commercialUpdate.signatureInvalid";
+  }
+  if (code === "UPDATE_READ_ONLY") {
+    return "app.commercialUpdate.readOnly";
+  }
+  return "app.commercialUpdate.installFailed";
+}

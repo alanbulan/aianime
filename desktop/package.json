@@ -1,6 +1,6 @@
 {
   "name": "@ai-anime/desktop",
-  "version": "1.1.64",
+  "version": "1.1.65",
   "description": "AI manga production desktop client",
   "author": "alanbulan",
   "private": true,
@@ -14,6 +14,9 @@
     "build:world-runtime": "uv run --project .. --locked --extra world --group desktop pyinstaller --clean --noconfirm --distpath world-runtime-dist --workpath .pyinstaller-world backend/ai_anime_world_runtime.spec && node scripts/smoke-world-runtime.mjs",
     "build:hermes": "uv run --project hermes-runtime --locked --group build pyinstaller --clean --noconfirm --distpath hermes-runtime/dist --workpath hermes-runtime/.pyinstaller hermes-runtime/hermes_acp.spec",
     "runtime:hermes": "uv sync --project hermes-runtime --locked",
+    "runtime:sparkle": "node scripts/prepare-sparkle.mjs",
+    "release:sign:mac": "node scripts/sign-macos-update.mjs",
+    "test:sparkle:mac": "node --experimental-transform-types --import ./scripts/register-typescript.mjs scripts/smoke-sparkle-update.mjs",
     "release:manifest:mac:x64": "node scripts/prepare-macos-release-manifest.mjs",
     "release:publish:mac:x64": "node scripts/publish-client-release.cjs --plan release/cloud/release.json --publish",
     "release:manifest:win": "node scripts/prepare-windows-update-manifest.mjs",
@@ -32,8 +35,8 @@
     "package:prepare": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run runtime:whisper && pnpm run build && pnpm run build:backend && pnpm run build:hermes",
     "package:dir": "pnpm run package:prepare && electron-builder --dir && node scripts/smoke-packaged-win-resources.mjs",
     "package:win": "node scripts/assert-package-host.mjs win32 x64 && pnpm run package:prepare && electron-builder --win nsis --x64 --publish never && pnpm run release:manifest:win && node scripts/smoke-packaged-win-resources.mjs",
-    "package:mac": "node scripts/assert-package-host.mjs darwin arm64 && pnpm run package:prepare && electron-builder --mac dmg zip --arm64 --publish never",
-    "package:mac:x64": "node scripts/assert-package-host.mjs darwin x64 && bash scripts/prepare-macos-intel-python.sh && MACOSX_DEPLOYMENT_TARGET=13.0 UV_NO_SYNC=1 pnpm run package:prepare && electron-builder --mac dmg zip --x64 --publish never --config electron-builder.macos-intel.yml && bash scripts/smoke-packaged-mac-resources.sh x86_64 13.4.0"
+    "package:mac": "node scripts/assert-package-host.mjs darwin arm64 && pnpm run runtime:sparkle && pnpm run package:prepare && electron-builder --mac dmg zip --arm64 --publish never",
+    "package:mac:x64": "node scripts/assert-package-host.mjs darwin x64 && pnpm run runtime:sparkle && bash scripts/prepare-macos-intel-python.sh && MACOSX_DEPLOYMENT_TARGET=13.0 UV_NO_SYNC=1 pnpm run package:prepare && electron-builder --mac dmg zip --x64 --publish never --config electron-builder.macos-intel.yml && bash scripts/smoke-packaged-mac-resources.sh x86_64 13.4.0"
   },
   "devDependencies": {
     "@types/node": "^26.3.0",
