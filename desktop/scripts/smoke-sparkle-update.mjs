@@ -28,13 +28,13 @@ await writeFile(source, `#import <Cocoa/Cocoa.h>
 @end
 int main() { @autoreleasepool { NSApplication *app = [NSApplication sharedApplication]; SmokeDelegate *delegate = [SmokeDelegate new]; app.delegate = delegate; [app run]; } return 0; }
 `);
-async function bundle(name, version) {
+async function bundle(name, version, identifier) {
   const path = join(directory, name, "Smoke.app");
   const contents = join(path, "Contents");
   await mkdir(join(contents, "MacOS"), { recursive: true });
   await mkdir(join(contents, "Frameworks"), { recursive: true });
   await writeFile(join(contents, "Info.plist"), `<?xml version="1.0"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>${bundleId}</string><key>CFBundleExecutable</key><string>Smoke</string><key>CFBundleName</key><string>Smoke</string><key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleIdentifier</key><string>${identifier}</string><key>CFBundleExecutable</key><string>Smoke</string><key>CFBundleName</key><string>Smoke</string><key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleVersion</key><string>${version}</string><key>CFBundleShortVersionString</key><string>${version}</string>
 <key>SUPublicEDKey</key><string>${publicEdKey}</string><key>SUVerifyUpdateBeforeExtraction</key><true/><key>SUEnableAutomaticChecks</key><false/>
 <key>SmokeMarkerPath</key><string>${marker}</string></dict></plist>`);
@@ -53,27 +53,44 @@ async function waitVersion(version) {
 }
 // A bounded native test, not an installation timeout in the product.
 const watchdog = setTimeout(() => { console.error("Native Sparkle smoke timed out"); process.exit(1); }, 180_000);
-const oldBundle = await bundle("installed", "1.0.0");
-const newBundle = await bundle("update", "1.0.1");
 try {
-  const zip = join(directory, "update.zip");
-  execFileSync("ditto", ["-c", "-k", "--sequesterRsrc", "--keepParent", newBundle, zip]);
-  const signed = execFileSync(join(runtime, "bin/sign_update"), ["--ed-key-file", "-", zip], { input: `${seed}\n`, encoding: "utf8" });
-  const signature = signed.match(/sparkle:edSignature="([A-Za-z0-9+/]{86}==)"/)?.[1];
-  assert.ok(signature, "Official signing utility must accept the generated Ed25519 seed");
-  execFileSync("open", ["-n", oldBundle]);
-  await waitVersion("1.0.0");
-  await assert.rejects(installSparkleUpdate(oldBundle, { version: "1.0.1", archivePath: zip, edSignature: Buffer.alloc(64, 1).toString("base64") }));
-  assert.equal(await readFile(marker, "utf8"), "1.0.0");
-  assert.match(await readFile(join(oldBundle, "Contents/Info.plist"), "utf8"), /1\.0\.0/);
-  console.log("PASS: invalid Ed25519 signature rejected, installed app unchanged");
-  await installSparkleUpdate(oldBundle, { version: "1.0.1", archivePath: zip, edSignature: signature });
-  await waitVersion("1.0.1");
-  assert.match(await readFile(join(oldBundle, "Contents/Info.plist"), "utf8"), /1\.0\.1/);
-  console.log("PASS: official Sparkle validated, replaced and relaunched an ad-hoc signed app");
+  // Sparkle's failed installer service exits asynchronously. Independent bundle
+  // identities keep signature rejection from contaminating the successful case.
+  for (const scenario of ["invalid", "valid"]) {
+    const identifier = `${bundleId}.${scenario}`;
+    const oldBundle = await bundle(`${scenario}-installed`, "1.0.0", identifier);
+    const newBundle = await bundle(`${scenario}-update`, "1.0.1", identifier);
+    const zip = join(directory, `${scenario}.zip`);
+    execFileSync("ditto", ["-c", "-k", "--sequesterRsrc", "--keepParent", newBundle, zip]);
+    const signed = execFileSync(join(runtime, "bin/sign_update"), ["--ed-key-file", "-", zip], { input: `${seed}\n`, encoding: "utf8" });
+    const signature = signed.match(/sparkle:edSignature="([A-Za-z0-9+/]{86}==)"/)?.[1];
+    assert.ok(signature, "Official signing utility must accept the generated Ed25519 seed");
+    await rm(marker, { force: true });
+    execFileSync("open", ["-n", oldBundle]);
+    await waitVersion("1.0.0");
+    try {
+      if (scenario === "invalid") {
+        await assert.rejects(installSparkleUpdate(oldBundle, { version: "1.0.1", archivePath: zip, edSignature: Buffer.alloc(64, 1).toString("base64") }), (error) => {
+          assert.match(error.message, /improperly signed|signature|error 3001/i,
+            "An unrelated installer error must not count as signature rejection");
+          console.log(`Native rejection: ${error.message.trim()}`);
+          return true;
+        });
+        assert.equal(await readFile(marker, "utf8"), "1.0.0");
+        assert.match(await readFile(join(oldBundle, "Contents/Info.plist"), "utf8"), /1\.0\.0/);
+        console.log("PASS: invalid Ed25519 signature rejected, installed app unchanged");
+      } else {
+        await installSparkleUpdate(oldBundle, { version: "1.0.1", archivePath: zip, edSignature: signature });
+        await waitVersion("1.0.1");
+        assert.match(await readFile(join(oldBundle, "Contents/Info.plist"), "utf8"), /1\.0\.1/);
+        console.log("PASS: official Sparkle validated, replaced and relaunched an ad-hoc signed app");
+      }
+    } finally {
+      try { execFileSync("osascript", ["-e", `tell application id "${identifier}" to quit`]); } catch {}
+    }
+  }
 } finally {
   clearTimeout(watchdog);
-  try { execFileSync("osascript", ["-e", `tell application id "${bundleId}" to quit`]); } catch {}
   // Only the unique directory created above belongs to this disposable fixture.
   await rm(directory, { recursive: true, force: true });
 }
