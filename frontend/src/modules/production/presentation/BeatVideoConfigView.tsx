@@ -178,6 +178,22 @@ export function BeatVideoConfigView({
   const promptStatus = config.ready
     ? t("episode.workbench.video.videoPromptReady")
     : t("episode.workbench.video.videoPromptMissing");
+  const modeLabel = t(
+    `episode.workbench.video.videoReferenceModeLabels.${
+      showReferenceVideoConfig
+        ? normalizeReferenceVideoMode(draft.mode)
+        : draft.mode
+    }`,
+  );
+  const outputLabel = draft.resolution.includes("x")
+    ? t("episode.workbench.video.configSummary.exactSize", {
+        defaultValue: "{{value}} (exact size)",
+        value: draft.resolution.replace("x", " × "),
+      })
+    : t("episode.workbench.video.configSummary.qualityTier", {
+        defaultValue: "{{value}} (quality tier)",
+        value: draft.resolution,
+      });
   const changeDuration = (value: unknown) => {
     const duration = clampDuration(
       value,
@@ -497,7 +513,9 @@ export function BeatVideoConfigView({
         </VideoReferenceField>
         {resolutionOptions.length ? (
           <VideoReferenceField
-            label={t("episode.workbench.video.resolution")}
+            label={t("episode.workbench.video.outputSpec", {
+              defaultValue: "输出规格",
+            })}
             htmlFor={`${videoReferenceId}-resolution`}
           >
             <Select
@@ -519,8 +537,14 @@ export function BeatVideoConfigView({
                 {resolutionOptions.map((resolution) => (
                   <SelectItem key={resolution} value={resolution}>
                     {resolution.includes("x")
-                      ? resolution.replace("x", " × ")
-                      : resolution}
+                      ? t("episode.workbench.video.configSummary.exactSize", {
+                          defaultValue: "{{value}} (exact size)",
+                          value: resolution.replace("x", " × "),
+                        })
+                      : t("episode.workbench.video.configSummary.qualityTier", {
+                          defaultValue: "{{value}} (quality tier)",
+                          value: resolution,
+                        })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -565,6 +589,23 @@ export function BeatVideoConfigView({
         </VideoReferenceField>
       </div>
 
+      <div
+        data-testid="video-generation-config-summary"
+        className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[8px] border border-border bg-muted px-2.5 py-2 text-[11px] leading-4 text-muted-foreground"
+      >
+        <span className="font-medium text-foreground/82">
+          {t("episode.workbench.video.configSummary.title", {
+            defaultValue: "Generation summary",
+          })}
+        </span>
+        <span>{t("episode.workbench.video.configSummary.mode", { defaultValue: "Mode {{value}}", value: modeLabel })}</span>
+        <span>{t("episode.workbench.video.configSummary.output", { defaultValue: "Output {{value}}", value: outputLabel })}</span>
+        <span>{t("episode.workbench.video.configSummary.ratio", { defaultValue: "Aspect {{value}}", value: draft.ratio })}</span>
+        <span>{t("episode.workbench.video.configSummary.duration", { defaultValue: "Duration {{value}}s", value: draft.duration })}</span>
+        <span>{t("episode.workbench.video.configSummary.audio", { defaultValue: "Audio {{value}}", value: draft.generate_audio ? "On" : "Off" })}</span>
+        <span>{t("episode.workbench.video.configSummary.count", { defaultValue: "Versions {{value}}", value: mediaCandidateCount })}</span>
+      </div>
+
       <p
         data-testid="video-generation-mode-description"
         className="px-1 text-[11px] leading-5 text-muted-foreground"
@@ -579,6 +620,14 @@ export function BeatVideoConfigView({
       </p>
 
       <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-muted-foreground">
+        <VideoReferenceCheckbox
+          id={`${videoReferenceId}-generate-audio`}
+          checked={draft.generate_audio}
+          label={t("episode.workbench.video.generateAudio", {
+            defaultValue: "生成音频",
+          })}
+          onChange={(checked) => config.updateDraft("generate_audio", checked)}
+        />
         {showAdvancedVideoConfig && (
           <VideoReferenceCheckbox
             id={`${videoReferenceId}-return-last-frame`}

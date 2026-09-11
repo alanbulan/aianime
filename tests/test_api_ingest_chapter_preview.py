@@ -333,7 +333,7 @@ async def test_upload_novel_rejects_files_over_512kb(tmp_path, monkeypatch):
 
     assert response == {
         "ok": False,
-        "error": "文件超过 512KB 上限，请压缩文件或拆分正文后重新上传。",
+        "error": "文件超过 200MB 上限，请压缩文件或拆分正文后重新上传。",
         "error_type": "file_too_large",
         "data": {"limit_bytes": MAX_STORY_UPLOAD_BYTES},
     }

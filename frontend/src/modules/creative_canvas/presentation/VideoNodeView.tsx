@@ -551,6 +551,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
                 aspectRatioOptions={aspectRatioOptions}
                 outputValue={outputValue}
                 outputOptions={outputDefinition?.options ?? []}
+                outputParameter={outputDefinition?.parameter}
                 extraParamDefinitions={extraParamDefinitions}
                 extraParams={extraParams}
                 durationSec={durationSec}
@@ -561,6 +562,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
                 sceneOptimizeOptions={sceneOptimizeOptions}
                 generateAudio={generateAudio}
                 supportsGenerateAudio={supportsGenerateAudio}
+                count={count}
                 onChange={handleVideoConfigChange}
               />
               {supportsHumanReview && (

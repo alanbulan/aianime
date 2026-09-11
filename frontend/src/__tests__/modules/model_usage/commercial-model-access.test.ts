@@ -91,7 +91,7 @@ describe("commercial model details", () => {
       },
     });
     expect(formatReasoningEffort(metadata.reasoningEffort)).toBe(
-      "关闭思考 / low / medium / high（默认 low）",
+      "关闭思考 / 轻度 / 中度 / 高度（默认 轻度）",
     );
   });
 

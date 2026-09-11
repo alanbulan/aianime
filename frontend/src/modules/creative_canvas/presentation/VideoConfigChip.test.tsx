@@ -6,8 +6,13 @@ import { VideoConfigChip, type VideoConfigChipProps } from "./VideoConfigChip";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) =>
-      key === "node.videoNode.aspect.auto" ? "自动" : key,
+    t: (key: string) => ({
+      "node.videoNode.aspect.auto": "自动",
+      "node.videoNode.advancedParams.steps": "采样步数",
+      "node.videoNode.advancedParams.seed": "随机种子",
+      "node.videoNode.advancedParams.turbo": "快速模式",
+      "node.videoNode.summary.title": "生成摘要",
+    }[key] ?? key),
   }),
 }));
 
@@ -127,10 +132,10 @@ describe("VideoConfigChip", () => {
     fireEvent.click(screen.getByText("1344x768").closest("button")!);
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "768x1344" }));
-    fireEvent.change(screen.getByRole("spinbutton", { name: "steps" }), {
+    fireEvent.change(screen.getByRole("spinbutton", { name: "采样步数" }), {
       target: { value: "24" },
     });
-    fireEvent.click(screen.getByRole("checkbox", { name: "turbo" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "快速模式" }));
 
     expect(onChange).toHaveBeenCalledWith({
       generationResolution: "768x1344",
@@ -141,6 +146,7 @@ describe("VideoConfigChip", () => {
     expect(onChange).toHaveBeenCalledWith({
       extraParams: { steps: 20, seed: 42, turbo: true },
     });
+    expect(screen.getByText(/生成摘要/)).toBeInTheDocument();
   });
 
   it("keeps partial duration input local and normalizes committed values", () => {

@@ -41,6 +41,7 @@ export interface VideoConfigChipProps {
   aspectRatioOptions: ReadonlyArray<string>;
   outputValue: string | null;
   outputOptions: ReadonlyArray<string>;
+  outputParameter?: "resolution" | "size";
   extraParamDefinitions: ReadonlyArray<VideoExtraParamDefinition>;
   extraParams: Record<string, unknown>;
   durationSec: number | null;
@@ -51,6 +52,7 @@ export interface VideoConfigChipProps {
   sceneOptimizeOptions: ReadonlyArray<VideoSceneOptimize>;
   generateAudio: boolean;
   supportsGenerateAudio: boolean;
+  count?: number;
   onChange: (patch: VideoConfigPatch) => void;
 }
 
@@ -69,7 +71,9 @@ export function VideoConfigChip({
   sceneOptimizeOptions,
   generateAudio,
   supportsGenerateAudio,
+  count,
   onChange,
+  outputParameter = "resolution",
 }: VideoConfigChipProps) {
   const { t } = useTranslation();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -110,6 +114,52 @@ export function VideoConfigChip({
     if (normalized !== durationSec) onChange({ durationSec: normalized });
   };
 
+  const summary = [
+    aspectRatio
+      ? t("node.videoNode.summary.aspect", {
+          defaultValue: "Aspect {{value}}",
+          value: aspectRatio === "auto" ? "Auto" : aspectRatio,
+        })
+      : null,
+    outputValue
+      ? t("node.videoNode.summary.output", {
+          defaultValue: "{{kind}} {{value}}",
+          value: outputValue,
+          kind: outputParameter === "size"
+            ? t("node.videoNode.summary.sizeKind", { defaultValue: "Size" })
+            : t("node.videoNode.summary.qualityKind", { defaultValue: "Quality" }),
+        })
+      : null,
+    durationSec !== null
+      ? t("node.videoNode.summary.duration", {
+          defaultValue: "Duration {{value}}s",
+          value: durationSec,
+        })
+      : null,
+    supportsGenerateAudio
+      ? t("node.videoNode.summary.audio", {
+          defaultValue: "Audio {{value}}",
+          value: generateAudio ? "On" : "Off",
+        })
+      : null,
+    count !== undefined
+      ? t("node.videoNode.summary.count", {
+          defaultValue: "Count {{value}}",
+          value: count,
+        })
+      : null,
+  ].filter(Boolean).join(" · ");
+
+  const advancedLabel = (definition: VideoExtraParamDefinition) => {
+    const aliases: Record<string, string> = {
+      seed: t("node.videoNode.advancedParams.seed", { defaultValue: "Random seed" }),
+      steps: t("node.videoNode.advancedParams.steps", { defaultValue: "Sampling steps" }),
+      turbo: t("node.videoNode.advancedParams.turbo", { defaultValue: "Fast mode" }),
+      reference_image_size: t("node.videoNode.advancedParams.referenceImageSize", { defaultValue: "Reference image encoding size" }),
+    };
+    return aliases[definition.key] ?? definition.label;
+  };
+
   useEffect(() => {
     if (!isOpen) return;
     const onPointerDown = (event: MouseEvent) => {
@@ -135,6 +185,7 @@ export function VideoConfigChip({
           setIsOpen((previous) => !previous);
         }}
         className={NODE_TEXT_CONTROL_TRIGGER_CLASS}
+        aria-label={summary || "参数未配置"}
       >
         {!aspectRatio && !outputValue && durationSec === null && (
           <span>参数未配置</span>
@@ -175,6 +226,14 @@ export function VideoConfigChip({
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
+          {summary && (
+            <div className="mb-4 rounded-md border border-border bg-muted px-2.5 py-2 text-[11px] leading-4 text-text-muted">
+              <span className="font-medium text-text-dark/88">
+                {t("node.videoNode.summary.title", { defaultValue: "Generation summary" })}
+              </span>
+              <span className="ml-1">{summary}</span>
+            </div>
+          )}
           {aspectRatio && aspectRatioOptions.length > 0 && (
             <>
               <div className={VIDEO_PARAM_LABEL_CLASS}>
@@ -207,7 +266,9 @@ export function VideoConfigChip({
           {outputValue && outputOptions.length > 0 && (
             <>
               <div className={VIDEO_PARAM_LABEL_CLASS}>
-                {t("node.videoNode.quality.title")}
+                {outputParameter === "size"
+                  ? t("node.videoNode.outputSize.title", { defaultValue: "输出尺寸" })
+                  : t("node.videoNode.quality.title")}
               </div>
               <div className={`grid grid-cols-3 ${VIDEO_PARAM_ROW_CLASS}`}>
                 {outputOptions.map((option) => {
@@ -227,6 +288,15 @@ export function VideoConfigChip({
                 </button>
               );
                 })}
+              </div>
+              <div className="-mt-2 mb-4 text-[10px] leading-4 text-text-muted">
+                {outputParameter === "size"
+                  ? t("node.videoNode.outputSize.hint", {
+                      defaultValue: "Exact pixel size follows the selected aspect ratio",
+                    })
+                  : t("node.videoNode.quality.hint", {
+                      defaultValue: "Quality tiers are provided by the selected model",
+                    })}
               </div>
             </>
           )}
@@ -328,90 +398,12 @@ export function VideoConfigChip({
             </>
           )}
 
-          {extraParamDefinitions.length > 0 && (
-            <div className={VIDEO_PARAM_ROW_CLASS}>
-              <div className={VIDEO_PARAM_LABEL_CLASS}>模型参数</div>
-              <div className="space-y-2">
-                {extraParamDefinitions.map((definition) => {
-                  const value = extraParams[definition.key] ??
-                    definition.defaultValue;
-                  const updateValue = (next: boolean | number | string) =>
-                    onChange({
-                      extraParams: { ...extraParams, [definition.key]: next },
-                    });
-                  return (
-                    <div
-                      key={definition.key}
-                      className="space-y-1 rounded-md border border-border bg-muted px-2.5 py-2"
-                    >
-                      <div className="text-xs font-medium text-text-dark/88">
-                        {definition.label}
-                      </div>
-                      {definition.description && (
-                        <div className="text-[11px] leading-4 text-text-muted">
-                          {definition.description}
-                        </div>
-                      )}
-                      {definition.type === "enum" && (
-                        <UiSelect
-                          aria-label={definition.label}
-                          value={typeof value === "string" ? value : ""}
-                          onChange={(event) => updateValue(event.target.value)}
-                          className="h-8 text-xs"
-                        >
-                          {(definition.options ?? []).map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </UiSelect>
-                      )}
-                      {definition.type === "boolean" && (
-                        <label className="flex items-center gap-2 text-xs text-text-dark/88">
-                          <UiCheckbox
-                            aria-label={definition.label}
-                            checked={Boolean(value)}
-                            onCheckedChange={(checked) => updateValue(checked)}
-                          />
-                          <span>{Boolean(value) ? "开启" : "关闭"}</span>
-                        </label>
-                      )}
-                      {definition.type === "number" && (
-                        <UiInput
-                          aria-label={definition.label}
-                          type="number"
-                          min={definition.min}
-                          max={definition.max}
-                          step={definition.step}
-                          value={typeof value === "number" ? String(value) : ""}
-                          onChange={(event) => {
-                            const next = Number(event.target.value);
-                            if (Number.isFinite(next)) updateValue(next);
-                          }}
-                          className="h-8 text-xs"
-                        />
-                      )}
-                      {definition.type === "string" && (
-                        <UiInput
-                          aria-label={definition.label}
-                          value={typeof value === "string" ? value : ""}
-                          onChange={(event) => updateValue(event.target.value)}
-                          className="h-8 text-xs"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {supportsGenerateAudio && (
             <>
               <div className={VIDEO_PARAM_LABEL_CLASS}>
                 {t("node.videoNode.audio.title")}
               </div>
-              <div className="flex items-center justify-between rounded-md border border-border bg-muted px-2.5 py-1.5">
+              <div className="mb-4 flex items-center justify-between rounded-md border border-border bg-muted px-2.5 py-1.5">
                 <span className="text-xs font-medium text-text-dark/88">
                   {generateAudio
                     ? t("node.videoNode.audio.on")
@@ -438,6 +430,90 @@ export function VideoConfigChip({
               </div>
             </>
           )}
+
+          {extraParamDefinitions.length > 0 && (
+            <div className={VIDEO_PARAM_ROW_CLASS}>
+              <div className={VIDEO_PARAM_LABEL_CLASS}>高级模型参数</div>
+              <div className="space-y-2">
+                {extraParamDefinitions.map((definition) => {
+                  const value = extraParams[definition.key] ??
+                    definition.defaultValue;
+                  const updateValue = (next: boolean | number | string) =>
+                    onChange({
+                      extraParams: { ...extraParams, [definition.key]: next },
+                    });
+                  return (
+                    <div
+                      key={definition.key}
+                      className="space-y-1 rounded-md border border-border bg-muted px-2.5 py-2"
+                    >
+                      <div className="text-xs font-medium text-text-dark/88">
+                        {advancedLabel(definition)}
+                        {definition.key !== advancedLabel(definition) && (
+                          <span className="ml-1 font-normal text-text-muted">
+                            ({definition.key})
+                          </span>
+                        )}
+                      </div>
+                      {definition.description && (
+                        <div className="text-[11px] leading-4 text-text-muted">
+                          {definition.description}
+                        </div>
+                      )}
+                      {definition.type === "enum" && (
+                        <UiSelect
+                          aria-label={advancedLabel(definition)}
+                          value={typeof value === "string" ? value : ""}
+                          onChange={(event) => updateValue(event.target.value)}
+                          className="h-8 text-xs"
+                        >
+                          {(definition.options ?? []).map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </UiSelect>
+                      )}
+                      {definition.type === "boolean" && (
+                        <label className="flex items-center gap-2 text-xs text-text-dark/88">
+                          <UiCheckbox
+                            aria-label={advancedLabel(definition)}
+                            checked={Boolean(value)}
+                            onCheckedChange={(checked) => updateValue(checked)}
+                          />
+                          <span>{Boolean(value) ? "开启" : "关闭"}</span>
+                        </label>
+                      )}
+                      {definition.type === "number" && (
+                        <UiInput
+                          aria-label={advancedLabel(definition)}
+                          type="number"
+                          min={definition.min}
+                          max={definition.max}
+                          step={definition.step}
+                          value={typeof value === "number" ? String(value) : ""}
+                          onChange={(event) => {
+                            const next = Number(event.target.value);
+                            if (Number.isFinite(next)) updateValue(next);
+                          }}
+                          className="h-8 text-xs"
+                        />
+                      )}
+                      {definition.type === "string" && (
+                        <UiInput
+                          aria-label={advancedLabel(definition)}
+                          value={typeof value === "string" ? value : ""}
+                          onChange={(event) => updateValue(event.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>

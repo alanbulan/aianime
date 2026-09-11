@@ -1238,7 +1238,7 @@
     "title": "Story Source",
     "subtitle": "Upload a script and start your creative journey.",
     "dropzoneHint": "Click or drop your novel file here",
-    "supportedFormats": "Supports .txt / .md / .docx · up to 512KB",
+    "supportedFormats": "Supports .txt / .md / .docx · up to 200MB",
     "uploadingTitle": "Uploading novel…",
     "uploadingHint": "Please stay on this page until the upload finishes. It may take a moment on a slow connection.",
     "inputMode": {
@@ -1966,8 +1966,20 @@
         "mode": "Generation mode",
         "duration": "Duration",
         "resolution": "Resolution",
+        "outputSpec": "Output specification",
         "ratio": "Aspect ratio",
         "generateAudio": "Generate audio",
+        "configSummary": {
+          "title": "Generation summary",
+          "mode": "Mode {{value}}",
+          "output": "Output {{value}}",
+          "exactSize": "{{value}} (exact size)",
+          "qualityTier": "{{value}} (quality tier)",
+          "ratio": "Aspect {{value}}",
+          "duration": "Duration {{value}}s",
+          "audio": "Audio {{value}}",
+          "count": "Versions {{value}}"
+        },
         "returnLastFrame": "Return last frame",
         "returnLastFramePending": "Waiting for last frame",
         "humanReview": "Human review",
@@ -3383,7 +3395,28 @@
         "auto": "Auto"
       },
       "quality": {
-        "title": "Quality"
+        "title": "Quality",
+        "hint": "Quality tiers are provided by the selected model"
+      },
+      "outputSize": {
+        "title": "Output size",
+        "hint": "Exact pixel size follows the selected aspect ratio"
+      },
+      "summary": {
+        "title": "Generation summary",
+        "aspect": "Aspect {{value}}",
+        "output": "{{kind}} {{value}}",
+        "sizeKind": "Size",
+        "qualityKind": "Quality",
+        "duration": "Duration {{value}}s",
+        "audio": "Audio {{value}}",
+        "count": "Count {{value}}"
+      },
+      "advancedParams": {
+        "seed": "Random seed",
+        "steps": "Sampling steps",
+        "turbo": "Fast mode",
+        "referenceImageSize": "Reference image encoding size"
       },
       "duration": {
         "title": "Duration"

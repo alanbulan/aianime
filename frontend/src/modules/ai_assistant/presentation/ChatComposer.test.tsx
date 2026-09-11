@@ -300,16 +300,16 @@ describe("SuperChat Composer view", () => {
     })} />);
 
     const trigger = screen.getByRole("button", { name: /选择当前对话模型/ });
-    expect(trigger).toHaveTextContent("Qwen3.8-27B · low");
+    expect(trigger).toHaveTextContent("Qwen3.8-27B · 轻度");
     fireEvent.click(trigger);
 
     expect(screen.getByText(
-      "上下文 32,768 tokens · 思考 关闭思考 / low / medium / high",
+      "上下文 32,768 tokens · 思考 关闭思考 / 轻度 / 中度 / 高度",
     )).toBeInTheDocument();
     expect(screen.getByText(
-      "上下文 131,072 tokens · 思考 medium / xhigh",
+      "上下文 131,072 tokens · 思考 中度 / 极高",
     )).toBeInTheDocument();
-    expect(screen.getByText("默认 low")).toBeInTheDocument();
+    expect(screen.getByText("默认 轻度")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("menuitem", { name: "关闭思考" }));
     expect(onSwitchReasoningEffort).toHaveBeenCalledWith("none");
@@ -390,7 +390,7 @@ describe("SuperChat Composer view", () => {
     }));
 
     expect(await screen.findByText("8 条消息")).toBeInTheDocument();
-    expect(screen.getByText("约 18.1k / 131k tokens")).toBeInTheDocument();
+    expect(screen.getByText("已用 18.1k 标记，共 131k 标记")).toBeInTheDocument();
     expect(screen.getByText("距压缩 12k")).toBeInTheDocument();
     expect(screen.getByText("用户 3 · 助手 4 · 工具 1 · 系统 0")).toBeInTheDocument();
     expect(screen.getByText("当前对话路由 · 统一网关")).toBeInTheDocument();
@@ -440,7 +440,7 @@ describe("SuperChat Composer view", () => {
 
     expect(await screen.findByText("对话历史已清空")).toBeInTheDocument();
     expect(screen.getByText("基础 13.8%")).toBeInTheDocument();
-    expect(screen.getByText("基础约 18.1k / 131k tokens")).toBeInTheDocument();
+    expect(screen.getByText("基础占用 18.1k 标记，共 131k 标记")).toBeInTheDocument();
     expect(screen.getByText("距压缩 80.2k")).toBeInTheDocument();
     expect(screen.queryByText(/用户 0/)).toBeNull();
   });

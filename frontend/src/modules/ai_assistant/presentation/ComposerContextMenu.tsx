@@ -154,17 +154,17 @@ export function ComposerContextMenu({
         sideOffset={6}
         aria-label="当前对话上下文"
         data-composer-context-menu=""
-        className="w-[19rem] max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-popover p-0 shadow-xl ring-0"
+        className="w-[20rem] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-popover p-0 shadow-xl ring-0"
       >
         <div className="flex h-8 items-center gap-2 border-b border-border/70 px-3">
-          <div className="text-xs font-medium">上下文</div>
+          <div className="text-xs font-medium">上下文窗口</div>
           <VersionBadge state={versionState} />
           <button
             type="button"
             className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
             disabled={unavailable || contextState.status === "loading"}
             onClick={refreshInfo}
-            aria-label="刷新上下文与版本状态"
+            aria-label="刷新上下文窗口与版本状态"
           >
             <RefreshCw className={cn("size-3.5", contextState.status === "loading" && "animate-spin")} />
           </button>
@@ -325,8 +325,8 @@ function ContextSummaryView({ summary }: { summary: ContextSummary }) {
           </div>
           <div className="mt-1 flex min-w-0 items-center gap-1.5 text-muted-foreground">
             <span className="shrink-0 tabular-nums">
-              {summary.empty ? "基础约 " : "约 "}
-              {summary.usage.used} / {summary.usage.total} tokens
+              {summary.empty ? "基础占用 " : "已用 "}
+              {summary.usage.used} 标记，共 {summary.usage.total} 标记
             </span>
             {summary.compression ? (
               <><span aria-hidden="true">·</span><span className="truncate">{summary.compression}</span></>

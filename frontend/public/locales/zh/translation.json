@@ -1238,7 +1238,7 @@
     "title": "素材导入",
     "subtitle": "上传剧本，开启你的创意之旅",
     "dropzoneHint": "点击或拖拽上传小说文件",
-    "supportedFormats": "支持 .txt / .md / .docx，文件不超过 512KB",
+    "supportedFormats": "支持 .txt / .md / .docx，文件不超过 200MB",
     "uploadingTitle": "正在上传小说…",
     "uploadingHint": "上传完成前请勿离开本页面，网络较慢时可能需要多等一会儿。",
     "inputMode": {
@@ -1966,8 +1966,20 @@
         "mode": "生成模式",
         "duration": "时长",
         "resolution": "分辨率",
+        "outputSpec": "输出规格",
         "ratio": "画幅",
         "generateAudio": "生成声音",
+        "configSummary": {
+          "title": "生成摘要",
+          "mode": "模式 {{value}}",
+          "output": "输出 {{value}}",
+          "exactSize": "{{value}}（精确尺寸）",
+          "qualityTier": "{{value}}（清晰度档位）",
+          "ratio": "比例 {{value}}",
+          "duration": "时长 {{value}}秒",
+          "audio": "音频 {{value}}",
+          "count": "版本 {{value}}"
+        },
         "returnLastFrame": "返回尾帧",
         "returnLastFramePending": "等待生成尾帧",
         "humanReview": "真人审核",
@@ -3383,7 +3395,28 @@
         "auto": "Auto"
       },
       "quality": {
-        "title": "清晰度"
+        "title": "清晰度",
+        "hint": "清晰度档位由当前模型能力决定"
+      },
+      "outputSize": {
+        "title": "输出尺寸",
+        "hint": "精确像素尺寸会随比例联动"
+      },
+      "summary": {
+        "title": "生成摘要",
+        "aspect": "比例 {{value}}",
+        "output": "{{kind}} {{value}}",
+        "sizeKind": "尺寸",
+        "qualityKind": "清晰度",
+        "duration": "时长 {{value}}秒",
+        "audio": "音频 {{value}}",
+        "count": "数量 {{value}}"
+      },
+      "advancedParams": {
+        "seed": "随机种子",
+        "steps": "采样步数",
+        "turbo": "快速模式",
+        "referenceImageSize": "参考图编码尺寸"
       },
       "duration": {
         "title": "视频时长"

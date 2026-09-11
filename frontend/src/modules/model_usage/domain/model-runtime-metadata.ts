@@ -226,7 +226,16 @@ export function formatReasoningEffort(
 }
 
 export function formatReasoningEffortOption(value: string): string {
-  return value === "none" ? "关闭思考" : value;
+  const labels: Record<string, string> = {
+    none: "关闭思考",
+    low: "轻度",
+    medium: "中度",
+    high: "高度",
+    xhigh: "极高",
+    max: "最大",
+    ultra: "极致",
+  };
+  return labels[value] ?? value;
 }
 
 function reasoningEffortMetadata(

@@ -54,7 +54,7 @@ describe("ComposerModelMenu", () => {
 
     await user.click(screen.getByRole("menuitem", { name: /自动/ }));
     expect(screen.queryByRole("menuitem", { name: "关闭" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("menuitem", { name: "high" }));
+    await user.click(screen.getByRole("menuitem", { name: "高度" }));
 
     expect(onSelectModel).toHaveBeenCalledWith("auto");
     expect(onSelectReasoningEffort).toHaveBeenCalledWith("high");
@@ -87,7 +87,7 @@ describe("ComposerModelMenu", () => {
     await user.click(screen.getByRole("menuitem", { name: "关闭思考" }));
 
     expect(onSelectReasoningEffort).toHaveBeenCalledWith("none");
-    expect(screen.getByText(/思考 关闭思考 \/ low \/ high/u)).toBeInTheDocument();
+    expect(screen.getByText(/思考 关闭思考 \/ 轻度 \/ 高度/u)).toBeInTheDocument();
   });
 });
 

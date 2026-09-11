@@ -104,17 +104,19 @@ export function ComposerModelMenu({
         side="top"
         align="end"
         sideOffset={6}
-        aria-label="当前对话模型"
+        aria-label="选择当前对话模型：选择模型"
         data-composer-model-menu=""
-        className="max-h-80 w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-popover p-1.5 shadow-xl ring-0"
+        className="max-h-96 w-[18rem] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-popover p-2 shadow-xl ring-0"
       >
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className="flex items-center justify-between px-2 py-1 text-[11px] font-medium text-foreground">
-            <span>模型</span>
-            <span className="font-normal text-muted-foreground">仅当前对话</span>
+        <DropdownMenuGroup className="px-1">
+          <DropdownMenuLabel className="px-1 py-1 text-sm font-medium text-foreground">
+            选择模型
           </DropdownMenuLabel>
+          <div className="px-1 pb-1 text-[10px] text-muted-foreground">
+            当前选择仅对本次对话生效
+          </div>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator className="my-1" />
+        <DropdownMenuSeparator className="my-1.5" />
         {models.length === 0 ? (
           <DropdownMenuItem disabled className="min-h-9 px-2 text-xs">
             {modelsLoading ? "正在读取模型…" : "没有可用模型"}
@@ -131,26 +133,34 @@ export function ComposerModelMenu({
               <DropdownMenuItem
                 key={model.id}
                 disabled={busy || modelsLoading}
-                className="min-h-11 gap-2 rounded-lg px-2 py-1.5 text-xs"
+                className={cn(
+                  "min-h-12 gap-2 rounded-xl px-2.5 py-2 text-xs",
+                  selected && "bg-accent/60",
+                )}
                 data-ui-tooltip={model.description}
                 onClick={() => onSelectModel(model.id)}
               >
-                <Icon className="size-3.5 text-muted-foreground" />
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/70">
+                  <Icon className="size-3.5 text-muted-foreground" />
+                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate">
+                  <span className="block truncate font-medium text-foreground">
                     {model.source === "auto" ? "自动" : model.label || model.id}
                   </span>
                   <span className="block truncate text-[10px] text-muted-foreground">
-                    上下文 {formatModelContextWindow(model.contextWindow)}
-                    {model.maxOutputTokens
-                      ? ` · 输出 ${formatModelContextWindow(model.maxOutputTokens)}`
-                      : ""}
-                    {model.reasoningEfforts?.length
-                      ? ` · 思考 ${model.reasoningEfforts.map(formatReasoningEffortOption).join(" / ")}`
-                      : " · 思考未声明"}
+                    {model.source === "auto"
+                      ? "默认 · 推荐模型集"
+                        : [
+                            model.contextWindow
+                              ? `上下文 ${formatModelContextWindow(model.contextWindow)}`
+                              : null,
+                            model.reasoningEfforts?.length
+                              ? `思考 ${model.reasoningEfforts.map(formatReasoningEffortOption).join(" / ")}`
+                              : null,
+                          ].filter(Boolean).join(" · ") || "已配置模型"}
                   </span>
                 </span>
-                {model.providerLabel ? (
+                {model.providerLabel && model.source !== "auto" ? (
                   <span className="max-w-20 truncate text-[10px] text-muted-foreground">
                     {model.providerLabel}
                   </span>
@@ -171,7 +181,7 @@ export function ComposerModelMenu({
             <DropdownMenuGroup>
               <DropdownMenuLabel className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-foreground">
                 <BrainCircuit className="size-3.5" />
-                <span>思考力度</span>
+                <span>思考强度</span>
                 {selectedModel?.defaultReasoningEffort ? (
                   <span className="ml-auto font-normal text-muted-foreground">
                     默认 {formatReasoningEffortOption(selectedModel.defaultReasoningEffort)}
@@ -182,7 +192,7 @@ export function ComposerModelMenu({
                 <DropdownMenuItem
                   key={effort}
                   disabled={busy || modelsLoading}
-                  className="min-h-8 rounded-lg px-2 py-1 text-xs"
+                  className="min-h-8 rounded-lg px-2.5 py-1 text-xs"
                   onClick={() => onSelectReasoningEffort(effort)}
                 >
                   <span className="flex-1">{formatReasoningEffortOption(effort)}</span>

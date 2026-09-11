@@ -544,7 +544,7 @@ describe("SettingsDialog", () => {
     });
     expect(priority).toHaveValue(37);
     expect(screen.getByText(
-      "上下文 32768 tokens · 思考 关闭思考 / low / medium / high（默认 low） · 参数 1 项",
+      "上下文 32768 tokens · 思考 关闭思考 / 轻度 / 中度 / 高度（默认 轻度） · 参数 1 项",
     ))
       .toBeInTheDocument();
     expect(priority.closest("[data-cloud-model-assignment]"))
@@ -889,7 +889,7 @@ describe("SettingsDialog", () => {
     const dialog = screen.getByRole("dialog", { name: "Text model" });
     expect(within(dialog).getByText("1050000 tokens")).toBeInTheDocument();
     expect(within(dialog).getAllByText("128000 tokens")).toHaveLength(1);
-    expect(within(dialog).getAllByText("low / high")).toHaveLength(1);
+    expect(within(dialog).getAllByText("轻度 / 高度")).toHaveLength(1);
     expect(within(dialog).queryByText(outputKey)).not.toBeInTheDocument();
     expect(within(dialog).queryByText(reasoningKey)).not.toBeInTheDocument();
     expect(within(dialog).getByText("temperature")).toBeInTheDocument();
