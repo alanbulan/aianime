@@ -4,14 +4,73 @@
 !ifndef BUILD_UNINSTALLER
   !include "getProcessInfo.nsh"
   Var pid
+  Var aiLegacyUninstallString
+  Var aiLegacyUninstaller
+  Var aiLegacyInstallDir
 
-; During an in-app update electron-updater starts this installer before the
-; parent Electron process has finished quitting. Give the current-user app a
-; short grace period, then close its process tree before the stock NSIS check
-; runs. This is intentionally limited to /updated installs; a normal manual
-; install keeps the standard prompt instead of force-closing a user's app.
+Function AiAnimeGetQuotedPath
+  Exch $R0
+  Push $R1
+  Push $R2
+  Push $R3
+
+  StrCpy $R2 -1
+  IntOp $R2 $R2 + 1
+  StrCpy $R3 $R0 1 $R2
+  StrCmp $R3 "" 0 +3
+    StrCpy $R0 ""
+    Goto done
+  StrCmp $R3 '"' 0 -5
+
+  IntOp $R2 $R2 + 1
+  StrCpy $R0 $R0 "" $R2
+
+  StrCpy $R2 0
+  IntOp $R2 $R2 + 1
+  StrCpy $R3 $R0 1 $R2
+  StrCmp $R3 "" 0 +3
+    StrCpy $R0 ""
+    Goto done
+  StrCmp $R3 '"' 0 -5
+
+  StrCpy $R0 $R0 $R2
+done:
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Exch $R0
+FunctionEnd
+
+Function AiAnimeGetParentPath
+  Exch $R0
+  Push $R1
+  Push $R2
+  Push $R3
+
+  StrCpy $R1 0
+  StrLen $R2 $R0
+  loop:
+    IntOp $R1 $R1 + 1
+    IntCmp $R1 $R2 get 0 get
+    StrCpy $R3 $R0 1 -$R1
+    StrCmp $R3 "\" get
+    Goto loop
+  get:
+    StrCpy $R0 $R0 -$R1
+
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Exch $R0
+FunctionEnd
+
+; During an update the installer can start before the parent Electron process
+; has finished quitting. A manual installer upgrade has the same race, so use
+; the existing installation path as the guard and close that process tree
+; before the stock NSIS check runs. A fresh install has no app executable at
+; $appExe and keeps the normal check unchanged.
 !macro customCheckAppRunning
-  ${if} ${isUpdated}
+  ${if} ${FileExists} "$appExe"
     Sleep 1500
     nsExec::Exec `"$SYSDIR\System32\taskkill.exe" /F /T /IM "${APP_EXECUTABLE_FILENAME}"`
     Pop $0
@@ -19,6 +78,62 @@
   ${endif}
   !insertmacro IS_POWERSHELL_AVAILABLE
   !insertmacro _CHECK_APP_RUNNING
+!macroend
+
+; electron-builder 26 always passes --updated to the previous uninstaller.
+; That uninstaller uses an atomic Rename into $PLUGINSDIR, which fails when
+; the installation and the temporary directory are on different volumes
+; (for example, an app installed on F: with the Windows temp directory on C:).
+; If that path returns a non-zero code, retry the same uninstaller without
+; --updated. /KEEP_APP_DATA is retained so this compatibility path removes
+; only program files and registry entries, never the user's app data.
+!macro aiFallbackLegacyUninstaller ROOT_KEY
+  ${if} ${Errors}
+    StrCpy $R0 2
+  ${endif}
+  ${if} $R0 != 0
+    DetailPrint "旧版本卸载器返回 $R0，改用兼容卸载路径..."
+    ${if} "${ROOT_KEY}" == "HKEY_CURRENT_USER"
+      StrCpy $R1 "/currentuser"
+    ${elseif} $installMode == "CurrentUser"
+      StrCpy $R1 "/currentuser"
+    ${else}
+      StrCpy $R1 "/allusers"
+    ${endIf}
+
+    ReadRegStr $aiLegacyUninstallString ${ROOT_KEY} "${UNINSTALL_REGISTRY_KEY}" UninstallString
+    ReadRegStr $aiLegacyInstallDir ${ROOT_KEY} "${INSTALL_REGISTRY_KEY}" InstallLocation
+    Push "$aiLegacyUninstallString"
+    Call AiAnimeGetQuotedPath
+    Pop $aiLegacyUninstaller
+    ${if} $aiLegacyInstallDir == ""
+      Push "$aiLegacyUninstaller"
+      Call AiAnimeGetParentPath
+      Pop $aiLegacyInstallDir
+    ${endif}
+
+    StrCpy $R0 2
+    ClearErrors
+    ExecWait '"$aiLegacyUninstaller" /S /KEEP_APP_DATA $R1 _?=$aiLegacyInstallDir' $R0
+    ${if} ${Errors}
+      StrCpy $R0 2
+    ${endif}
+  ${endif}
+
+  ${if} $R0 != 0
+    MessageBox MB_OK|MB_ICONEXCLAMATION "$(uninstallFailed): $R0"
+    DetailPrint `Uninstall was not successful. Uninstaller error code: $R0.`
+    SetErrorLevel 2
+    Quit
+  ${endif}
+!macroend
+
+!macro customUnInstallCheck
+  !insertmacro aiFallbackLegacyUninstaller SHELL_CONTEXT
+!macroend
+
+!macro customUnInstallCheckCurrentUser
+  !insertmacro aiFallbackLegacyUninstaller HKEY_CURRENT_USER
 !macroend
 !endif
 
