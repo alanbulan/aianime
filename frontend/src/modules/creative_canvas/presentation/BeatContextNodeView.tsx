@@ -569,7 +569,7 @@ function SelectableTokenGroup({
 
   return (
     <div className="relative overflow-visible">
-      <div className="flex max-h-56 flex-wrap gap-1.5 overflow-auto">
+      <div className="ui-scrollbar-hidden flex max-h-56 flex-wrap gap-1.5 overflow-auto">
         {projection.tokens.map(renderToken)}
       </div>
       {activeToken &&

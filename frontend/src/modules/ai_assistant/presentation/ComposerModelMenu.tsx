@@ -106,7 +106,7 @@ export function ComposerModelMenu({
         sideOffset={6}
         aria-label="选择当前对话模型：选择模型"
         data-composer-model-menu=""
-        className="max-h-96 w-[18rem] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-popover p-2 shadow-xl ring-0"
+        className="ui-scrollbar-hidden max-h-96 w-[18rem] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-popover p-2 shadow-xl ring-0"
       >
         <DropdownMenuGroup className="px-1">
           <DropdownMenuLabel className="px-1 py-1 text-sm font-medium text-foreground">

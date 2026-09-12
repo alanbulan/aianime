@@ -186,7 +186,7 @@ function CommandCatalog({ commands, onSelectCommand }: {
   return (
     <CommandList
       label={t("aiAssistant.slashCommands", "Slash 命令与 Skills")}
-      className="max-h-[min(24rem,calc(100vh_-_31.25rem))]"
+      className="ui-scrollbar-hidden max-h-[min(24rem,calc(100vh_-_31.25rem))]"
     >
       <CommandEmpty>{t("aiAssistant.slashNoResults", "没有匹配的命令或 Skill")}</CommandEmpty>
       {commandItems.length > 0 ? (
@@ -298,7 +298,7 @@ export function SlashCommandMenu({
         <>
           <PickerHeader label="选择当前对话模型" note="不修改全局优先级" onBack={onBack} />
           <CommandInput autoFocus value={query} onValueChange={onQueryChange} placeholder="搜索模型或提供方…" aria-label="搜索模型" />
-          <CommandList label="当前对话可用模型" className="max-h-[min(24rem,calc(100vh_-_31.25rem))]">
+          <CommandList label="当前对话可用模型" className="ui-scrollbar-hidden max-h-[min(24rem,calc(100vh_-_31.25rem))]">
             {modelsLoading ? <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" />正在读取模型优先级…</div> : null}
             {!modelsLoading ? <CommandEmpty>没有可用于文本对话的模型</CommandEmpty> : null}
             {!modelsLoading && automaticModels.length > 0 ? <CommandGroup heading="推荐">{automaticModels.map(renderModel)}</CommandGroup> : null}
@@ -313,7 +313,7 @@ export function SlashCommandMenu({
             工具是助手执行任务时自动选择的能力，不是需要手动发送的 Slash 命令。可按名称、用途或分类搜索。
           </div>
           <CommandInput autoFocus value={query} onValueChange={onQueryChange} placeholder="搜索工具名称、用途或分类…" aria-label="搜索可用工具" />
-          <CommandList label="当前范围可用工具" className="max-h-[min(24rem,calc(100vh_-_31.25rem))]">
+          <CommandList label="当前范围可用工具" className="ui-scrollbar-hidden max-h-[min(24rem,calc(100vh_-_31.25rem))]">
             <CommandEmpty>没有匹配的工具</CommandEmpty>
             {toolCategories.map((category) => (
               <CommandGroup key={category} heading={category}>{toolsByCategory.get(category)?.map((tool) => <ToolOption key={tool.name} tool={tool} />)}</CommandGroup>
