@@ -85,6 +85,46 @@ test("configures electron-updater and completes the standard update flow", async
   await install;
 });
 
+test("stops application services before spawning the Windows installer", async () => {
+  const updater = fakeUpdater();
+  const native = new EventEmitter();
+  let releasePreparation;
+  let preparationStarted = false;
+  const prepareInstall = () => {
+    preparationStarted = true;
+    return new Promise((resolve) => {
+      releasePreparation = resolve;
+    });
+  };
+  const service = new CommercialDesktopUpdater(
+    updater,
+    native,
+    async () => ({
+      url: "https://gateway.test/updater/",
+      requestHeaders: {},
+    }),
+    undefined,
+    "win32",
+    undefined,
+    prepareInstall,
+  );
+
+  await service.download("artifact");
+  const install = service.install();
+  await Promise.resolve();
+  assert.equal(preparationStarted, true);
+  assert.equal(updater.installed, null);
+
+  releasePreparation();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(updater.installed, {
+    isSilent: false,
+    isForceRunAfter: true,
+  });
+  native.emit("before-quit-for-update");
+  await install;
+});
+
 test("rejects insecure feeds and missing updates", async () => {
   const insecure = new CommercialDesktopUpdater(fakeUpdater(), new EventEmitter(), async () => ({
     url: "http://gateway.test/updater/",

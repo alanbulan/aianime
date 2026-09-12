@@ -25,6 +25,7 @@ const START_TIMEOUT_MS = 120_000;
 const HEALTH_CHECK_INTERVAL_MS = 10_000;
 const HEALTH_CHECK_TIMEOUT_MS = 2_000;
 const HEALTH_CHECK_FAILURE_THRESHOLD = 3;
+const PROCESS_EXIT_WAIT_MS = 2_000;
 export const MAX_BACKEND_RESTART_ATTEMPTS = 5;
 const RESTART_STABILITY_WINDOW_MS = 60_000;
 
@@ -308,11 +309,17 @@ export class LocalBackend {
         }).catch(() => undefined);
       }
       if (child) {
-        await Promise.race([
-          new Promise<void>((done) => child.once("exit", () => done())),
-          new Promise<void>((done) => setTimeout(done, 4_000)),
-        ]);
-        this.terminateChildTree(child);
+        await waitForChildExit(child, 4_000);
+        if (child.exitCode === null) {
+          this.terminateChildTree(child);
+          // terminateBackendProcessTree uses taskkill asynchronously on
+          // Windows. Do not let the installer start while that process tree
+          // is still holding files under the installation directory.
+          if (!(await waitForChildExit(child, PROCESS_EXIT_WAIT_MS))) {
+            if (child.exitCode === null) child.kill();
+            await waitForChildExit(child, PROCESS_EXIT_WAIT_MS);
+          }
+        }
       }
     } finally {
       // Same guard as the exit handler: never clear a handle that a concurrent
@@ -679,6 +686,26 @@ export class LocalBackend {
     console.error(`[backend] ${error.message}`);
     this.onRestartExhausted?.(error);
   }
+}
+
+function waitForChildExit(
+  child: ChildProcessWithoutNullStreams,
+  timeoutMs: number,
+): Promise<boolean> {
+  if (child.exitCode !== null) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (exited: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      child.off("exit", onExit);
+      resolve(exited);
+    };
+    const onExit = () => finish(true);
+    const timeout = setTimeout(() => finish(false), timeoutMs);
+    child.once("exit", onExit);
+  });
 }
 
 export function backendRestartDelayMs(attempt: number): number {

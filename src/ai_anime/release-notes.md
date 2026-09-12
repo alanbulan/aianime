@@ -1,19 +1,19 @@
 ---
-version: 1.1.65
+version: 1.1.66
 attention: medium
 ---
-# v1.1.65
+# v1.1.66
 
 ## User-facing Highlights (zh)
 
-- **Mac 更新**：使用官方 Sparkle 安装器和独立 Ed25519 签名验证更新包，不再依赖 Squirrel.Mac 的 Developer ID 签名连续性；Windows 更新方式保持不变。
-- **安装状态**：修复点击更新后窗口立即消失的问题；安装期间持续显示状态，系统安装失败时保留错误提示并允许重试。
-- **旧版迁移**：Mac 1.1.63 / 1.1.64 用户需要手动安装一次本版 DMG，才能使用新的自动更新链路。首次安装仍可能出现 macOS 的未识别开发者提示。
-- **发布流程**：Mac Action 增加错误签名拒绝、原生替换与重启测试，以及更新 ZIP 签名；同步修正工程手册迁移后的版本脚本路径。
+- **Windows 更新**：安装前先完整关闭本地后端和模型代理，并等待子进程树退出，避免 NSIS 旧版卸载器返回 `2`。
+- **更新兼容**：更新模式增加旧客户端进程树清理；普通手动安装仍保留标准的关闭提示。
+- **版本同步**: Python 包、Electron 安装器、前端版本兜底、依赖锁文件和 README 已统一更新为 1.1.66。
+- **更新提示**: 更新窗口将展示本版本记录；安装完成后请重新启动客户端，使本地后端、Hermes 和 Electron 主进程全部切换到新版本。
 
 ## User-facing Highlights (en)
 
-- **Mac updates**: Use the official Sparkle installer and independent Ed25519 update signatures. Windows keeps its existing update mechanism.
-- **Installation state**: Keep the update dialog visible while installing and show asynchronous failures with a retry option.
-- **Migration**: Mac 1.1.63 / 1.1.64 users must manually install this DMG once to adopt the new update mechanism. Gatekeeper may still warn during the initial installation.
-- **Release workflow**: Verify signature rejection, native replacement and relaunch before packaging; sign update ZIPs and fix version synchronization after the engineering manual move.
+- **Windows updates**: Stop the local backend and model proxy completely before launching NSIS, and wait for the child process tree to exit so the legacy uninstaller does not return code `2`.
+- **Update compatibility**: Updated-install mode cleans up processes from older clients while normal manual installs keep the standard close prompt.
+- **Version synchronization**: Python, Electron, frontend fallback, dependency lock, and README versions are synchronized to 1.1.66.
+- **Update notice**: Restart the desktop client after installation so the local backend, Hermes, and Electron main process all use the new version.

@@ -2,6 +2,27 @@
 !include "nsDialogs.nsh"
 
 !ifndef BUILD_UNINSTALLER
+  !include "getProcessInfo.nsh"
+  Var pid
+
+; During an in-app update electron-updater starts this installer before the
+; parent Electron process has finished quitting. Give the current-user app a
+; short grace period, then close its process tree before the stock NSIS check
+; runs. This is intentionally limited to /updated installs; a normal manual
+; install keeps the standard prompt instead of force-closing a user's app.
+!macro customCheckAppRunning
+  ${if} ${isUpdated}
+    Sleep 1500
+    nsExec::Exec `"$SYSDIR\System32\taskkill.exe" /F /T /IM "${APP_EXECUTABLE_FILENAME}"`
+    Pop $0
+    Sleep 1000
+  ${endif}
+  !insertmacro IS_POWERSHELL_AVAILABLE
+  !insertmacro _CHECK_APP_RUNNING
+!macroend
+!endif
+
+!ifndef BUILD_UNINSTALLER
 
 Var AiAnimeWorldRuntimeCheckbox
 Var AiAnimeInstallWorldRuntime

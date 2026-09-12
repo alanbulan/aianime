@@ -65,6 +65,7 @@ export class CommercialDesktopUpdater {
     ) => void,
     private readonly platform: NodeJS.Platform = process.platform,
     private readonly installMacUpdate?: (update: SparkleUpdate) => Promise<void>,
+    private readonly prepareInstall?: () => Promise<void>,
   ) {
     updater.autoDownload = false;
     updater.autoInstallOnAppQuit = false;
@@ -167,20 +168,29 @@ export class CommercialDesktopUpdater {
         cleanup();
         resolve();
       };
-      const onReady = () => {
+      const launchInstaller = () => {
         try {
           this.updater.quitAndInstall(false, true);
         } catch (error) {
           onError(error);
         }
       };
+      const onReady = () => {
+        if (!this.prepareInstall) {
+          launchInstaller();
+          return;
+        }
+        // electron-updater starts the NSIS process before it asks Electron
+        // to quit. Stop all application-owned services first so the old
+        // uninstaller never races a still-running backend or proxy.
+        void Promise.resolve()
+          .then(() => this.prepareInstall?.())
+          .then(launchInstaller)
+          .catch(onError);
+      };
       this.updater.once("error", onError);
       this.nativeUpdater.once("before-quit-for-update", onQuit);
-      try {
-        onReady();
-      } catch (error) {
-        onError(error);
-      }
+      void onReady();
     });
   }
 }

@@ -56,6 +56,7 @@ import {
 let mainWindow: BrowserWindow | null = null;
 let backend: LocalBackend | null = null;
 let commercialModelProxy: CommercialModelProxy | null = null;
+let stopPromise: Promise<void> | null = null;
 let quitting = false;
 const WINDOW_CHANNELS = {
   minimize: "desktop:window:minimize",
@@ -194,6 +195,7 @@ async function registerCommercialGatewayIpc(
     },
     process.platform,
     (update) => installSparkleUpdate(resolve(process.execPath, "../../.."), update),
+    stopApplication,
   );
   registerCommercialIpc({
     ipcMain,
@@ -326,12 +328,21 @@ async function startApplication(): Promise<void> {
 }
 
 async function stopApplication(): Promise<void> {
-  const localBackend = backend;
-  backend = null;
-  await localBackend?.stop();
-  const modelProxy = commercialModelProxy;
-  commercialModelProxy = null;
-  await modelProxy?.stop();
+  if (stopPromise) return stopPromise;
+  const pending = (async () => {
+    const localBackend = backend;
+    backend = null;
+    await localBackend?.stop();
+    const modelProxy = commercialModelProxy;
+    commercialModelProxy = null;
+    await modelProxy?.stop();
+  })();
+  stopPromise = pending;
+  try {
+    await pending;
+  } finally {
+    if (stopPromise === pending) stopPromise = null;
+  }
 }
 
 if (!app.requestSingleInstanceLock()) {
