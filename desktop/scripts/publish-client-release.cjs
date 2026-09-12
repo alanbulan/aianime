@@ -18,6 +18,7 @@ const help = `Usage: node scripts/operations/publish-client-release.cjs --plan r
   --dry-run                      Validate local files without login/upload
   --publish --reason TEXT         Publish after upload and registration
   --version-id UUID --reason TEXT Append missing platforms to an existing version
+  --auto-version --reason TEXT  Reuse the exact plan version when it exists; otherwise create it
   --help                         Show this help
 RELEASE_PASSWORD supplies the password. RELEASE_TENANT defaults to system; RELEASE_USERNAME to admin.
 Alternatively set RELEASE_ADMIN_TOKEN to use an existing JWT without password login.
@@ -173,7 +174,8 @@ async function publishClientRelease(values, env = process.env) {
   if (!values['runtime-archive'] && (values['runtime-dir'] || values['file-config'] || values['runtime-importer'])) {
     throw new Error('Runtime options require --runtime-archive');
   }
-  if (!values.plan && values['version-id']) throw new Error('--version-id requires --plan');
+  if (!values.plan && (values['version-id'] || values['auto-version'])) throw new Error('--version-id/--auto-version requires --plan');
+  if (values['version-id'] && values['auto-version']) throw new Error('--version-id and --auto-version are mutually exclusive');
   if (values['check-auth'] && (values.publish || values['dry-run'])) throw new Error('--check-auth cannot publish or dry-run');
   const origin = gatewayOrigin(values.gateway || env.RELEASE_GATEWAY || 'https://aianime.mingcw.com');
   const getSession = createSession(origin, env);
@@ -192,9 +194,9 @@ async function publishClientRelease(values, env = process.env) {
     return summary;
   }
   if (values['runtime-archive']) return runRuntimeImport(values, env, origin, getSession);
-  const versionID = values['version-id'];
+  let versionID = values['version-id'];
   if (versionID && !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(versionID)) throw new Error('--version-id must be a UUID');
-  if ((values.publish || versionID) && !values.reason?.trim()) throw new Error('Publishing/appending requires --reason');
+  if ((values.publish || versionID || values['auto-version']) && !values.reason?.trim()) throw new Error('Publishing/appending requires --reason');
   const plan = await loadPlan(resolve(values.plan));
   if (values['dry-run']) {
     console.log(JSON.stringify({ dryRun: true, ...plan }, null, 2));
@@ -219,15 +221,30 @@ async function publishClientRelease(values, env = process.env) {
       try { return await response.json(); } catch { throw new Error(`${method} ${path}: invalid JSON response`); }
     } finally { stream?.destroy(); }
   }
-  // Check existing version before uploading: never overwrite a platform or accidentally edit another version.
-  if (versionID) {
-    let existing;
+  async function findExistingVersion(predicate) {
+    const matches = [];
     for (let page = 1; ; page++) {
       const result = await request('GET', `${prefix}/versions?page=${page}&pageSize=100`);
       if (!Array.isArray(result.items) || !Number.isFinite(Number(result.total))) throw new Error('Invalid version list response');
-      existing = result.items.find(item => item.id === versionID);
-      if (existing || result.items.length === 0 || page * 100 >= Number(result.total)) break;
+      matches.push(...result.items.filter(predicate));
+      if (result.items.length === 0 || page * 100 >= Number(result.total)) break;
     }
+    if (matches.length > 1) throw new Error(`Multiple existing versions match plan version ${plan.version}`);
+    return matches[0];
+  }
+  let existingVersion;
+  if (values['auto-version']) {
+    existingVersion = await findExistingVersion(item => item.version === plan.version);
+    if (existingVersion) {
+      if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(existingVersion.id)) {
+        throw new Error('Existing version list returned an invalid version ID');
+      }
+      versionID = existingVersion.id;
+    }
+  }
+  // Check existing version before uploading: never overwrite a platform or accidentally edit another version.
+  if (versionID) {
+    const existing = existingVersion || await findExistingVersion(item => item.id === versionID);
     if (!existing || existing.version !== plan.version) throw new Error('Existing version ID must match the plan version');
     if (existing.status === 'WITHDRAWN') throw new Error('Cannot append to a withdrawn version');
     if (plan.minimumSupportedVersion !== undefined && plan.minimumSupportedVersion !== existing.minimumSupportedVersion) {
@@ -277,7 +294,7 @@ if (require.main === module) {
   Promise.resolve().then(() => {
     const { values } = parseArgs({ options: {
       plan: { type: 'string' }, gateway: { type: 'string' }, reason: { type: 'string' },
-      'version-id': { type: 'string' }, publish: { type: 'boolean' }, 'check-auth': { type: 'boolean' },
+      'version-id': { type: 'string' }, 'auto-version': { type: 'boolean' }, publish: { type: 'boolean' }, 'check-auth': { type: 'boolean' },
       'runtime-archive': { type: 'string' }, 'runtime-dir': { type: 'string' },
       'file-config': { type: 'string' }, 'runtime-importer': { type: 'string' },
       'dry-run': { type: 'boolean' }, help: { type: 'boolean' },

@@ -116,6 +116,54 @@ test("vendored cloud script logs in, uploads the prepared ZIP/YAML, and publishe
   assert.deepEqual(JSON.parse(requests[6].bytes), { confirmed: true, reason: "构建完成后自动发布" });
 });
 
+test("auto-version appends Intel Mac to the existing Windows release", async (t) => {
+  const { directory, update } = await fixture(t);
+  await prepareMacosReleaseManifest(directory, version, "Intel 构件");
+  const requests = [];
+  const id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  let fileId = 10;
+  const server = createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    requests.push({ method: req.method, url: req.url, headers: req.headers, bytes: Buffer.concat(chunks) });
+    let result;
+    if (req.url === "/api/v1/auth/login") {
+      result = { accessToken: "header.payload.signature", expiresIn: 7200, tenant: { code: "system", isSystem: true }, user: { username: "admin" } };
+    } else if (req.method === "GET" && req.url.startsWith("/api/v1/admin/release/versions")) {
+      result = { items: [{ id, version, notes: "Windows 构件", minimumSupportedVersion: "", status: "PUBLISHED", artifacts: [{ target: "windows", arch: "x86_64" }] }], total: 1 };
+    } else if (req.url.endsWith("/uploads")) {
+      result = { fileId: ++fileId };
+    } else if (req.url.endsWith("/content")) {
+      result = { success: true };
+    } else if (req.method === "PUT" && req.url === `/api/v1/admin/release/versions/${id}`) {
+      result = { id, version, status: "PUBLISHED", artifacts: [{ target: "windows", arch: "x86_64" }, { target: "macos", arch: "x86_64" }] };
+    } else {
+      result = { id, version, status: "UNEXPECTED" };
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => { server.closeAllConnections(); server.close(resolve); }));
+  const result = await publishClientRelease({
+    gateway: `http://127.0.0.1:${server.address().port}`,
+    plan: join(directory, "cloud/release.json"), "auto-version": true, publish: true, reason: "补齐 Intel 构件",
+  }, { RELEASE_PASSWORD: "fixture-password" });
+  assert.equal(result.status, "PUBLISHED");
+  assert.deepEqual(requests.map((request) => request.method), ["POST", "GET", "POST", "PUT", "POST", "PUT", "PUT"]);
+  assert.equal(requests.filter((request) => request.method === "POST" && request.url.endsWith("/versions")).length, 0);
+  assert.equal(requests.filter((request) => request.url.endsWith("/publish")).length, 0);
+  const updateRequest = requests.at(-1);
+  assert.equal(updateRequest.url, `/api/v1/admin/release/versions/${id}`);
+  const body = JSON.parse(updateRequest.bytes);
+  assert.equal(body.confirmed, true);
+  assert.equal(body.reason, "补齐 Intel 构件");
+  assert.equal(body.artifacts.length, 1);
+  assert.deepEqual(body.artifacts[0], { target: "macos", arch: "x86_64", installerKind: "zip", fileId: 11, manifestFileId: 12,
+    sha256: createHash("sha256").update(await readFile(join(directory, update.files[0].url))).digest("hex"),
+    sizeBytes: Buffer.byteLength("fixture zip"), manifestSha256: createHash("sha256").update(requests[5].bytes).digest("hex"), manifestSizeBytes: requests[5].bytes.length });
+});
+
 for (const [name, mutate, error] of [
   ["wrong version", (u) => { u.version = "1.1.62"; }, /version/],
   ["missing signature", (u) => { delete u.sparkleEdSignature; }, /signature/],
@@ -186,7 +234,7 @@ test("Intel workflow invokes the cloud script only after verified packaging with
   assert.equal(workflow.concurrency.group, "build-macos-intel-${{ github.repository }}");
   assert.ok(steps.filter((_, index) => index !== publishIndex).every((step) => !step.env?.RELEASE_PASSWORD));
   const desktop = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-  assert.equal(desktop.scripts["release:publish:mac:x64"], "node scripts/publish-client-release.cjs --plan release/cloud/release.json --publish");
+  assert.equal(desktop.scripts["release:publish:mac:x64"], "node scripts/publish-client-release.cjs --plan release/cloud/release.json --auto-version --publish");
   const upload = steps.find((step) => step.name === "Upload temporary workflow artifact");
   assert.ok(upload.with.path.includes("${{ steps.artifacts.outputs.cloud_plan_path }}"));
   assert.ok(upload.with.path.includes("${{ steps.artifacts.outputs.cloud_update_path }}"));

@@ -60,7 +60,7 @@ macOS 视频编码使用 `h264_videotoolbox -allow_sw 1`：优先使用硬件编
 
 Intel Python 准备脚本会先构建面向 Ventura 的静态 OpenSSL 4.0.2，再安装锁定版本的 cryptography，避免链接构建机的 Homebrew 库；不降低加密库版本。Ladybug 仅在 Intel Mac 使用 0.17.1，Windows 仍为 0.19.0，其他平台保持原选择。该旧版的存储缺陷与跨版本图数据库兼容性风险见根目录 README 的 Intel 打包说明，不自动改写用户数据。两个 Python 环境会在 FFmpeg 编译前完成原生库预检；这些步骤不进入 Windows 或 arm64 的打包命令。
 
-仓库的 `.github/workflows/build-macos-intel.yml` 可在 GitHub Actions 中手动运行，也会在推送与 `desktop/package.json` 版本一致的 `v*` 标签时自动运行。它使用 `macos-15-intel` 生成 DMG、ZIP、`latest-mac.yml` 和 SHA-256 清单；手动构建保留 1 天 Actions 制品，标签构建保存到不会直接发布的草稿 Release。该托管 Runner 运行 macOS 15；Intel 打包会先按 Ventura 目标同步两个 Python 环境，后续构建不再按宿主系统重选轮子。它能验证 x86_64 架构、13.4 最低版本与内置运行时，但不能代替 Intel macOS 13.7.8 上的最终安装和业务冒烟。
+仓库的 `.github/workflows/build-macos-intel.yml` 可在 GitHub Actions 中手动运行，也会在推送与 `desktop/package.json` 版本一致的 `v*` 标签时自动运行。它使用 `macos-15-intel` 生成 DMG、ZIP、`latest-mac.yml` 和 SHA-256 清单；手动构建保留 1 天 Actions 制品，标签构建保存到不会直接发布的草稿 Release，并在云端发布时自动复用同版本的 Windows 发布记录、追加缺失的 Intel 构件（没有同版本记录时才创建新版本）。该托管 Runner 运行 macOS 15；Intel 打包会先按 Ventura 目标同步两个 Python 环境，后续构建不再按宿主系统重选轮子。它能验证 x86_64 架构、13.4 最低版本与内置运行时，但不能代替 Intel macOS 13.7.8 上的最终安装和业务冒烟。
 
 可选的“导演世界 3D 运行环境”当前只支持 Windows x64 和 macOS arm64，不随轻量主安装包分发；Intel x64 客户端会明确显示该可选运行环境不受支持。
 

@@ -18,7 +18,7 @@
     "release:sign:mac": "node scripts/sign-macos-update.mjs",
     "test:sparkle:mac": "node --experimental-transform-types --import ./scripts/register-typescript.mjs scripts/smoke-sparkle-update.mjs",
     "release:manifest:mac:x64": "node scripts/prepare-macos-release-manifest.mjs",
-    "release:publish:mac:x64": "node scripts/publish-client-release.cjs --plan release/cloud/release.json --publish",
+    "release:publish:mac:x64": "node scripts/publish-client-release.cjs --plan release/cloud/release.json --auto-version --publish",
     "release:manifest:win": "node scripts/prepare-windows-update-manifest.mjs",
     "runtime:icon": "electron scripts/generate-icon.cjs",
     "runtime:ffmpeg": "node scripts/prepare-ffmpeg.mjs",
