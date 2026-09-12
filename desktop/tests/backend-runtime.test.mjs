@@ -254,6 +254,7 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(workerRuntime, /"block-world-builder"/);
   assert.doesNotMatch(workerRuntime, /native-project-task/);
   assert.match(installerInclude, /\$\{FileExists\} \"\$appExe\"/);
+  assert.match(installerInclude, /aiUninstallRegisteredVersion SHELL_CONTEXT/);
   assert.match(installerInclude, /customUnInstallCheckCurrentUser/);
   assert.match(installerInclude, /KEEP_APP_DATA \$R1 _\?=\$aiLegacyInstallDir/);
   assert.match(nativeTaskIsolation, /"native-project-task"/);

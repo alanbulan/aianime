@@ -7,6 +7,7 @@
   Var aiLegacyUninstallString
   Var aiLegacyUninstaller
   Var aiLegacyInstallDir
+  Var aiLegacyUninstallerTemp
 
 Function AiAnimeGetQuotedPath
   Exch $R0
@@ -64,6 +65,64 @@ Function AiAnimeGetParentPath
   Exch $R0
 FunctionEnd
 
+; Remove an existing registered installation before electron-builder's stock
+; uninstallOldVersion macro runs. The stock macro always adds --updated,
+; which is the cross-volume atomic Rename path that fails for F: installs.
+; Running the copied legacy uninstaller without that flag avoids the retry
+; dialog entirely while /KEEP_APP_DATA preserves the user's data.
+!macro aiUninstallRegisteredVersion ROOT_KEY CONTEXT_FLAG LABEL
+  ClearErrors
+  ReadRegStr $aiLegacyUninstallString ${ROOT_KEY} "${UNINSTALL_REGISTRY_KEY}" UninstallString
+  ${if} $aiLegacyUninstallString != ""
+    ReadRegStr $aiLegacyInstallDir ${ROOT_KEY} "${INSTALL_REGISTRY_KEY}" InstallLocation
+    Push "$aiLegacyUninstallString"
+    Call AiAnimeGetQuotedPath
+    Pop $aiLegacyUninstaller
+    ${if} $aiLegacyInstallDir == ""
+      Push "$aiLegacyUninstaller"
+      Call AiAnimeGetParentPath
+      Pop $aiLegacyInstallDir
+    ${endif}
+
+    ${if} $aiLegacyUninstaller == ""
+    ${orIf} $aiLegacyInstallDir == ""
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(uninstallFailed): 2"
+      SetErrorLevel 2
+      Quit
+    ${endif}
+
+    StrCpy $aiLegacyUninstallerTemp "$PLUGINSDIR\ai-legacy-uninstaller-${LABEL}.exe"
+    Delete "$aiLegacyUninstallerTemp"
+    ClearErrors
+    CopyFiles /SILENT "$aiLegacyUninstaller" "$aiLegacyUninstallerTemp"
+    ${if} ${Errors}
+      StrCpy $aiLegacyUninstallerTemp "$aiLegacyUninstaller"
+    ${endif}
+
+    StrCpy $R0 2
+    ClearErrors
+    ExecWait '"$aiLegacyUninstallerTemp" /S /KEEP_APP_DATA ${CONTEXT_FLAG} _?=$aiLegacyInstallDir' $R0
+    ${if} ${Errors}
+      StrCpy $R0 2
+    ${endif}
+    ${if} $R0 != 0
+    ${andIf} $aiLegacyUninstallerTemp != $aiLegacyUninstaller
+      StrCpy $R0 2
+      ClearErrors
+      ExecWait '"$aiLegacyUninstaller" /S /KEEP_APP_DATA ${CONTEXT_FLAG} _?=$aiLegacyInstallDir' $R0
+      ${if} ${Errors}
+        StrCpy $R0 2
+      ${endif}
+    ${endif}
+    ${if} $R0 != 0
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(uninstallFailed): $R0"
+      DetailPrint `Uninstall was not successful. Uninstaller error code: $R0.`
+      SetErrorLevel 2
+      Quit
+    ${endif}
+  ${endif}
+!macroend
+
 ; During an update the installer can start before the parent Electron process
 ; has finished quitting. A manual installer upgrade has the same race, so use
 ; the existing installation path as the guard and close that process tree
@@ -78,6 +137,12 @@ FunctionEnd
   ${endif}
   !insertmacro IS_POWERSHELL_AVAILABLE
   !insertmacro _CHECK_APP_RUNNING
+  ${if} $installMode == "all"
+    !insertmacro aiUninstallRegisteredVersion SHELL_CONTEXT "/allusers" machine
+    !insertmacro aiUninstallRegisteredVersion HKEY_CURRENT_USER "/currentuser" user
+  ${else}
+    !insertmacro aiUninstallRegisteredVersion SHELL_CONTEXT "/currentuser" user
+  ${endif}
 !macroend
 
 ; electron-builder 26 always passes --updated to the previous uninstaller.
