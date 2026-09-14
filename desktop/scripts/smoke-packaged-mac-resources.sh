@@ -144,6 +144,11 @@ for extension in dmg zip; do
     echo "Packaged ${extension} artifact for ${artifact_arch} is missing" >&2
     exit 1
   fi
+  if [[ "$extension" == "dmg" ]]; then
+    hdiutil verify "$artifact_path"
+  else
+    unzip -tq "$artifact_path"
+  fi
 done
 
 echo "Packaged macOS resources passed: ${expected_arch}, minimum macOS ${maximum_system_version}."

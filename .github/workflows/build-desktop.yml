@@ -118,6 +118,30 @@ jobs:
         if: runner.os == 'macOS'
         run: pnpm --dir desktop runtime:sparkle && pnpm --dir desktop test:sparkle:mac
 
+      - name: Restore native FFmpeg binaries
+        if: runner.os == 'macOS'
+        id: ffmpeg-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            desktop/.ffmpeg-cache/macos-*/ffmpeg
+            desktop/.ffmpeg-cache/macos-*/ffprobe
+          key: ffmpeg-v1-${{ matrix.runner }}-${{ matrix.arch }}-${{ matrix.deployment_target }}-${{ hashFiles('desktop/scripts/fetch-ffmpeg-macos.sh') }}
+
+      - name: Build and validate native FFmpeg
+        if: runner.os == 'macOS'
+        run: pnpm --dir desktop runtime:ffmpeg
+
+      # Save immediately: a later installer failure must not discard this build.
+      - name: Save validated native FFmpeg binaries
+        if: runner.os == 'macOS' && steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            desktop/.ffmpeg-cache/macos-*/ffmpeg
+            desktop/.ffmpeg-cache/macos-*/ffprobe
+          key: ${{ steps.ffmpeg-cache.outputs.cache-primary-key }}
+
       - name: Build and verify native package
         env:
           PACKAGE_SCRIPT: ${{ matrix.package_script }}

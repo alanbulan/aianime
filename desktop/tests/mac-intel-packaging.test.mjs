@@ -29,7 +29,8 @@ test("Intel macOS packaging targets Ventura without changing Windows or arm64 pa
     /prepare-macos-intel-python\.sh && MACOSX_DEPLOYMENT_TARGET=13\.0 UV_NO_SYNC=1 pnpm run package:prepare/,
   );
   assert.match(x64Package, /--x64/);
-  assert.match(x64Package, /--config electron-builder\.macos-intel\.yml/);
+  assert.match(x64Package, /build-macos-installer\.mjs --x64/);
+  assert.match(arm64Package, /build-macos-installer\.mjs --arm64/);
   for (const name of ["package:win", "package:dir", "package:mac", "package:world-runtime"]) {
     assert.doesNotMatch(manifest.scripts[name], /electron-builder\.macos-intel/);
   }
@@ -234,6 +235,8 @@ test("packaged Intel app verification checks architecture, minimum OS, runtime a
   assert.match(smokeScript, /subtitles=\$\{subtitle_path\}/);
   assert.match(smokeScript, /codesign --verify --deep --strict/);
   assert.match(smokeScript, /macos-\$\{artifact_arch\}\.\$\{extension\}/);
+  assert.match(smokeScript, /hdiutil verify "\$artifact_path"/);
+  assert.match(smokeScript, /unzip -tq "\$artifact_path"/);
 });
 
 test("Mach-O compatibility checks the requested slice and reports every incompatible file", async () => {

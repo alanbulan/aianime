@@ -140,6 +140,16 @@ test("workflow builds exactly three native targets and waits for all before a si
   const upload = at("Upload platform artifact");
   assert.ok(at("Install locked Node dependencies") < browser && browser < tests && tests < build);
   assert.ok(at("Verify native Sparkle update and signature rejection") < build);
+  const restoreFfmpeg = at("Restore native FFmpeg binaries");
+  const validateFfmpeg = at("Build and validate native FFmpeg");
+  const saveFfmpeg = at("Save validated native FFmpeg binaries");
+  assert.ok(tests < restoreFfmpeg && restoreFfmpeg < validateFfmpeg && validateFfmpeg < saveFfmpeg && saveFfmpeg < build);
+  assert.match(steps[restoreFfmpeg].with.key, /matrix\.runner.*matrix\.arch.*matrix\.deployment_target.*hashFiles/);
+  assert.equal(steps[restoreFfmpeg].with["restore-keys"], undefined);
+  assert.equal(steps[restoreFfmpeg].with.path, steps[saveFfmpeg].with.path);
+  assert.equal(steps[validateFfmpeg].run, "pnpm --dir desktop runtime:ffmpeg");
+  assert.match(steps[saveFfmpeg].if, /cache-hit != 'true'/);
+  assert.equal(steps[saveFfmpeg].with.key, "${{ steps.ffmpeg-cache.outputs.cache-primary-key }}");
   assert.ok(build < sign && sign < stage && stage < upload);
   assert.equal(steps[sign].if, "runner.os == 'macOS'");
   assert.equal(steps[sign].env.SPARKLE_ED_PRIVATE_KEY, "${{ secrets.SPARKLE_ED_PRIVATE_KEY }}");
