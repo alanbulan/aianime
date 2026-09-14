@@ -40,10 +40,33 @@
 - 回归覆盖旧 Windows 换行的真实清单与校验和、原字节不变、篡改仍拒绝、构件来源核验，
   以及恢复工作流只发布、不调用任何打包步骤的合同。
 - `actionlint` 两个工作流与 `git diff --check` 通过；原运行的真实 API 元数据通过来源验证。
+- 锁定环境的工程指令与发布说明测试 4 项通过，工作区版本核验通过。首次文档测试使用本机默认镜像
+  导致 `uv.lock` 出现源地址重写，已还原该工具产生的变更，并使用 `--locked --default-index https://pypi.org/simple`
+  重跑通过，提交中没有锁文件或依赖变更。
 - 本次版本继续为 `1.1.71`，没有重新构建或修改原安装包；原工作流直接重试仍会使用旧脚本，
   因此通过独立发布入口加载修复工具并复用原构件。
 
-实际发布运行编号、服务器版本与三平台构件回读在恢复完成后补充。
+修复提交 `8d760b0764b3153913ec2be96a2060b176d9b712` 已同步 Gitee 与 GitHub；
+GitHub 通过 Git Data API 创建与本地一致的 blob、tree 和 commit，并以 `force: false` 快进，逐项 SHA 一致。
+仅投递新发布工作流，HTTP 204；恢复运行
+[34859704787](https://github.com/alanbulan/aianime/actions/runs/34859704787)，
+输入原运行 `34830812154`，只有发布任务 `104028377570`。
+恢复运行结果为 `success`，唯一发布任务用时 5 分 38 秒（北京时间 23:04:09 至 23:09:47），
+没有新增任何打包任务。版本说明聚合及原始字节校验通过，原三份安装包上传、登记和发布均成功。
+云端版本 ID 为 `89a74eeb-a185-41b1-b97f-214bec79a8ec`，状态 `PUBLISHED`，版本 `1.1.71`。
+
+| 已发布平台 | 原安装包 | 字节数 |
+|---|---|---:|
+| Windows x64 | `AI-anime-1.1.71-x64-setup.exe` | 678303643 |
+| macOS Intel | `AI-anime-1.1.71-macos-x64.zip` | 811182733 |
+| macOS Apple Silicon | `AI-anime-1.1.71-macos-arm64.zip` | 796462692 |
+
+本机以可信既有客户端身份分别调用 `ai.Ai/CheckUpdate`，当前版本设为 `1.1.68`，
+三个目标均返回 `available=true`、`1.1.71` 和对应平台构件；数据库只读核对同样为三端 `PUBLISHED`。
+这验证客户端更新查询可见性，不代表重新进行前端浏览器操作或三端真机安装。
+原构建工作流保留原失败历史，新恢复工作流为绿色成功；没有重跑旧矩阵来改变历史颜色。
+
+结构化证据见 [20260914-existing-package-publication-recovery.json](evidence/20260914-existing-package-publication-recovery.json)。
 
 ## 影响与回退
 

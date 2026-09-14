@@ -1,0 +1,270 @@
+{
+  "date": "2026-09-14",
+  "version": "1.1.71",
+  "source_run_id": 34830812154,
+  "source_sha": "50e0c871564d06456945848eff47e6413a0635e4",
+  "source_package_jobs": [
+    {
+      "id": 103960546880,
+      "name": "Package macos-x64",
+      "conclusion": "success",
+      "started_at": "2026-09-14T11:40:24Z",
+      "completed_at": "2026-09-14T14:15:37Z"
+    },
+    {
+      "id": 103960547028,
+      "name": "Package macos-arm64",
+      "conclusion": "success",
+      "started_at": "2026-09-14T11:40:28Z",
+      "completed_at": "2026-09-14T12:48:01Z"
+    },
+    {
+      "id": 103960547312,
+      "name": "Package windows-x64",
+      "conclusion": "success",
+      "started_at": "2026-09-14T11:40:23Z",
+      "completed_at": "2026-09-14T12:03:28Z"
+    }
+  ],
+  "original_artifacts": [
+    {
+      "id": 10351848003,
+      "name": "AI-anime-macos-x64",
+      "size_in_bytes": 1581256159,
+      "digest": "sha256:02b82a158f5e1f49e5915a222f6d50d013b2475f89a2ea0346cbed155ca559a9",
+      "expires_at": "2026-09-15T14:15:01Z"
+    },
+    {
+      "id": 10347977502,
+      "name": "AI-anime-macos-arm64",
+      "size_in_bytes": 1556024946,
+      "digest": "sha256:65efe350b2ffd4034b363092d8a06e7f93e46f73b93d68d31b257293ae054994",
+      "expires_at": "2026-09-15T12:47:38Z"
+    },
+    {
+      "id": 10345993523,
+      "name": "AI-anime-windows-x64",
+      "size_in_bytes": 678307052,
+      "digest": "sha256:afe4ee3f3e12ad80a62947573a66da1c974bdd61d93fe04f4d713cbe224a9442",
+      "expires_at": "2026-09-15T12:03:16Z"
+    }
+  ],
+  "failure": {
+    "job_id": 104010227775,
+    "step": "Verify all artifacts and prepare one cloud plan",
+    "error": "Release notes mismatch: windows-x64",
+    "cause": "相同版本说明的 Windows CRLF 与 Linux LF 换行差异"
+  },
+  "recovery": {
+    "id": 34859704787,
+    "head_sha": "8d760b0764b3153913ec2be96a2060b176d9b712",
+    "html_url": "https://github.com/alanbulan/aianime/actions/runs/34859704787",
+    "conclusion": "success",
+    "created_at": "2026-09-14T15:04:03Z"
+  },
+  "recovery_job": {
+    "id": 104028377570,
+    "name": "Publish existing Windows and macOS packages",
+    "conclusion": "success",
+    "started_at": "2026-09-14T15:04:09Z",
+    "completed_at": "2026-09-14T15:09:47Z",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-14T15:04:10Z",
+        "completed_at": "2026-09-14T15:04:10Z"
+      },
+      {
+        "name": "Check out release tooling",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-14T15:04:10Z",
+        "completed_at": "2026-09-14T15:04:13Z"
+      },
+      {
+        "name": "Set up Node.js",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-14T15:04:13Z",
+        "completed_at": "2026-09-14T15:04:18Z"
+      },
+      {
+        "name": "Verify original package jobs and artifact provenance",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-14T15:04:18Z",
+        "completed_at": "2026-09-14T15:04:19Z"
+      },
+      {
+        "name": "Check out original version and release notes",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-14T15:04:19Z",
+        "completed_at": "2026-09-14T15:04:21Z"
+      },
+      {
+        "name": "Install locked release tooling",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-09-14T15:04:21Z",
+        "completed_at": "2026-09-14T15:04:26Z"
+      },
+      {
+        "name": "Download existing platform artifacts",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-14T15:04:26Z",
+        "completed_at": "2026-09-14T15:04:46Z"
+      },
+      {
+        "name": "Verify original bytes and prepare cloud plan",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-09-14T15:04:46Z",
+        "completed_at": "2026-09-14T15:04:50Z"
+      },
+      {
+        "name": "Publish verified packages to cloud",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-09-14T15:04:50Z",
+        "completed_at": "2026-09-14T15:09:24Z"
+      },
+      {
+        "name": "Post Check out original version and release notes",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 16,
+        "started_at": "2026-09-14T15:09:24Z",
+        "completed_at": "2026-09-14T15:09:24Z"
+      },
+      {
+        "name": "Post Set up Node.js",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 17,
+        "started_at": "2026-09-14T15:09:24Z",
+        "completed_at": "2026-09-14T15:09:24Z"
+      },
+      {
+        "name": "Post Check out release tooling",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 18,
+        "started_at": "2026-09-14T15:09:24Z",
+        "completed_at": "2026-09-14T15:09:24Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 19,
+        "started_at": "2026-09-14T15:09:24Z",
+        "completed_at": "2026-09-14T15:09:24Z"
+      }
+    ]
+  },
+  "new_package_jobs": 0,
+  "server": "https://aianime.mingcw.com",
+  "client_update_queries": [
+    {
+      "target": "windows",
+      "arch": "x86_64",
+      "available": true,
+      "version": "1.1.71",
+      "status": "PUBLISHED",
+      "artifact": {
+        "id": "f57a6cf3-cc2a-4f68-bf85-b55324a59872",
+        "versionId": "89a74eeb-a185-41b1-b97f-214bec79a8ec",
+        "target": "windows",
+        "arch": "x86_64",
+        "installerKind": "nsis",
+        "fileId": "3357",
+        "manifestFileId": "3358",
+        "sha256": "28d418ab9eac71446f2c7a24fc8220650b285a3f849356f8071154449db6016f",
+        "sizeBytes": "678303643",
+        "manifestSha256": "105fe93dd5438f09e9f396949bbdbb2537100a16ab2d7f5a8878df78a961acfc",
+        "manifestSizeBytes": "356",
+        "fileName": "AI-anime-1.1.71-x64-setup.exe",
+        "manifestFileName": "latest.yml",
+        "contentType": "application/octet-stream",
+        "manifestContentType": "application/x-yaml",
+        "createdAt": "2026-09-14T15:07:19Z"
+      }
+    },
+    {
+      "target": "macos",
+      "arch": "x86_64",
+      "available": true,
+      "version": "1.1.71",
+      "status": "PUBLISHED",
+      "artifact": {
+        "id": "65054769-f0b7-4a0b-8424-fa4979baf6c1",
+        "versionId": "89a74eeb-a185-41b1-b97f-214bec79a8ec",
+        "target": "macos",
+        "arch": "x86_64",
+        "installerKind": "zip",
+        "fileId": "3359",
+        "manifestFileId": "3360",
+        "sha256": "e85795cb78c8aa6a6a439a61a11441b0826c49ac3489d9dca427ad9149833261",
+        "sizeBytes": "811182733",
+        "manifestSha256": "d76c51fd8abd1a6f5025b9ff791a367fdf2278e9c40e7846e683ce8da0e6048d",
+        "manifestSizeBytes": "484",
+        "fileName": "AI-anime-1.1.71-macos-x64.zip",
+        "manifestFileName": "latest-mac.yml",
+        "contentType": "application/zip",
+        "manifestContentType": "application/x-yaml",
+        "createdAt": "2026-09-14T15:07:19Z"
+      }
+    },
+    {
+      "target": "macos",
+      "arch": "arm64",
+      "available": true,
+      "version": "1.1.71",
+      "status": "PUBLISHED",
+      "artifact": {
+        "id": "10f42502-4024-4c3f-a59f-53957d1ae603",
+        "versionId": "89a74eeb-a185-41b1-b97f-214bec79a8ec",
+        "target": "macos",
+        "arch": "arm64",
+        "installerKind": "zip",
+        "fileId": "3361",
+        "manifestFileId": "3362",
+        "sha256": "15f083be4f50b45ed8a47d87ccb688912d4b78426a8c656996cae5d11cdd8357",
+        "sizeBytes": "796462692",
+        "manifestSha256": "0b2c35e02f7b94e2cc7801f2b8eda28ee72842b67f0b054a40d889a7992a50d7",
+        "manifestSizeBytes": "488",
+        "fileName": "AI-anime-1.1.71-macos-arm64.zip",
+        "manifestFileName": "latest-mac.yml",
+        "contentType": "application/zip",
+        "manifestContentType": "application/x-yaml",
+        "createdAt": "2026-09-14T15:07:19Z"
+      }
+    }
+  ],
+  "checks": {
+    "desktop_typecheck": "passed",
+    "desktop_tests": {
+      "passed": 281,
+      "skipped": 4
+    },
+    "actionlint": "passed",
+    "version_consistency": "passed",
+    "locked_python_document_tests": {
+      "passed": 4
+    }
+  },
+  "log_sha256": "9227945c597bf7dc82659688830352e9978ea458d87f8f178c918912cba67e29"
+}
