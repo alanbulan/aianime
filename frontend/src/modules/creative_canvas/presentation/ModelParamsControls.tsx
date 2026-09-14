@@ -20,6 +20,7 @@ import type {
   ResolutionOption,
 } from '../domain/imageModelDefinition';
 import {
+  containsUiSelectTarget,
   UiChipButton,
   UiPanel,
   UiInput,
@@ -324,10 +325,10 @@ export const ModelParamsControls = memo(({
       if (modelPanelRef.current?.contains(target)) {
         return;
       }
-      if (paramsPanelRef.current?.contains(target)) {
+      if (containsUiSelectTarget(paramsPanelRef.current, target)) {
         return;
       }
-      if (otherParamsPanelRef.current?.contains(target)) {
+      if (containsUiSelectTarget(otherParamsPanelRef.current, target)) {
         return;
       }
       setOpenPanel(null);
@@ -628,6 +629,7 @@ export const ModelParamsControls = memo(({
 
                         {definition.type === 'enum' && definition.options && (
                           <UiSelect
+                            aria-label={translatedLabel}
                             value={String(resolvedValue ?? '')}
                             onChange={(event) =>
                               onExtraParamChange?.(definition.key, event.target.value)
@@ -739,6 +741,7 @@ export const ModelParamsControls = memo(({
                       )}
                     </div>
                     <UiSelect
+                      aria-label={translatedLabel}
                       value={String(resolvedValue ?? '')}
                       onChange={(event) => onExtraParamChange?.(definition.key, event.target.value)}
                       className="h-9 text-sm"

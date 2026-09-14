@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { UiCheckbox, UiInput, UiSelect } from "@/components/ui";
+import { containsUiSelectTarget, UiCheckbox, UiInput, UiSelect } from "@/components/ui";
 import { Slider } from "@/components/ui/slider";
 import type {
   VideoSceneOptimize,
@@ -163,9 +163,10 @@ export function VideoConfigChip({
   useEffect(() => {
     if (!isOpen) return;
     const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        triggerRef.current?.contains(event.target as Node) ||
-        popoverRef.current?.contains(event.target as Node)
+        triggerRef.current?.contains(target) ||
+        containsUiSelectTarget(popoverRef.current, target)
       ) {
         return;
       }

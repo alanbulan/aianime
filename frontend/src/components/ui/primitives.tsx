@@ -197,6 +197,17 @@ export const UiCheckbox = forwardRef<HTMLButtonElement, UiCheckboxProps>(
 
 UiCheckbox.displayName = 'UiCheckbox';
 
+// UiSelect 菜单挂在 body 上，父面板需要沿 aria-controls 判断菜单归属。
+export function containsUiSelectTarget(container: HTMLElement | null, target: Node | null): boolean {
+  if (!container || !target) return false;
+  if (container.contains(target)) return true;
+  return Array.from(container.querySelectorAll('[aria-haspopup="listbox"][aria-controls]'))
+    .some((trigger) => {
+      const menuId = trigger.getAttribute('aria-controls');
+      return menuId !== null && Boolean(container.ownerDocument.getElementById(menuId)?.contains(target));
+    });
+}
+
 export function UiSelect({ className = '', menuClassName = '', children, ...props }: UiSelectProps) {
   const {
     value,
@@ -325,10 +336,10 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
       }
     };
 
-    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('mousedown', handlePointerDown, true);
     document.addEventListener('keydown', handleEscape);
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('mousedown', handlePointerDown, true);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen]);

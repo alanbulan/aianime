@@ -1247,10 +1247,10 @@ describe("VideoPane VideoReference inspector", () => {
       defaultModel: "video-model-advanced-b",
     });
 
-    await user.click(screen.getByRole("combobox", { name: "分辨率" }));
-    expect(await screen.findByRole("option", { name: "480p" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "720p" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "1080p" })).toBeInTheDocument();
+    await user.click(screen.getByRole("combobox", { name: "输出规格" }));
+    expect(await screen.findByRole("option", { name: /^480p\b/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /^720p\b/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /^1080p\b/ })).toBeInTheDocument();
   });
 
   it("hides unsupported VideoReference value resolution options", async () => {
@@ -1265,10 +1265,10 @@ describe("VideoPane VideoReference inspector", () => {
         "true",
       ),
     );
-    await user.click(screen.getByLabelText("分辨率"));
-    expect(await screen.findByRole("option", { name: "720p" })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: "480p" })).not.toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "1080p" })).toBeInTheDocument();
+    await user.click(screen.getByRole("combobox", { name: "输出规格" }));
+    expect(await screen.findByRole("option", { name: /^720p\b/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /^480p\b/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /^1080p\b/ })).toBeInTheDocument();
   });
 
   it("normalizes unsupported saved VideoReference value resolution", async () => {
@@ -1586,7 +1586,7 @@ describe("VideoPane VideoReference inspector", () => {
       resolution: "720p",
       ratio: "9:16",
     });
-    expect(screen.queryByRole("checkbox", { name: "生成声音" })).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "生成声音" })).toBeEnabled();
     expect(screen.queryByRole("checkbox", { name: "真人审核" })).not.toBeInTheDocument();
   });
 
