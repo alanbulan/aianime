@@ -164,7 +164,7 @@ jobs:
           name: AI-anime-${{ matrix.target }}
           path: desktop/release/handoff/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           compression-level: 0
 
   release:

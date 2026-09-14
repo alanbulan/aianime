@@ -1,0 +1,83 @@
+name: Publish existing desktop packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful three-platform package run to publish without rebuilding
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: build-desktop-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish existing Windows and macOS packages
+    if: github.repository == 'alanbulan/aianime' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out release tooling
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+
+      - name: Verify original package jobs and artifact provenance
+        id: source
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: node desktop/scripts/verify-release-source.mjs
+
+      - name: Check out original version and release notes
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.source.outputs.source_sha }}
+          path: release-source
+          persist-credentials: false
+
+      - name: Install locked release tooling
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.24.0 --activate
+          pnpm --dir desktop install --frozen-lockfile --ignore-scripts
+
+      - name: Download existing platform artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          pattern: AI-anime-*
+          path: desktop/release/
+          merge-multiple: false
+
+      - name: Verify original bytes and prepare cloud plan
+        run: pnpm --dir desktop release:combine --source-root ../release-source
+
+      - name: Publish verified packages to cloud
+        env:
+          RELEASE_GATEWAY: https://aianime.mingcw.com
+          RELEASE_TENANT: system
+          RELEASE_USERNAME: admin
+          RELEASE_PASSWORD: ${{ secrets.RELEASE_PASSWORD }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          test -n "${RELEASE_PASSWORD}" || { echo "Missing RELEASE_PASSWORD Actions secret." >&2; exit 1; }
+          pnpm --dir desktop release:publish --reason "复用 GitHub Actions ${SOURCE_RUN_ID} 已成功构建并签名的三端原始安装包，仅恢复发布"

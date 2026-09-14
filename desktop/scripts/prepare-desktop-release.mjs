@@ -5,6 +5,7 @@ import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { readWorkspaceVersion } from "../../scripts/release/bump-version.mjs";
 import { prepareMacosReleaseManifest } from "./prepare-macos-release-manifest.mjs";
 import { prepareWindowsUpdateManifest } from "./prepare-windows-update-manifest.mjs";
@@ -46,6 +47,7 @@ function checksumText(files) {
 }
 
 export async function stageTargetRelease(directory, version, target, notes = "") {
+  notes = notes.replace(/\r\n/g, "\n");
   const spec = targetFiles(version, target);
   if (spec.config.target === "macos") {
     await prepareMacosReleaseManifest(directory, version, notes, spec.config.nodeArch);
@@ -68,6 +70,7 @@ export async function stageTargetRelease(directory, version, target, notes = "")
 }
 
 export async function combineTargetReleases(directory, version, notes = "") {
+  notes = notes.replace(/\r\n/g, "\n");
   const artifacts = [];
   const githubAssets = [];
   // All three jobs must finish and every byte must verify before a publish plan is written.
@@ -78,7 +81,9 @@ export async function combineTargetReleases(directory, version, notes = "") {
     const manifest = JSON.parse(await readFile(join(root, spec.manifest), "utf8"));
     assert.equal(manifest.version, version, `Release version mismatch: ${target}`);
     assert.equal(manifest.target, target, `Release target mismatch: ${target}`);
-    assert.equal(manifest.notes, notes, `Release notes mismatch: ${target}`);
+    // Existing Windows handoffs retain their original bytes and checksum list.
+    // Only compare equivalent line endings; still reject changed note content.
+    assert.equal(manifest.notes.replace(/\r\n/g, "\n"), notes, `Release notes mismatch: ${target}`);
     assert.deepEqual(manifest.files.map((file) => file.file), spec.files, `Release files mismatch: ${target}`);
     const actual = await Promise.all(spec.files.map((file) => describeFile(root, file)));
     assert.deepEqual(manifest.files, actual, `Release checksum mismatch: ${target}`);
@@ -98,8 +103,13 @@ export async function combineTargetReleases(directory, version, notes = "") {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const desktopRoot = fileURLToPath(new URL("..", import.meta.url));
-  const version = readWorkspaceVersion(join(desktopRoot, ".."));
-  const releaseNotes = await readFile(join(desktopRoot, "../src/ai_anime/release-notes.md"), "utf8");
+  const { values, positionals } = parseArgs({ allowPositionals: true,
+    options: { "source-root": { type: "string" } } });
+  const mode = positionals[0];
+  assert.ok(!values["source-root"] || mode === "combine", "--source-root is only supported for combine");
+  const sourceRoot = resolve(values["source-root"] || join(desktopRoot, ".."));
+  const version = readWorkspaceVersion(sourceRoot);
+  const releaseNotes = await readFile(join(sourceRoot, "src/ai_anime/release-notes.md"), "utf8");
   const frontmatter = releaseNotes.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   assert.ok(frontmatter, "Release notes metadata is missing");
   assert.equal(load(frontmatter[1]).version, version, "Release notes version mismatch");
@@ -108,9 +118,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const notes = releaseNotes.slice(frontmatter[0].length).trim();
   const directory = join(desktopRoot, "release");
-  const mode = process.argv[2];
   assert.ok(["stage", "combine", "verify"].includes(mode), "Expected stage, combine or verify");
-  if (mode === "stage") console.log(await stageTargetRelease(directory, version, process.argv[3], notes));
+  if (mode === "stage") console.log(await stageTargetRelease(directory, version, positionals[1], notes));
   if (mode === "combine") console.log(await combineTargetReleases(directory, version, notes));
   if (mode === "verify") console.log(`Workspace release version verified: ${version}`);
 }

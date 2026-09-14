@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const { load, dump } = createRequire(require.resolve("electron-updater/package.json"))("js-yaml");
 const { publishClientRelease } = require("../scripts/publish-client-release.cjs");
 const version = "1.2.3";
-const notes = "三平台发布测试";
+const notes = "三平台发布测试\n\n相同说明，保留空格。";
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "desktop-release-"));
@@ -99,6 +99,38 @@ test("release assembly rejects mixed notes or versions", async (t) => {
   manifest.version = "1.2.2";
   await writeFile(path, JSON.stringify(manifest));
   await assert.rejects(combineTargetReleases(combined, version, notes), /version mismatch/);
+});
+
+test("existing Windows CRLF handoff combines without rewriting any signed or checksummed file", async (t) => {
+  const { combined } = await fixture(t);
+  const root = join(combined, "AI-anime-windows-x64");
+  const manifestName = `release-${version}-windows-x64.json`;
+  const manifestPath = join(root, manifestName);
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.notes = notes.replace(/\n/g, "\r\n");
+  const bytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
+  await writeFile(manifestPath, bytes);
+  const checksumPath = join(root, "SHA256SUMS-windows-x64.txt");
+  const checksum = (await readFile(checksumPath, "utf8")).replace(
+    new RegExp(`[a-f0-9]{64}  ${manifestName.replaceAll(".", "\\.")}\\n`),
+    `${createHash("sha256").update(bytes).digest("hex")}  ${manifestName}\n`,
+  );
+  await writeFile(checksumPath, checksum);
+  const planPath = await combineTargetReleases(combined, version, notes);
+  assert.equal(JSON.parse(await readFile(planPath, "utf8")).notes, notes);
+  assert.deepEqual(await readFile(manifestPath), bytes);
+  assert.equal(await readFile(checksumPath, "utf8"), checksum);
+  // Whitespace other than CRLF, and invalid original checksum bytes, remain errors.
+  await assert.rejects(combineTargetReleases(combined, version, notes.replace("保留", " 保留")), /notes mismatch/);
+  await writeFile(manifestPath, `${JSON.stringify({ ...manifest, notes })}\n`);
+  await assert.rejects(combineTargetReleases(combined, version, notes), /Checksum list mismatch/);
+});
+
+test("new Windows handoffs normalize release note line endings before checksumming", async (t) => {
+  const { root } = await fixture(t);
+  const staged = await stageTargetRelease(join(root, "windows-x64"), version, "windows-x64", notes.replace(/\n/g, "\r\n"));
+  const manifest = JSON.parse(await readFile(join(staged, `release-${version}-windows-x64.json`), "utf8"));
+  assert.equal(manifest.notes, notes);
 });
 
 test("native staging rejects wrong architecture and missing Sparkle signatures", async (t) => {
