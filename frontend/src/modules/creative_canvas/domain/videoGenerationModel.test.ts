@@ -24,6 +24,27 @@ import {
 } from "./videoGenerationModel";
 
 describe("videoGenerationModel", () => {
+  it("retains HD output when changing between catalog aspect ratios", () => {
+    const sizes = ["1024x576", "576x1024", "1024x1024", "1344x576",
+      "1920x1080", "1080x1920", "1080x1080", "2520x1080"];
+    const output = videoOutputDefinitionForModel({
+      sizeOptions: sizes,
+      parameterSchema: { properties: { size: { enum: sizes, default: "1024x576" } } },
+    });
+    expect(output?.parameter).toBe("size");
+    expect(output?.defaultValue).toBe("1024x576");
+    for (const [ratio, size] of [["16:9", "1920x1080"], ["9:16", "1080x1920"],
+      ["1:1", "1080x1080"], ["21:9", "2520x1080"]]) {
+      expect(normalizeVideoOutput(size, output)).toBe(size);
+      expect(videoOutputForAspectRatio(output, ratio!, "1920x1080")).toBe(size);
+      expect(videoAspectRatioForOutput(size!, ["16:9", "9:16", "1:1", "21:9"], "16:9")).toBe(ratio);
+    }
+    expect(videoOutputForAspectRatio(output, "9:16", "1024x576")).toBe("576x1024");
+    expect(videoOutputForAspectRatio(output, "21:9", "1024x576")).toBe("1344x576");
+    const onlyLowPortrait = { ...output!, options: sizes.filter((size) => size !== "1080x1920") };
+    expect(videoOutputForAspectRatio(onlyLowPortrait, "9:16", "1920x1080")).toBe("576x1024");
+  });
+
   it("lets BYOK upstream validate duration and reference capabilities", () => {
     const model = {
       routeSelector: "byok:trae:video",

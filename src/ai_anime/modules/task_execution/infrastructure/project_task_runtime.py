@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_PROJECT_TASK_TIMEOUT_SECONDS = 30 * 60
 _LONG_MEDIA_TASK_TIMEOUT_SECONDS = 2 * 60 * 60
+_VIDEO_GENERATION_TIMEOUT_SECONDS = 6 * 60 * 60
 _SCRIPT_WRITER_TIMEOUT_SECONDS = 2 * 60 * 60
 _SCRIPT_WORKFLOW_TIMEOUT_SECONDS = 8 * 60 * 60
 _PRODUCTION_WORKFLOW_TIMEOUT_SECONDS = 24 * 60 * 60
@@ -39,7 +40,9 @@ _LONG_MEDIA_TASK_TYPES = frozenset(
 
 def project_task_timeout_seconds(task_type: str | None = None) -> int:
     normalized_task_type = str(task_type or "").strip()
-    if normalized_task_type == "production_workflow":
+    if normalized_task_type in {"single_video", "freezone_video_gen"}:
+        default_timeout = _VIDEO_GENERATION_TIMEOUT_SECONDS
+    elif normalized_task_type == "production_workflow":
         default_timeout = _PRODUCTION_WORKFLOW_TIMEOUT_SECONDS
     elif normalized_task_type == "script_workflow":
         default_timeout = _SCRIPT_WORKFLOW_TIMEOUT_SECONDS

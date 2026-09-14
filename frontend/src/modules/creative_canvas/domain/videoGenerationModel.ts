@@ -177,7 +177,7 @@ export function videoOutputForAspectRatio(
   if (!definition || definition.parameter !== "size") return currentValue;
   const target = parseRatio(aspectRatio);
   if (target === null) return currentValue;
-  return nearestVideoSize(definition.options, target) ?? currentValue;
+  return nearestVideoSize(definition.options, target, currentValue) ?? currentValue;
 }
 
 export function videoAspectRatioForOutput(
@@ -417,19 +417,29 @@ function parseSizeRatio(value: string): number | null {
 function nearestVideoSize(
   options: ReadonlyArray<string>,
   targetRatio: number,
+  currentValue: string,
 ): string | null {
+  const currentShortEdge = videoSizeShortEdge(currentValue);
   const candidates = options.flatMap((value) => {
     const ratio = parseSizeRatio(value);
-    return ratio === null ? [] : [{ value, ratio }];
+    const shortEdge = videoSizeShortEdge(value);
+    return ratio === null || shortEdge === null ? [] : [{ value, ratio, shortEdge }];
   });
   return candidates.length === 0
     ? null
-    : candidates.reduce((best, candidate) =>
-        ratioDistance(candidate.ratio, targetRatio) <
-        ratioDistance(best.ratio, targetRatio)
-          ? candidate
-          : best,
-      ).value;
+    : candidates.reduce((best, candidate) => {
+        const ratioDelta = ratioDistance(candidate.ratio, targetRatio) -
+          ratioDistance(best.ratio, targetRatio);
+        if (Math.abs(ratioDelta) > 1e-6) return ratioDelta < 0 ? candidate : best;
+        if (currentShortEdge === null) return best;
+        return ratioDistance(candidate.shortEdge, currentShortEdge) <
+          ratioDistance(best.shortEdge, currentShortEdge) ? candidate : best;
+      }).value;
+}
+
+function videoSizeShortEdge(value: string): number | null {
+  if (parseSizeRatio(value) === null) return null;
+  return Math.min(...value.trim().toLowerCase().split("x").map(Number));
 }
 
 function ratioDistance(left: number, right: number): number {

@@ -40,6 +40,21 @@ function configProps(
 }
 
 describe("VideoConfigChip", () => {
+  it("shows newly published exact HD sizes and submits their original values", () => {
+    const onChange = vi.fn();
+    const sizes = ["1920x1080", "1080x1920", "1080x1080", "2520x1080"];
+    render(<VideoConfigChip {...configProps({
+      outputValue: "1024x576", outputOptions: ["1024x576", ...sizes], onChange,
+    })} />);
+    fireEvent.click(screen.getByText("1024x576").closest("button")!);
+    for (const size of sizes) {
+      const option = screen.getByRole("button", { name: size });
+      expect(option).toBeEnabled();
+      fireEvent.click(option);
+      expect(onChange).toHaveBeenLastCalledWith({ generationResolution: size });
+    }
+  });
+
   it("accepts BYOK duration input without a model maximum", () => {
     const onChange = vi.fn();
     render(<VideoConfigChip {...configProps({

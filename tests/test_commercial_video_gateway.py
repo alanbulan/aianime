@@ -64,6 +64,44 @@ def test_video_headers_use_only_the_authenticated_desktop_router(
     }
 
 
+@pytest.mark.asyncio
+async def test_long_hd_task_survives_old_poll_limit_without_resubmission_or_cancel(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    generator = _generator(monkeypatch)
+    calls = []
+    polls = 0
+
+    async def request_json(method: str, path: str, **_kwargs):
+        nonlocal polls
+        calls.append((method, path))
+        if method == "POST":
+            return {"id": "long-hd-invocation"}, "request-submit"
+        polls += 1
+        return {"status": "completed" if polls == 370 else "processing"}, "request-poll"
+
+    async def no_sleep(_seconds: float) -> None:
+        return None
+
+    async def cancel(_task_id: str):
+        pytest.fail("a running HD task must not be cancelled at the old 30 minute bound")
+
+    async def download_content(task_id: str, output_path: str) -> None:
+        assert task_id == "long-hd-invocation"
+        Path(output_path).write_bytes(b"verified-video")
+
+    monkeypatch.setattr(generator, "_request_json", request_json)
+    monkeypatch.setattr(generator, "_cancel", cancel)
+    monkeypatch.setattr(generator, "_download_content", download_content)
+    monkeypatch.setattr(video_module.asyncio, "sleep", no_sleep)
+    output = tmp_path / "hd.mp4"
+    result = await generator.generate(image_path=None, prompt="生成视频", output_path=str(output))
+    assert result.status is VideoGenStatus.DONE
+    assert output.read_bytes() == b"verified-video"
+    assert polls == 370
+    assert calls.count(("POST", "videos")) == 1
+
+
 def test_text_video_builds_standard_json_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -1059,11 +1059,15 @@ def test_commercial_gateway_has_one_fixed_production_origin() -> None:
         REPO_ROOT / "frontend" / "src",
         PACKAGE_ROOT,
     )
+    # The operator's release CLI accepts a deployment target; it is not loaded
+    # by the desktop runtime and has its own publishing contract tests.
+    release_cli = REPO_ROOT / "desktop" / "scripts" / "publish-client-release.cjs"
     production = "\n".join(
         path.read_text(encoding="utf-8")
         for root in production_roots
         for path in root.rglob("*")
         if path.is_file()
+        and path != release_cli
         and path.suffix in {".py", ".ts", ".tsx", ".cts", ".mjs", ".cjs"}
         and "__tests__" not in path.parts
         and "tests" not in path.parts

@@ -139,6 +139,9 @@ def test_project_task_timeout_is_independent_from_celery_hard_limit(monkeypatch)
     assert project_task_timeout_seconds("literal_script_writer") == 2 * 60 * 60
     assert project_task_timeout_seconds("selected_regen") == 2 * 60 * 60
     assert project_task_timeout_seconds("sketch_regen") == 2 * 60 * 60
+    assert project_task_timeout_seconds("single_video") == 6 * 60 * 60
+    assert project_task_timeout_seconds("freezone_video_gen") == 6 * 60 * 60
+    assert project_task_timeout_seconds("compose_episode") == 30 * 60
 
 
 def test_project_task_timeout_environment_override_applies_to_script_writer(
@@ -150,6 +153,8 @@ def test_project_task_timeout_environment_override_applies_to_script_writer(
     )
 
     assert project_task_timeout_seconds("script_writer") == 900
+    assert project_task_timeout_seconds("single_video") == 900
+    assert project_task_timeout_seconds("freezone_video_gen") == 900
 
 
 def test_celery_task_failure_maps_cooperative_task_timeout(monkeypatch) -> None:

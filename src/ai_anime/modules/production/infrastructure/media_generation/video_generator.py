@@ -39,6 +39,9 @@ from ai_anime.shared.utils.media_io import get_audio_duration
 
 COMMERCIAL_VIDEO_HTTP_TIMEOUT_SECONDS = 1800.0
 COMMERCIAL_VIDEO_DOWNLOAD_ATTEMPTS = 3
+# Long HD inference can exceed the old 360 polls (~30 minutes). The owning
+# project task still enforces its wall-clock deadline and explicit cancellation.
+COMMERCIAL_VIDEO_MAX_POLLS = 6 * 60 * 60 // 5
 logger = logging.getLogger(__name__)
 
 
@@ -909,7 +912,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         aspect_ratio: str = "16:9",
         duration: float = 5.0,
         poll_interval: float = 1.0,
-        max_polls: int = 360,
+        max_polls: int = COMMERCIAL_VIDEO_MAX_POLLS,
         on_log: Callable[[str], None] | None = None,
         on_progress: Callable[[float], None] | None = None,
         last_frame_path: str | None = None,

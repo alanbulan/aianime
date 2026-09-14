@@ -1,19 +1,17 @@
 ---
-version: 1.1.69
+version: 1.1.70
 attention: medium
 ---
-# v1.1.69
+# v1.1.70
 
 ## User-facing Highlights (zh)
 
-- **高级参数**：修复视频参考图 `max` 选项无法点击的问题，恢复图片生成高级参数选择。
-- **界面交互**：修复下拉浮层的外部点击关闭逻辑，改善参数面板操作。
-- **统一安装包**：Windows x64、macOS Intel 和 macOS Apple Silicon 使用同一版本构建，全部构件校验通过后统一发布。
-- **更新提示**：安装完成后请重新启动客户端，使 Electron、本地后端和 Hermes 同步切换到新版本。
+- **高清视频参数**：支持服务端发布的精确 1080 视频尺寸，切换横屏、竖屏、方形与宽银幕比例时优先保留当前清晰度。
+- **长视频任务**：视频生成的默认等待窗口延长至 6 小时，避免高分辨率任务在 30 分钟时提前取消；仍可主动取消任务。
+- **更新提示**：安装后重新启动客户端，使界面和本地视频任务运行时同时更新。
 
 ## User-facing Highlights (en)
 
-- **Advanced parameters**: Fix selection of the video reference-image `max` option and restore advanced image-generation controls.
-- **Interface interactions**: Fix outside-click dismissal of parameter dropdowns.
-- **Unified packages**: Build Windows x64, macOS Intel, and macOS Apple Silicon under one version and publish after all artifacts pass verification.
-- **Update notice**: Restart the desktop client after installation to update Electron, the local backend, and Hermes together.
+- **HD video settings**: Use exact 1080 video sizes from the model catalog and retain the selected resolution when changing aspect ratios.
+- **Long video jobs**: Allow up to six hours for video generation by default, preventing premature cancellation after 30 minutes. Manual cancellation remains available.
+- **Update notice**: Restart the client after installation to update both the interface and the local video task runtime.
