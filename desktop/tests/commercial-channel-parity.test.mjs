@@ -89,9 +89,12 @@ test("production and development pass explicit cloud routes to the model proxy",
     readFileSync(`${desktopRoot}/scripts/dev.mjs`, "utf8"),
   ];
 
-  for (const source of sources) {
+  for (const source of sources.flatMap((text) => [
+    text.replace(/\r?\n/g, "\n"),
+    text.replace(/\r?\n/g, "\r\n"),
+  ])) {
     const callback = source.match(
-      /onModelAccessChanged:\s*(?:async\s*)?\(([\s\S]*?)\)\s*=>\s*\{([\s\S]*?)\n\s*\},\n\s*onLoggedOut:/,
+      /onModelAccessChanged:\s*(?:async\s*)?\(([\s\S]*?)\)\s*=>\s*\{([\s\S]*?)\r?\n\s*\},\r?\n\s*onLoggedOut:/,
     );
     assert.ok(callback, "onModelAccessChanged callback is missing");
     assert.match(callback[1], /\bexplicitCloudModelAssignments\b/);

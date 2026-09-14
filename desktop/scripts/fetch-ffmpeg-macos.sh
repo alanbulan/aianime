@@ -35,52 +35,12 @@ download_verified_archive() {
   fi
 }
 
-prepare_arm64_runtime() {
-  local release_tag="8.1.2.1-20260801"
-  local release_root="https://github.com/TaherHaghverdi/mediamill-ffmpeg/releases/download/${release_tag}"
-  local ffmpeg_sha256="7fe7a549a79719d1bc61530dc747a20937733289bf553d8569703fa7a51c2fe1"
-  local ffprobe_sha256="d9c440eab4e8fdb919bad546bdd4f1d5c83a4ce919cd7d5421478871648ea368"
-  local cache_dir="${desktop_root}/.ffmpeg-cache/macos-arm64-${release_tag}"
-  mkdir -p "$cache_dir"
-
-  local name expected_sha256 archive_path extract_dir binary_path
-  for name in ffmpeg ffprobe; do
-    if [[ "$name" == "ffmpeg" ]]; then
-      expected_sha256="$ffmpeg_sha256"
-    else
-      expected_sha256="$ffprobe_sha256"
-    fi
-    archive_path="${cache_dir}/${name}.zip"
-    download_verified_archive "$archive_path" "${release_root}/${name}.zip" "$expected_sha256"
-    extract_dir="$(mktemp -d "${cache_dir}/${name}.XXXXXX")"
-    ditto -x -k "$archive_path" "$extract_dir"
-    binary_path="$(find "$extract_dir" -type f -name "$name" -print -quit)"
-    if [[ -z "$binary_path" ]]; then
-      echo "Required binary not found in ${archive_path}: ${name}" >&2
-      exit 1
-    fi
-    install -m 0755 "$binary_path" "${runtime_dir}/${name}"
-  done
-
-  cat >"${runtime_dir}/SOURCE.json" <<EOF
-{
-  "source": "TaherHaghverdi/mediamill-ffmpeg",
-  "releaseTag": "${release_tag}",
-  "target": "macos",
-  "arch": "arm64",
-  "ffmpegSha256": "${ffmpeg_sha256}",
-  "ffprobeSha256": "${ffprobe_sha256}",
-  "sourceRelease": "${release_root}"
-}
-EOF
-}
-
-prepare_x86_64_runtime() {
+prepare_native_runtime() {
   local release_tag="v9.0.8"
   local ffmpeg_version="9.0.1"
   local source_url="https://github.com/markus-perl/ffmpeg-build-script/archive/refs/tags/${release_tag}.tar.gz"
   local source_sha256="3d0fc6ffb45d2e991ec4b6c0833c60e016c2e36781a7c279f53e0f108231e964"
-  local cache_dir="${desktop_root}/.ffmpeg-cache/macos-x86_64-${release_tag#v}"
+  local cache_dir="${desktop_root}/.ffmpeg-cache/macos-${machine_arch}-${release_tag#v}"
   local archive_path="${cache_dir}/ffmpeg-build-script-${release_tag}.tar.gz"
   local source_dir="${cache_dir}/source"
   local cached_ffmpeg="${cache_dir}/ffmpeg"
@@ -90,7 +50,7 @@ prepare_x86_64_runtime() {
   local command_name
   for command_name in clang make python3 meson ninja lipo otool; do
     if ! command -v "$command_name" >/dev/null 2>&1; then
-      echo "Intel macOS FFmpeg build requires ${command_name}; install the documented build prerequisites first." >&2
+      echo "Native macOS FFmpeg build requires ${command_name}; install the documented build prerequisites first." >&2
       exit 1
     fi
   done
@@ -119,7 +79,7 @@ prepare_x86_64_runtime() {
   "releaseTag": "${release_tag}",
   "ffmpegVersion": "${ffmpeg_version}",
   "target": "macos",
-  "arch": "x86_64",
+  "arch": "${machine_arch}",
   "sourceArchiveSha256": "${source_sha256}",
   "sourceRelease": "${source_url}"
 }
@@ -149,14 +109,15 @@ minimum_macos_version() {
 }
 
 if [[ "$machine_arch" == "arm64" ]]; then
-  prepare_arm64_runtime
   maximum_macos_version="15.0"
-  expected_ffmpeg_version="8.1.2"
 else
-  prepare_x86_64_runtime
   maximum_macos_version="13.0"
-  expected_ffmpeg_version="9.0.1"
 fi
+
+# Build both architectures from the pinned source with its macOS 11 baseline.
+# Prebuilt arm64 archives can require a newer OS than the application supports.
+prepare_native_runtime
+expected_ffmpeg_version="9.0.1"
 
 ffmpeg_path="${runtime_dir}/ffmpeg"
 ffprobe_path="${runtime_dir}/ffprobe"
