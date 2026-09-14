@@ -1,0 +1,214 @@
+name: Build Windows and macOS
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-desktop-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Package ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            runner: windows-2025
+            platform: win32
+            arch: x64
+            package_script: package:win
+            deployment_target: ""
+          - target: macos-x64
+            runner: macos-15-intel
+            platform: darwin
+            arch: x64
+            package_script: package:mac:x64
+            deployment_target: "13.0"
+          - target: macos-arm64
+            runner: macos-15
+            platform: darwin
+            arch: arm64
+            package_script: package:mac
+            deployment_target: "15.0"
+    env:
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.19.0"
+          architecture: ${{ matrix.arch }}
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11.9"
+          architecture: ${{ matrix.arch }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.8"
+          enable-cache: false
+
+      - name: Verify native build host
+        env:
+          BUILD_PLATFORM: ${{ matrix.platform }}
+          BUILD_ARCH: ${{ matrix.arch }}
+        run: node desktop/scripts/assert-package-host.mjs "${BUILD_PLATFORM}" "${BUILD_ARCH}"
+
+      - name: Install locked Node dependencies
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.24.0 --activate
+          test "$(pnpm --version)" = "11.24.0"
+          pnpm --dir desktop install --frozen-lockfile
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Verify workspace version and release tag
+        run: pnpm --dir desktop release:verify
+
+      - name: Install macOS build prerequisites
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          uv tool install meson==1.12.0 --python 3.11.9
+          export PATH="$(uv tool dir --bin):${PATH}"
+          printf '%s\n' "$(uv tool dir --bin)" >>"${GITHUB_PATH}"
+          for command_name in clang make meson ninja perl cargo rustc lipo otool; do
+            command -v "${command_name}" >/dev/null
+          done
+          sw_vers
+          df -h .
+
+      - name: Install Chromium for desktop security tests
+        run: pnpm --dir frontend test:browser:install
+
+      - name: Test desktop packaging contracts
+        run: pnpm --dir desktop typecheck && pnpm --dir desktop test
+
+      - name: Test parameter panel interactions
+        run: >-
+          pnpm --dir frontend test:browser
+          src/components/ui/primitives.browser.test.tsx
+          src/modules/creative_canvas/presentation/VideoConfigChip.browser.test.tsx
+          src/modules/creative_canvas/presentation/ModelParamsControls.browser.test.tsx
+
+      - name: Verify native Sparkle update and signature rejection
+        if: runner.os == 'macOS'
+        run: pnpm --dir desktop runtime:sparkle && pnpm --dir desktop test:sparkle:mac
+
+      - name: Build and verify native package
+        env:
+          PACKAGE_SCRIPT: ${{ matrix.package_script }}
+        run: pnpm --dir desktop "${PACKAGE_SCRIPT}"
+
+      - name: Sign update archive with Sparkle Ed25519
+        if: runner.os == 'macOS'
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: pnpm --dir desktop release:sign:mac
+
+      - name: Stage verified package and checksums
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: pnpm --dir desktop release:stage "${BUILD_TARGET}"
+
+      - name: Upload platform artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: AI-anime-${{ matrix.target }}
+          path: desktop/release/handoff/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  release:
+    name: Collect and publish all three targets
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+
+      - name: Install release tooling
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.24.0 --activate
+          pnpm --dir desktop install --frozen-lockfile --ignore-scripts
+
+      - name: Download all platform artifacts into separate directories
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: AI-anime-*
+          path: desktop/release/
+          merge-multiple: false
+
+      - name: Verify all artifacts and prepare one cloud plan
+        run: pnpm --dir desktop release:combine
+
+      - name: Save tagged builds to one draft release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mapfile -t release_assets <desktop/release/github-assets.txt
+          if release_is_draft="$(gh release view "${GITHUB_REF_NAME}" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+            if [[ "${release_is_draft}" != "true" ]]; then
+              echo "Release ${GITHUB_REF_NAME} is already published; refusing to replace its assets." >&2
+              exit 1
+            fi
+            gh release upload "${GITHUB_REF_NAME}" "${release_assets[@]}" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" "${release_assets[@]}" \
+              --draft --generate-notes --title "${GITHUB_REF_NAME}" --verify-tag
+          fi
+
+      - name: Publish verified packages to cloud
+        if: github.repository == 'alanbulan/aianime' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+        env:
+          RELEASE_GATEWAY: https://aianime.mingcw.com
+          RELEASE_TENANT: system
+          RELEASE_USERNAME: admin
+          RELEASE_PASSWORD: ${{ secrets.RELEASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${RELEASE_PASSWORD}" || { echo "Missing RELEASE_PASSWORD Actions secret." >&2; exit 1; }
+          pnpm --dir desktop release:publish --reason "GitHub Actions ${GITHUB_RUN_ID} 已完成 Windows、Intel Mac 与 Apple Silicon Mac 三端构建与校验，统一发布"

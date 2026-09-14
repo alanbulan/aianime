@@ -7,7 +7,10 @@
 | Remote | 地址 | 用途 |
 | --- | --- | --- |
 | `origin` | `https://gitee.com/mingcheng_software/ai-manga-desktop.git` | 明程软件主仓，日常开发与发布代码推送到这里 |
+| `github` | `https://github.com/alanbulan/aianime.git` | 当前产品的 GitHub 构建/发布镜像，接收已在 Gitee 主仓确认的代码 |
 | `upstream` | `https://github.com/dramaclaw/dramaclaw.git` | 原始项目上游，只用于拉取和评估更新 |
+
+Gitee `origin` 是代码主仓；GitHub `github` 是同一产品的构建与发布仓，和原始项目 `upstream` 不同。同步时先检查两边 `master` 的提交关系，再正常推送已验证的主仓提交，禁止强制覆盖远端独有提交。普通 `master` 推送不触发 GitHub 出包；手动运行或 `v*` 标签触发三平台工作流，详见工程手册。
 
 上游最后审查基线：`30efddcccc58d0106bfe35a5db08c8541aa0c694`（上游提交时间 2026-08-07）。2026-08-09 已执行 `git fetch upstream --prune`，`upstream/main` 仍指向该提交，因此本次没有新增同步项。
 

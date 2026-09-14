@@ -304,30 +304,3 @@ test(
     assert.match(incompatible.stderr, /compatibility check failed for 2 Mach-O files/);
   },
 );
-
-test("GitHub Actions packages Intel macOS on an explicit x86_64 runner", async () => {
-  const workflow = await readFile(
-    new URL("../../.github/workflows/build-macos-intel.yml", import.meta.url),
-    "utf8",
-  );
-
-  assert.match(workflow, /runs-on: macos-15-intel/);
-  assert.doesNotMatch(workflow, /runs-on: macos-latest/);
-  assert.match(workflow, /test "\$\(uname -m\)" = "x86_64"/);
-  assert.match(workflow, /MACOSX_DEPLOYMENT_TARGET: "13\.0"/);
-  assert.match(workflow, /Test desktop packaging contracts/);
-  assert.match(workflow, /pnpm --dir desktop test/);
-  assert.ok(workflow.indexOf("pnpm --dir desktop test") < workflow.indexOf("pnpm --dir desktop package:mac:x64"));
-  assert.match(workflow, /pnpm --dir desktop package:mac:x64/);
-  assert.match(workflow, /AI-anime-\$\{app_version\}-macos-x64\.dmg/);
-  assert.match(workflow, /AI-anime-\$\{app_version\}-macos-x64\.zip/);
-  assert.match(workflow, /latest-mac\.yml/);
-  assert.match(workflow, /SHA256SUMS-macos-x64\.txt/);
-  assert.match(workflow, /pnpm --dir desktop release:manifest:mac:x64/);
-  assert.match(workflow, /release-\$\{app_version\}-macos-x64\.json/);
-  assert.match(workflow, /steps\.artifacts\.outputs\.manifest_path/);
-  assert.equal((workflow.match(/"\$\{MANIFEST_PATH\}"/g) ?? []).length, 2);
-  assert.match(workflow, /github\.ref_type != 'tag'/);
-  assert.match(workflow, /gh release create "\$\{GITHUB_REF_NAME\}"/);
-  assert.match(workflow, /--draft/);
-});

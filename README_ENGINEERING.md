@@ -824,13 +824,27 @@ git tag v1.1.63
 git push github v1.1.63
 ```
 
-`.github/workflows/build-macos-intel.yml` 使用 GitHub 官方 `macos-15-intel` x86_64 Runner，固定 Node.js、Python、uv、pnpm 和 Meson 版本，然后执行同一条 `pnpm --dir desktop package:mac:x64` 命令。手动运行的 DMG、ZIP、`latest-mac.yml` 和 `SHA256SUMS-macos-x64.txt` 作为 Actions 制品保留 1 天；`v*` 标签构建则放入草稿 GitHub Release，需人工验收后再发布。标签必须和 `desktop/package.json` 的版本完全一致，否则流水线会立即拒绝出包。
+`.github/workflows/build-desktop.yml` 在 GitHub Actions 中显示为 **Build Windows and macOS**。一次手动运行或 `v*` 标签推送会构建三个目标；每个目标使用原生宿主及对应的标准出包命令：
 
-在 `alanbulan/aianime` 的 `master` 或 `v*` 标签上，出包、校验和制品归档成功后，Action 会继续执行 `pnpm --dir desktop release:publish:mac:x64`，自动登录 `https://aianime.mingcw.com`、上传 ZIP/YAML、登记并发布云端版本；GitHub Release 本身仍保持草稿。仓库 Actions Secret `RELEASE_PASSWORD` 保存平台发布密码，仅发布步骤读取，默认租户与账号为 `system` / `admin`。缺少 Secret 或任一步失败都会停止，不自动重试写操作。所有 Intel 运行串行，后续运行不取消正在上传或发布的任务。
+| 目标 | GitHub Runner | 标准命令 | 安装包 |
+| --- | --- | --- | --- |
+| Windows x64 | `windows-2025` | `pnpm --dir desktop package:win` | NSIS `.exe` |
+| macOS Intel | `macos-15-intel` | `pnpm --dir desktop package:mac:x64` | `.dmg` / `.zip`，macOS 13.4+ |
+| macOS Apple Silicon | `macos-15`（arm64） | `pnpm --dir desktop package:mac` | `.dmg` / `.zip`，macOS 15+ |
 
-发布脚本 `desktop/scripts/publish-client-release.cjs` 原样来自[云端仓库](https://gitee.com/mingcheng_software/ai-manga-drama)的 `scripts/operations/publish-client-release.cjs`，固定审核来源提交为 `2848e2c343a8652d8376fd1ffb85c017e504e4db`。按云端接入说明将脚本纳入桌面仓库，避免运行时依赖 Gitee 私有源码下载；更新时重新审核并同步原脚本，不维护第二套发布协议。`release:manifest:mac:x64` 同时生成 `desktop/release/cloud/release.json` 和仅引用 ZIP 的 `cloud/latest-mac.yml`，版本说明来自当前 `src/ai_anime/release-notes.md`。原始 DMG、双构件 YAML 和发布 JSON 保持不变；手动运行的 Actions 制品额外保留云端计划和清单，DMG 不作为云端更新包上传。
+三个任务固定 Node.js、Python、uv 与 pnpm 版本，macOS 固定 Meson 版本。先验证宿主平台/架构、工作区版本、发布说明和标签，再执行桌面合同测试、参数面板浏览器测试与构建。两种 Mac 都验证安装包资源、Mach-O 架构/最低系统版本和签名，并运行 Sparkle 更新与错误签名拒绝检查。版本标签必须与工作区版本一致。
 
-本工作流只新增本次 macOS Intel 版本，不修改 Windows、Apple Silicon 或运行依赖。上传与发布不是跨 HTTP 请求事务；失败后先核对线上版本及日志中的文件 ID，不直接重新运行整个构建。版本及构件不可覆盖，后续新包必须使用新版本号。自动发布成功不代表已完成下述目标系统实机验收。
+每个任务通过 `pnpm --dir desktop release:stage <windows-x64|macos-x64|macos-arm64>` 生成独立的 `AI-anime-<目标>` Actions 制品，包含安装包、更新 YAML、JSON 清单、SHA-256 清单及云端专用 YAML，保留 1 天。任一文件为空或达到 2 GiB 时拒绝交付。两种 Mac 的 GitHub 附件分别命名为 `latest-mac-x64.yml` 和 `latest-mac-arm64.yml`，其独立 `cloud/` 目录内仍使用更新器要求的 `latest-mac.yml`。
+
+所有构建成功后，唯一的汇总任务下载三个独立目录，并通过 `pnpm --dir desktop release:combine` 复核版本、平台、发布说明、文件大小与 SHA-256，生成包含三份制品的 `desktop/release/cloud-release.json`。缺少任一平台、清单不一致或文件被改动都会中止发布。标签构建将三平台安装包及不同名清单放入同一个草稿 GitHub Release；已正式发布的 GitHub Release 不允许覆盖附件。构建失败时已成功的平台仍可在 Actions 下载。
+
+在 `alanbulan/aianime` 的 `master` 或 `v*` 标签上，汇总校验及归档成功后继续执行 `pnpm --dir desktop release:publish`，自动登录 `https://aianime.mingcw.com`，一次登记并发布三平台云端版本；GitHub Release 本身保持草稿。此处沿用原工作流的自动云端发布条件，手动运行 `master` 也会进入云端发布。`RELEASE_PASSWORD` 仅传给最终发布步骤，`SPARKLE_ED_PRIVATE_KEY` 仅传给两个 Mac 签名步骤。流水线整体串行，后续运行不取消正在上传或发布的任务。
+
+发布新修复前应在 Gitee 主仓按既有流程同步版本号与发布说明，再同步到 GitHub 并使用新版本标签或手动运行。当前版本若已有任一相同平台制品，发布器会在上传前拒绝覆盖；重新构建相同版本不等于替换现有安装包。三平台构建和资源检查通过仍不能替代对应系统的干净安装、登录、生成、退出及升级人工验收。
+
+发布脚本 `desktop/scripts/publish-client-release.cjs` 原样来自[云端仓库](https://gitee.com/mingcheng_software/ai-manga-drama)的 `scripts/operations/publish-client-release.cjs`，固定审核来源提交为 `2848e2c343a8652d8376fd1ffb85c017e504e4db`。按云端接入说明将脚本纳入桌面仓库，避免运行时依赖 Gitee 私有源码下载；更新时重新审核并同步原脚本，不维护第二套发布协议。`release:manifest:mac:x64` 同时生成 `desktop/release/cloud/release.json` 和仅引用 ZIP 的 `cloud/latest-mac.yml`，版本说明来自当前 `src/ai_anime/release-notes.md`。原始 DMG、双构件 YAML 和发布 JSON 保持不变；该单平台命令仍可用于本机交付；三平台 Action 由汇总步骤生成统一云端计划，DMG 不作为云端更新包上传。
+
+工作流统一交付 Windows、Intel Mac 与 Apple Silicon Mac 主安装包，运行依赖仍按独立流程发布。上传与发布不是跨 HTTP 请求事务；失败后先核对线上版本及日志中的文件 ID，不直接重新运行整个构建。版本及构件不可覆盖，后续新包必须使用新版本号。自动发布成功不代表已完成下述目标系统实机验收。
 
 GitHub 托管环境是 macOS 15，不是 Ventura。流水线会校验所有 Mach-O 的 x86_64 架构和不高于 13.4 的最低系统版本，并在 Intel Runner 上完成后端、FFmpeg、字幕、Hermes 和签名冒烟；这仍不等于已在 macOS 13.7.8 实机验收。对外发布前，必须在指定的 Intel Ventura 机器上完成干净安装、启动、登录、视频/字幕生成和退出冒烟。[GitHub 官方 Runner 表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 确认 `macos-15-intel` 是标准 x64 环境；[Runner 图像公告](https://github.com/actions/runner-images/issues/13045) 将它定义为最后一个 x86_64 macOS 图像，当前公布的可用期到 2027 年 8 月，之后需改用 Intel Mac 自托管 Runner。草稿 Release 里每个制品还受 [GitHub Release 单文件小于 2 GiB](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) 的限制，工作流已在上传前显式检查。
 

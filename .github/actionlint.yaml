@@ -1,0 +1,4 @@
+# actionlint 1.7.7 的内置列表尚未收录 GitHub 官方 Intel macOS Runner。
+self-hosted-runner:
+  labels:
+    - macos-15-intel

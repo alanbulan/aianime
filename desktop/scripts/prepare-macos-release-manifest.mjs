@@ -24,8 +24,9 @@ async function describeArtifact(directory, file) {
   return { file, size, sha256: sha256.digest("hex"), sha512: sha512.digest("base64") };
 }
 
-export async function prepareMacosReleaseManifest(directory, version, notes = "") {
+export async function prepareMacosReleaseManifest(directory, version, notes = "", arch = "x64") {
   assert.match(version, /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
+  assert.ok(["x64", "arm64"].includes(arch), "Unsupported macOS architecture");
   const updaterManifest = "latest-mac.yml";
   const update = load(await readFile(join(directory, updaterManifest), "utf8"));
   assert.equal(update.version, version, "Updater version does not match the application");
@@ -33,8 +34,8 @@ export async function prepareMacosReleaseManifest(directory, version, notes = ""
   assert.ok(Array.isArray(update.files), "Updater files are missing");
   assert.ok(typeof update.releaseDate === "string" && Number.isFinite(Date.parse(update.releaseDate)),
     "Updater release date is missing or invalid");
-  const zip = await describeArtifact(directory, `AI-anime-${version}-macos-x64.zip`);
-  const installer = await describeArtifact(directory, `AI-anime-${version}-macos-x64.dmg`);
+  const zip = await describeArtifact(directory, `AI-anime-${version}-macos-${arch}.zip`);
+  const installer = await describeArtifact(directory, `AI-anime-${version}-macos-${arch}.dmg`);
   for (const artifact of [zip, installer]) {
     const entries = update.files.filter((entry) => entry.url === artifact.file);
     assert.equal(entries.length, 1, `Expected one updater entry for ${artifact.file}`);
@@ -48,14 +49,14 @@ export async function prepareMacosReleaseManifest(directory, version, notes = ""
   const manifest = {
     version,
     platform: "darwin",
-    arch: "x64",
+    arch,
     ...zip,
     releaseDate: update.releaseDate,
     updaterManifest,
     updaterManifestVerified: true,
     installer,
   };
-  const path = join(directory, `release-${version}-macos-x64.json`);
+  const path = join(directory, `release-${version}-macos-${arch}.json`);
   await writeFile(path, `${JSON.stringify(manifest, null, 2)}\n`);
   // The cloud updater accepts one ZIP, while the original handoff also retains the DMG.
   const cloudDirectory = join(directory, "cloud");
@@ -67,7 +68,7 @@ export async function prepareMacosReleaseManifest(directory, version, notes = ""
   await writeFile(join(cloudDirectory, "release.json"), `${JSON.stringify({
     version,
     notes,
-    artifacts: [{ target: "macos", arch: "x86_64", installer: `../${zip.file}`, manifest: updaterManifest }],
+    artifacts: [{ target: "macos", arch: arch === "x64" ? "x86_64" : "arm64", installer: `../${zip.file}`, manifest: updaterManifest }],
   }, null, 2)}\n`);
   return path;
 }
@@ -80,6 +81,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   assert.ok(frontmatter, "Release notes metadata is missing");
   assert.equal(load(frontmatter[1]).version, version, "Release notes version does not match the application");
   console.log(await prepareMacosReleaseManifest(
-    join(desktopRoot, "release"), version, releaseNotes.slice(frontmatter[0].length).trim(),
+    join(desktopRoot, "release"), version, releaseNotes.slice(frontmatter[0].length).trim(), process.argv[2] ?? "x64",
   ));
 }
