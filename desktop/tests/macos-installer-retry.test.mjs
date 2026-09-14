@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { buildMacosInstaller } from "../scripts/build-macos-installer.mjs";
 
@@ -7,8 +9,9 @@ const busy = { code: 1, output: 'dmgbuild.core.DMGError: Unable to detach device
 test("DMG detach failure retries from the compiled app with the same architecture and configuration", async () => {
   for (const arch of ["x64", "arm64"]) {
     const calls = [], waits = [], checks = [];
+    const root = join(tmpdir(), "build path", "desktop");
     await buildMacosInstaller(arch, {
-      root: "/build path/desktop",
+      root,
       execute: async (args) => { calls.push(args); return calls.length === 1 ? busy : { code: 0 }; },
       wait: async (ms) => waits.push(ms),
       checkApp: async (path) => checks.push(path),
@@ -18,9 +21,9 @@ test("DMG detach failure retries from the compiled app with the same architectur
     assert.deepEqual(calls[1].slice(0, calls[0].length), calls[0]);
     assert.deepEqual(calls[0].slice(0, 6), ["--mac", "dmg", "zip", `--${arch}`, "--publish", "never"]);
     assert.equal(calls[0].includes("electron-builder.macos-intel.yml"), arch === "x64");
-    const app = `/build path/desktop/release/${arch === "x64" ? "mac" : "mac-arm64"}/AI anime.app`;
+    const app = join(root, "release", arch === "x64" ? "mac" : "mac-arm64", "AI anime.app");
     assert.deepEqual(calls[1].slice(-2), ["--prepackaged", app]);
-    assert.deepEqual(checks, [`${app}/Contents/MacOS/AI anime`]);
+    assert.deepEqual(checks, [join(app, "Contents", "MacOS", "AI anime")]);
     assert.deepEqual(waits, [10_000]);
   }
 });
