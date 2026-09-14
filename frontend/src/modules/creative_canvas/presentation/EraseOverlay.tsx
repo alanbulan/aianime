@@ -1,3 +1,5 @@
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
 // Copyright (c) 2026 AI anime
 import {
   memo,
@@ -753,6 +755,7 @@ function EraseDropdown<T extends string | number>({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -787,10 +790,9 @@ function EraseDropdown<T extends string | number>({
         <ChevronDown className="h-3 w-3 text-text-muted" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
           role="listbox"
-          className="absolute bottom-full left-1/2 z-50 mb-2 min-w-[96px] -translate-x-1/2 rounded-xl border border-border bg-popover/95 p-1 shadow-2xl backdrop-blur-md"
+          className="fixed overflow-auto overscroll-contain min-w-[96px] rounded-xl border border-border bg-popover/95 p-1 shadow-2xl backdrop-blur-md"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="mb-1 px-2 py-1 text-[11px] uppercase tracking-wide text-text-muted">
@@ -818,7 +820,7 @@ function EraseDropdown<T extends string | number>({
               </button>
             );
           })}
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

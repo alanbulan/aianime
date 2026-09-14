@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { Fragment, type ComponentProps } from "react";
-import { createPortal } from "react-dom";
 
 import type { MentionTextareaController } from "@/modules/mention_textarea/application/use-mention-textarea-controller";
 import { cn } from "@/lib/utils";
@@ -116,9 +116,8 @@ export function MentionTextareaView({
         </div>
       ) : null}
       {controller.preview && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              className="pointer-events-none fixed z-[400]"
+        ? <OverlayPortal kind="tooltip"><div
+              className="pointer-events-none fixed "
               style={{
                 left: controller.preview.left,
                 bottom: controller.preview.bottom,
@@ -133,9 +132,7 @@ export function MentionTextareaView({
                   draggable={false}
                 />
               </div>
-            </div>,
-            document.body,
-          )
+            </div></OverlayPortal>
         : null}
     </div>
   );

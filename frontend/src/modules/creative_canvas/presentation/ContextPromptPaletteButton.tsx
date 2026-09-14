@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Palette } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -21,36 +22,7 @@ export function ContextPromptPaletteButton({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  // 弹层用 portal 渲染到 body（position: fixed），避免被外层工具栏的 overflow-x-auto
-  // 等裁剪上下文截断（视频节点工具栏会横向滚动，overflow-y 随之被算成 auto）。
-  const [popoverPos, setPopoverPos] = useState<{ left: number; top: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open) {
-      setPopoverPos(null);
-      return;
-    }
-    // rAF 循环跟随触发按钮：React Flow 的平移/缩放用 CSS transform，不触发
-    // window 的 scroll/resize 事件，单靠事件监听会让 fixed 弹层与按钮错位。rAF
-    // 每帧读 rect、仅在坐标变化时 setState，关闭时停止——只在面板打开期间运行。
-    let raf = 0;
-    let last = "";
-    const tick = () => {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (rect) {
-        const left = Math.round(rect.left);
-        const top = Math.round(rect.bottom + 6);
-        const key = `${left}:${top}`;
-        if (key !== last) {
-          last = key;
-          setPopoverPos({ left, top });
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    tick();
-    return () => cancelAnimationFrame(raf);
-  }, [open]);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open });
 
   useEffect(() => {
     if (!open) return;
@@ -98,12 +70,10 @@ export function ContextPromptPaletteButton({
         />
       </button>
       {open &&
-        popoverPos &&
-        createPortal(
-          <div
+        <OverlayPortal kind="popover"><div
             ref={popoverRef}
-            className={`fixed z-[200] w-[248px] p-3 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
-            style={{ left: popoverPos.left, top: popoverPos.top }}
+            className={`fixed overflow-auto overscroll-contain w-[248px] p-3 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
+            style={popoverStyle}
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
@@ -117,9 +87,7 @@ export function ContextPromptPaletteButton({
               entries={palette.propEntries}
               onInsert={insertAndClose}
             />
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
     </div>
   );
 }

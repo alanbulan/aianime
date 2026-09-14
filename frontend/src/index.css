@@ -8,6 +8,7 @@
 @import "./app/styles/tokens.css";
 @import "./app/styles/portal-overrides.css";
 @import "./app/styles/base.css";
+@import "./app/styles/overlays.css";
 
 @keyframes task-progress-shimmer {
   from { transform: translateX(-100%); }

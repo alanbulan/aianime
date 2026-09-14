@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
+import { OverlayPortal } from "@/components/ui/overlay";
 import {
   Children,
   forwardRef,
@@ -18,7 +20,6 @@ import {
   type TextareaHTMLAttributes,
   type WheelEvent as ReactWheelEvent,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { Check, ChevronDown, X } from 'lucide-react';
 import {
   UI_CONTENT_OVERLAY_INSET_CLASS,
@@ -224,11 +225,8 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
   const hiddenSelectRef = useRef<HTMLSelectElement | null>(null);
   const listboxIdRef = useRef(`ui-select-${Math.random().toString(36).slice(2, 10)}`);
   const [isOpen, setIsOpen] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{ left: number; top: number; width: number }>({
-    left: 0,
-    top: 0,
-    width: 0,
-  });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuStyle = useAnchoredOverlay({ anchor: triggerRef, panel: menuRef, open: isOpen, matchWidth: true, maxHeight: 240 });
   const { shouldRender: shouldRenderMenu, isVisible: isMenuVisible } = useDialogTransition(
     isOpen,
     UI_POPOVER_TRANSITION_MS
@@ -279,36 +277,7 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
     }
   }, [initialValue, isControlled]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
 
-    const updatePosition = () => {
-      const trigger = triggerRef.current;
-      if (!trigger) {
-        return;
-      }
-
-      const rect = trigger.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const estimatedMenuHeight = Math.min(Math.max(parsedOptions.length * 38 + 12, 60), 240);
-      const openAbove = rect.bottom + 8 + estimatedMenuHeight > viewportHeight && rect.top > estimatedMenuHeight;
-      setMenuStyle({
-        left: rect.left,
-        top: openAbove ? Math.max(8, rect.top - estimatedMenuHeight - 8) : rect.bottom + 8,
-        width: rect.width,
-      });
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [isOpen, parsedOptions.length]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -434,24 +403,24 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
         </span>
       </button>
       {shouldRenderMenu && typeof document !== 'undefined'
-        ? createPortal(
-            <div
+        ? <OverlayPortal kind="popover"><div
               id={listboxIdRef.current}
+              ref={menuRef}
               role="listbox"
               aria-label={ariaLabel}
-              className={`fixed z-[140] overflow-hidden rounded-[6px] border border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-panel)] p-1 shadow-[var(--ui-shadow-panel)] transition-[opacity,transform] ease-out ${menuClassName} ${
+              className={`fixed overflow-y-auto overscroll-contain rounded-[6px] border border-[color:var(--ui-border-soft)] bg-[var(--ui-surface-panel)] p-1 shadow-[var(--ui-shadow-panel)] transition-[opacity,transform] ease-out ${menuClassName} ${
                 isMenuVisible ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 -translate-y-1'
               }`}
               style={{
-                left: menuStyle.left,
-                top: menuStyle.top,
-                width: menuStyle.width,
-                maxHeight: 240,
+                ...menuStyle,
                 transitionDuration: `${UI_POPOVER_TRANSITION_MS}ms`,
               }}
+              onPointerDown={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
               onWheel={handleMenuWheel}
             >
-              <div className="ui-scrollbar max-h-[228px] overflow-y-auto">
+              <div className="ui-scrollbar">
                 {parsedOptions.map((option) => {
                   const isSelected = option.value === selectedValue;
                   return (
@@ -483,9 +452,7 @@ export function UiSelect({ className = '', menuClassName = '', children, ...prop
                   );
                 })}
               </div>
-            </div>,
-            document.body
-          )
+            </div></OverlayPortal>
         : null}
     </div>
   );
@@ -507,7 +474,7 @@ export function UiModal({
   }
 
   return (
-    <div className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-50 flex items-center justify-center ${containerClassName}`}>
+    <OverlayPortal kind="modal"><div className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-50 flex items-center justify-center ${containerClassName}`}>
       <div
         className={`absolute inset-0 bg-scrim transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
@@ -530,6 +497,6 @@ export function UiModal({
           </div>
         )}
       </UiPanel>
-    </div>
+    </div></OverlayPortal>
   );
 }

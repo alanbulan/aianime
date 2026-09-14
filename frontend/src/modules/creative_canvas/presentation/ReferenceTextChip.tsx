@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { FileText } from 'lucide-react';
 
 import { ReferenceDetachButton } from './ReferenceDetachButton';
@@ -79,22 +79,19 @@ export function ReferenceTextChip({
       />
       {previewAnchor &&
         typeof document !== 'undefined' &&
-        createPortal(
-          <div
+        <OverlayPortal kind="tooltip"><div
             style={{
               position: 'fixed',
               top: previewAnchor.top,
               left: previewAnchor.left,
               transform: 'translateY(-100%)',
             }}
-            className="pointer-events-none z-[2000] w-max max-w-[280px] rounded-lg border border-border bg-popover px-3 py-2.5 text-xs leading-relaxed text-popover-foreground shadow-xl"
+            className="pointer-events-none w-max max-w-[280px] rounded-lg border border-border bg-popover px-3 py-2.5 text-xs leading-relaxed text-popover-foreground shadow-xl"
           >
             <div className="max-h-[220px] overflow-y-auto whitespace-pre-wrap break-words">
               {trimmed}
             </div>
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
     </div>
   );
 }

@@ -789,7 +789,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("createPortal(");
     expect(viewSource).toContain("<StoryTable");
-    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).toContain("<OverlayPortal");
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("useCanvasStore(");
@@ -2003,7 +2003,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).toContain("<OperationPanelShell");
     expect(viewSource).toContain("<ScriptResultTable");
     expect(viewSource).toContain("<NodeGenerationHistory");
-    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).toContain("<OverlayPortal");
     expect(viewSource).not.toContain("useState(");
     expect(viewSource).not.toContain("useEffect(");
     expect(viewSource).not.toContain("useCanvasStore(");
@@ -3067,7 +3067,7 @@ describe("frontend architecture boundaries", () => {
     expect(viewSource).not.toContain("useCanvasStore(");
     expect(viewSource).not.toContain("generateCanvasImageTo3d(");
     expect(thumbSource).toContain("useState<");
-    expect(thumbSource).toContain("createPortal(");
+    expect(thumbSource).toContain("<OverlayPortal");
     expect(thumbSource).not.toContain("useCanvasStore(");
     expect(modelTestSource).toContain("from './threeDWorldNodeModel'");
     expect(importSpecifiers(captureTestPath)).toContain(
@@ -3205,7 +3205,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("<ThreeDDirectorDialog");
     expect(controlsSource).toContain("useState(");
-    expect(controlsSource).toContain("createPortal(");
+    expect(controlsSource).toContain("<OverlayPortal");
     expect(controlsSource).not.toContain("useCanvasStore(");
     expect(viewSource).toContain("<PromptMentionEditor");
     expect(viewSource).toContain("<NodeGenerationHistory");
@@ -7377,7 +7377,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const presentationMarkers = [
-      "createPortal(",
+      "<OverlayPortal",
       "<UiPanel",
       'aria-label="目标类型"',
       "function sourceDisplayName(",
@@ -7389,7 +7389,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(viewPath))).toEqual(
       new Set([
         "react",
-        "react-dom",
+        "@/components/ui/overlay",
         "lucide-react",
         "../domain/assetCommit",
         "../domain/canvasCommitSource",
@@ -8329,6 +8329,7 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(importSpecifiers(imageModalPath)).toEqual([
+      "@/components/ui/overlay",
       "react",
       "react-i18next",
       "lucide-react",
@@ -8337,6 +8338,7 @@ describe("frontend architecture boundaries", () => {
       "./mediaViewerStyles",
     ]);
     expect(importSpecifiers(videoModalPath)).toEqual([
+      "@/components/ui/overlay",
       "react",
       "react-i18next",
       "lucide-react",
@@ -17927,7 +17929,7 @@ describe("frontend architecture boundaries", () => {
     expect(domainSource).not.toContain('from "react"');
     expect(domainSource).not.toContain("document.");
     expect(domainSource).not.toContain("window.");
-    expect(viewSource).toContain("createPortal");
+    expect(viewSource).toContain("<OverlayPortal");
     expect(viewSource).toContain("<textarea");
     expect(viewSource).not.toContain("useState");
     expect(viewSource).not.toContain("detectMentionQuery");
@@ -20859,7 +20861,7 @@ describe("frontend architecture boundaries", () => {
     expect(voiceModalViewSource).not.toContain("useState(");
     expect(voiceModalViewSource).not.toContain("useEffect(");
     expect(voiceModalViewSource).not.toContain("useMemo(");
-    expect(voiceModalViewSource).toContain("createPortal(");
+    expect(voiceModalViewSource).toContain("<OverlayPortal");
     expect(voiceModalViewSource).toContain("<FolderOpen");
     expect(voiceModalDeclarationOwners).toEqual([
       ["modules/creative_canvas/presentation/VoiceSelectionModal.tsx"],
@@ -28749,7 +28751,7 @@ describe("frontend architecture boundaries", () => {
       'event.dataTransfer.setData("text/plain", item.nodeId)',
     );
     expect(viewSource).toContain("new Audio()");
-    expect(viewSource).toContain("createPortal(");
+    expect(viewSource).toContain("<OverlayPortal");
     expect(viewSource).not.toContain("REFERENCE_CAPS_BY_MODE");
     expect(viewSource).toContain("../domain/videoReferenceLimits");
     expect(viewSource).toContain("./canvasNodeControlStyles");
@@ -29465,8 +29467,8 @@ describe("frontend architecture boundaries", () => {
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/presentation/CameraMovementChip.tsx",
     ]);
-    expect(viewSource).toContain("createPortal(");
-    expect(viewSource).toContain('window.addEventListener("resize"');
+    expect(viewSource).toContain("<OverlayPortal");
+    expect(viewSource).toContain("useAnchoredOverlay(");
     expect(viewSource).toContain('document.addEventListener("mousedown"');
     expect(viewSource).toContain("findCameraMovementPreset(");
     expect(videoNode).not.toContain(
@@ -30485,7 +30487,7 @@ describe("frontend architecture boundaries", () => {
       .map(relativeSource)
       .sort();
     const portalOwners = [modalPath, viewPath]
-      .filter((path) => readFileSync(path, "utf8").includes("createPortal("))
+      .filter((path) => readFileSync(path, "utf8").includes("<OverlayPortal"))
       .map(relativeSource)
       .sort();
 
@@ -30535,8 +30537,8 @@ describe("frontend architecture boundaries", () => {
     expect(modalSource).not.toContain("className=");
     expect(modalSource).not.toContain("createPortal(");
     expect(modalSource).not.toContain("<VideoComposeTrackRow");
-    expect(viewSource).toContain("createPortal(");
-    expect(viewSource).toContain("document.body");
+    expect(viewSource).toContain("<OverlayPortal");
+    expect(viewSource).toContain('kind="modal"');
     expect(viewSource).toContain("<VideoComposeTrackRow");
     expect(viewSource).toContain("coverEditor: ReactNode");
     expect(viewSource).not.toContain("useCanvasStore");
@@ -32027,7 +32029,7 @@ describe("frontend architecture boundaries", () => {
     ).toBe(false);
     expect(modalViewSource).not.toContain("useState(");
     expect(modalViewSource).not.toContain("useEffect(");
-    expect(modalViewSource).toContain("createPortal(");
+    expect(modalViewSource).toContain("<OverlayPortal");
     expect(modalViewSource).toContain("<Button");
     expect(modalViewSource).toContain("resolveMediaUrl(entry.url)");
     expect(modalViewSource).not.toContain("resolveImageDisplayUrl");
@@ -33130,8 +33132,8 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/CanvasFpsMeter.tsx"],
     ]);
     expect(importSpecifiers(operationPanelPath)).toEqual([
+      "@/components/ui/overlay",
       "react",
-      "react-dom",
       "./canvasNodeFrameStyles",
     ]);
     expect(importSpecifiers(fpsMeterPath)).toEqual([
@@ -33352,7 +33354,8 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controlsPath))).toEqual(
       new Set([
         "react",
-        "react-dom",
+        "@/components/ui/overlay",
+        "@/components/ui/use-anchored-overlay",
         "lucide-react",
         "react-i18next",
         "../domain/aspectRatio",

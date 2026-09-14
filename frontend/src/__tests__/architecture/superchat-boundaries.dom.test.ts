@@ -456,7 +456,7 @@ describe("SuperChat boundaries", () => {
     expect(scrollRule).not.toContain('from "react"');
     expect(scrollRule).not.toContain("document.");
     expect(scrollRule).not.toContain("window.");
-    expect(timeline).toContain('import { createPortal } from "react-dom";');
+    expect(timeline).toContain('import { OverlayPortal } from "@/components/ui/overlay";');
     expect(messageArea).not.toContain("calculateTimelineContextDelta");
     expect(panel).not.toContain("calculateTimelineContextDelta");
   });

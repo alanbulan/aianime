@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 import { RefreshCw, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -14,6 +15,7 @@ export function AppUpdateAvailable() {
   if (!visible) return null;
 
   return (
+    <OverlayPortal kind="toast">
     <div className="pointer-events-none fixed inset-x-0 bottom-12 z-[1000] flex justify-center px-4">
       <div className="pointer-events-auto flex h-[54px] w-fit max-w-[calc(100vw-32px)] items-center gap-[22px] rounded-[8px] border border-border bg-popover/95 px-[11px] text-popover-foreground shadow-xl backdrop-blur-xl">
         <div className="flex min-w-0 items-center gap-[7px]">
@@ -44,5 +46,6 @@ export function AppUpdateAvailable() {
         </div>
       </div>
     </div>
+    </OverlayPortal>
   );
 }

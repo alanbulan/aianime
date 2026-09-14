@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import type { ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import {
   AlignJustify,
@@ -234,9 +234,8 @@ export function ScriptNodeView({
       {controller.hasResult &&
       controller.isFullscreen &&
       typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[220] flex flex-col bg-background/95 p-6 backdrop-blur-sm"
+        ? <OverlayPortal kind="modal"><div
+              className="fixed inset-0 flex flex-col bg-background/95 p-6 backdrop-blur-sm"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="mb-3 flex items-center justify-between text-foreground">
@@ -269,16 +268,11 @@ export function ScriptNodeView({
                   onCellCommit={controller.commitCell}
                 />
               </div>
-            </div>,
-            document.body,
-          )
+            </div></OverlayPortal>
         : null}
 
       {controller.referencePreview && typeof document !== 'undefined'
-        ? createPortal(
-            <ScriptReferencePreview preview={controller.referencePreview} />,
-            document.body,
-          )
+        ? <OverlayPortal kind="tooltip"><ScriptReferencePreview preview={controller.referencePreview} /></OverlayPortal>
         : null}
     </div>
   );

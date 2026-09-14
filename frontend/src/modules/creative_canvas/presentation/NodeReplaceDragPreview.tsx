@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { AudioLines, Box, Film, Replace } from 'lucide-react';
 
 import { resolveMediaUrl } from '@/lib/media-url';
@@ -34,9 +34,8 @@ export function NodeReplaceDragPreview() {
   const thumb = activeDrag.thumbUrl ? resolveMediaUrl(activeDrag.thumbUrl) : null;
   const overTarget = Boolean(hoverAssetId);
 
-  return createPortal(
-    <div
-      className="pointer-events-none fixed z-[999] -translate-y-1/2"
+  return <OverlayPortal kind="tooltip"><div
+      className="pointer-events-none fixed -translate-y-1/2"
       style={{ left: pos.x + 16, top: pos.y }}
     >
       <div
@@ -78,7 +77,5 @@ export function NodeReplaceDragPreview() {
           </div>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div></OverlayPortal>;
 }

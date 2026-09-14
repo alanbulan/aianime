@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Maximize2, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
@@ -129,7 +130,7 @@ export function VideoViewerModal({
   };
 
   return (
-    <div
+    <OverlayPortal kind="modal"><div
       ref={viewerRef}
       className="fixed inset-0 z-[220] overflow-hidden bg-media/96 backdrop-blur-lg"
       style={{
@@ -228,6 +229,7 @@ export function VideoViewerModal({
         </button>
       </div>
     </div>
+    </OverlayPortal>
   );
 }
 

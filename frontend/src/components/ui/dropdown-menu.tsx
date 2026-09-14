@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { overlayCollisionPadding } from "@/components/ui/use-anchored-overlay";
+import { OverlayRoot, useOverlayContainer } from "@/components/ui/overlay";
 import * as React from "react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
@@ -53,9 +55,12 @@ function DropdownMenuContent({
     MenuPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset"
   >) {
+  const container = useOverlayContainer();
   return (
-    <MenuPrimitive.Portal>
+    <MenuPrimitive.Portal container={container ?? undefined}>
+      <OverlayRoot kind="popover">
       <MenuPrimitive.Positioner
+        collisionPadding={overlayCollisionPadding()}
         className="isolate z-50 outline-none"
         align={align}
         alignOffset={alignOffset}
@@ -68,6 +73,7 @@ function DropdownMenuContent({
           {...props}
         />
       </MenuPrimitive.Positioner>
+    </OverlayRoot>
     </MenuPrimitive.Portal>
   )
 }

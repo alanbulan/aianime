@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import {
   useCallback,
   useEffect,
@@ -7,7 +8,6 @@ import {
   useState,
   type ChangeEvent,
 } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ImageUp, Loader2, X } from "lucide-react";
 
@@ -203,8 +203,7 @@ export function createCoverEditor({
         : "text-muted-foreground hover:bg-muted hover:text-foreground"
     }`;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-scrim backdrop-blur-sm">
+  return <OverlayPortal kind="modal"><div className="fixed inset-0 flex items-center justify-center bg-scrim backdrop-blur-sm">
       <div className="w-[640px] max-w-[92vw] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-dark">
@@ -332,9 +331,7 @@ export function createCoverEditor({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div></OverlayPortal>;
   };
 }
 

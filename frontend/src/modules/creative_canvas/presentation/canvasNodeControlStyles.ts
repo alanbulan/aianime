@@ -40,7 +40,7 @@ export const NODE_FLOATING_PANEL_SURFACE_CLASS =
   'rounded-[10px] border border-border bg-popover/96 shadow-xl backdrop-blur-md';
 
 export const NODE_COUNT_POPOVER_CLASS =
-  `nodrag nowheel absolute bottom-full right-0 z-50 mb-2 w-[88px] overflow-hidden p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
+  `nodrag nowheel fixed w-[88px] overflow-auto overscroll-contain p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
 
 
 export const NODE_GENERATE_BUTTON_BASE_CLASS =

@@ -1,0 +1,19 @@
+/* Copyright (c) 2026 AI anime */
+@layer base {
+  :root {
+    --canvas-controls-layer: 400;
+    --canvas-menu-layer: 500;
+  }
+  /* Canvas node z-indices and transformed panels never compete with body portals. */
+  #root {
+    isolation: isolate;
+    position: relative;
+    z-index: 0;
+  }
+
+  /* The portal fills the viewport without intercepting clicks outside its content.
+     An explicit pointer-events-none on previews still takes precedence. */
+  :where([data-ui-overlay] > *) {
+    pointer-events: auto;
+  }
+}

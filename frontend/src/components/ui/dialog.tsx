@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayRoot, useOverlayContainer } from "@/components/ui/overlay";
 "use client"
 
 import * as React from "react"
@@ -16,8 +17,9 @@ function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
-function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+function DialogPortal({ children, ...props }: DialogPrimitive.Portal.Props) {
+  const container = useOverlayContainer();
+  return <DialogPrimitive.Portal container={container ?? undefined} data-slot="dialog-portal" {...props}><OverlayRoot kind="modal">{children}</OverlayRoot></DialogPrimitive.Portal>
 }
 
 function DialogClose({ ...props }: DialogPrimitive.Close.Props) {

@@ -55,7 +55,7 @@ export function NodeSelectionMenuView<TNodeType extends string>({
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
       className={`
-        absolute z-50
+        absolute z-(--canvas-menu-layer)
         transition-opacity duration-150
         ${visible ? 'opacity-100' : 'opacity-0'}
       `}

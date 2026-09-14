@@ -1,3 +1,4 @@
+import { clickAndLayout } from "@/__tests__/helpers/click-and-layout";
 // Copyright (c) 2026 AI anime
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -12,7 +13,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("VideoCountPicker", () => {
-  it("renders caller-owned options and routes selection", () => {
+  it("renders caller-owned options and routes selection", async () => {
     const onChange = vi.fn();
     const onParentClick = vi.fn();
     render(
@@ -25,19 +26,19 @@ describe("VideoCountPicker", () => {
       </div>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "2 个" }));
+    await clickAndLayout(screen.getByRole("button", { name: "2 个" }));
     expect(onParentClick).not.toHaveBeenCalled();
     expect(screen.getAllByRole("button")).toHaveLength(4);
     expect(screen.getAllByRole("button", { name: "2 个" })[1]).toHaveClass(
       "bg-primary/12",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "4 个" }));
+    await clickAndLayout(screen.getByRole("button", { name: "4 个" }));
     expect(onChange).toHaveBeenCalledWith(4);
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 
-  it("closes the option list on an outside pointer", () => {
+  it("closes the option list on an outside pointer", async () => {
     render(
       <VideoCountPicker
         value={1}
@@ -46,7 +47,7 @@ describe("VideoCountPicker", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "1 个" }));
+    await clickAndLayout(screen.getByRole("button", { name: "1 个" }));
     expect(screen.getByRole("button", { name: "4 个" })).toBeInTheDocument();
     fireEvent.mouseDown(document.body);
     expect(

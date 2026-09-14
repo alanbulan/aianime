@@ -141,7 +141,7 @@ export function CanvasStageView({
   return (
       <div
         {...wrapperProps}
-        className="relative h-full w-full bg-background"
+        className="relative isolate h-full w-full bg-background"
       >
         <ReactFlow<CanvasNode, CanvasEdge>
           {...flowProps}
@@ -178,7 +178,7 @@ export function CanvasStageView({
                 controlsPlacement === 'top-right' ? 'top-right' : 'bottom-right'
               }
               className="canvas-minimap canvas-minimap--popover nopan nowheel !border-border !bg-card"
-              style={{ pointerEvents: 'all', zIndex: 10000 }}
+              style={{ pointerEvents: 'all', zIndex: 'var(--canvas-controls-layer)' }}
               nodeColor="var(--canvas-minimap-node)"
               maskColor="var(--canvas-minimap-mask)"
               pannable={false}

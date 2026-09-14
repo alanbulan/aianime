@@ -1,6 +1,9 @@
 // Copyright (c) 2026 AI anime
 "use client"
 
+import { overlayCollisionPadding } from "@/components/ui/use-anchored-overlay";
+import { OverlayRoot, useOverlayContainer } from "@/components/ui/overlay";
+
 import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
@@ -117,9 +120,12 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   >) {
+  const container = useOverlayContainer();
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={container ?? undefined}>
+      <OverlayRoot kind="popover">
       <SelectPrimitive.Positioner
+        collisionPadding={overlayCollisionPadding()}
         side={side}
         sideOffset={sideOffset}
         align={align}
@@ -138,6 +144,7 @@ function SelectContent({
           <SelectScrollDownButton />
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>
+    </OverlayRoot>
     </SelectPrimitive.Portal>
   )
 }

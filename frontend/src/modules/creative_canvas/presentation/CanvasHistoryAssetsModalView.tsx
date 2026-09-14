@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -70,6 +71,7 @@ export function CanvasHistoryAssetsModalView({
   } = controller;
 
   return (
+    <OverlayPortal kind="modal">
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4">
       <div
         className="absolute inset-0 bg-scrim backdrop-blur-sm"
@@ -286,5 +288,6 @@ export function CanvasHistoryAssetsModalView({
         </div>
       )}
     </div>
+    </OverlayPortal>
   );
 }

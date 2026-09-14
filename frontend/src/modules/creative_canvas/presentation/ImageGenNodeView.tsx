@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { createPortal } from 'react-dom';
+import { OverlayPortal } from "@/components/ui/overlay";
 import { Handle, Position } from '@xyflow/react';
 import {
   AlertTriangle,
@@ -874,9 +874,8 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
         </div>
       )}
       {refHover && refPreviewStyle
-        && createPortal(
-          <div
-            className="pointer-events-none fixed z-[10001] overflow-hidden rounded-lg border border-border bg-surface-dark/95 shadow-xl"
+        && <OverlayPortal kind="tooltip"><div
+            className="pointer-events-none fixed overflow-hidden rounded-lg border border-border bg-surface-dark/95 shadow-xl"
             style={{
               left: refPreviewStyle.left,
               top: refPreviewStyle.top,
@@ -890,9 +889,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
               className="h-full w-full object-cover"
               draggable={false}
             />
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
 
       {/* Step B: 平面 source (master/reverse) 的截取背景 dialog。
           Pano360 / 3GS 不走这条 — 它们用各自 viewer 上的 capture 按钮。 */}

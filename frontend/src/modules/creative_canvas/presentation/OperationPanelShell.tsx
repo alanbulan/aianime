@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 
 import {
   CANVAS_NODE_OPS_PANEL_CLASS,
@@ -52,9 +52,8 @@ export function OperationPanelShell({
     );
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6 backdrop-blur-sm"
+  return <OverlayPortal kind="modal"><div
+      className="fixed inset-0 flex items-center justify-center bg-scrim p-6 backdrop-blur-sm"
       onClick={onCollapse}
       onPointerDown={stopPropagation}
     >
@@ -66,7 +65,5 @@ export function OperationPanelShell({
       >
         {children}
       </div>
-    </div>,
-    document.body,
-  );
+    </div></OverlayPortal>;
 }

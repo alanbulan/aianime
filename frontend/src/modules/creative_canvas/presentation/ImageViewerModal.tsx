@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
@@ -123,7 +124,7 @@ export function ImageViewerModal({
   if (!isVisible) return null;
 
   return (
-    <div
+    <OverlayPortal kind="modal"><div
       className={`fixed ${UI_CONTENT_OVERLAY_INSET_CLASS} z-[100] overflow-hidden bg-media`}
       style={{
         opacity: overlayOpacity,
@@ -223,5 +224,6 @@ export function ImageViewerModal({
         </div>
       </div>
     </div>
+    </OverlayPortal>
   );
 }

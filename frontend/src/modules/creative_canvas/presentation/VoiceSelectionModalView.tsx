@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import type { ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import {
   AudioWaveform,
   Cloud,
@@ -31,9 +31,8 @@ export function VoiceSelectionModalView({
   const { open, onClose, tab, setTab } = controller;
   if (!open) return null;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-6 backdrop-blur-sm"
+  return <OverlayPortal kind="modal"><div
+      className="fixed inset-0 flex items-center justify-center bg-scrim p-6 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -71,9 +70,7 @@ export function VoiceSelectionModalView({
           <MyVoicesTab controller={controller} />
         )}
       </div>
-    </div>,
-    document.body,
-  );
+    </div></OverlayPortal>;
 }
 
 interface TabsRowProps {

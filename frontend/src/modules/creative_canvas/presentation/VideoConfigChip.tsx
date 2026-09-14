@@ -4,6 +4,8 @@ import { ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { containsUiSelectTarget, UiCheckbox, UiInput, UiSelect } from "@/components/ui";
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
 import { Slider } from "@/components/ui/slider";
 import type {
   VideoSceneOptimize,
@@ -17,7 +19,7 @@ import {
 } from "./canvasNodeControlStyles";
 
 const VIDEO_PARAM_POPOVER_CLASS =
-  `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[320px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
+  `nodrag nowheel fixed w-[320px] overflow-y-auto overscroll-contain p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
 const VIDEO_PARAM_LABEL_CLASS =
   "mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-dark/72";
 const VIDEO_PARAM_BUTTON_BASE_CLASS =
@@ -79,6 +81,7 @@ export function VideoConfigChip({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const panelStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: "top" });
   const [durationDraft, setDurationDraft] = useState(
     durationSec === null ? "" : String(durationSec),
   );
@@ -187,6 +190,7 @@ export function VideoConfigChip({
         }}
         className={NODE_TEXT_CONTROL_TRIGGER_CLASS}
         aria-label={summary || "参数未配置"}
+        aria-expanded={isOpen}
       >
         {!aspectRatio && !outputValue && durationSec === null && (
           <span>参数未配置</span>
@@ -221,9 +225,12 @@ export function VideoConfigChip({
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen && (
-        <div
+        <OverlayPortal><div
           ref={popoverRef}
           className={VIDEO_PARAM_POPOVER_CLASS}
+          data-testid="video-config-panel"
+          style={panelStyle}
+          onWheel={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
@@ -515,7 +522,7 @@ export function VideoConfigChip({
             </div>
           )}
 
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

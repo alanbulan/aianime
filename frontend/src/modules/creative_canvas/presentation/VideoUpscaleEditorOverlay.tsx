@@ -1,3 +1,5 @@
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
 // Copyright (c) 2026 AI anime
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
@@ -267,6 +269,7 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -298,9 +301,8 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
-          className="absolute bottom-full right-0 z-50 mb-2 w-[160px] rounded-[10px] border border-border bg-popover/96 p-1 shadow-xl backdrop-blur-md"
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
+          className="fixed overflow-auto overscroll-contain w-[160px] rounded-[10px] border border-border bg-popover/96 p-1 shadow-xl backdrop-blur-md"
           onPointerDown={(event) => event.stopPropagation()}
         >
           {CANVAS_VIDEO_UPSCALE_DENOISE_OPTIONS.map((option) => {
@@ -324,7 +326,7 @@ function DenoisePicker({ value, onChange }: DenoisePickerProps) {
               </button>
             );
           })}
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

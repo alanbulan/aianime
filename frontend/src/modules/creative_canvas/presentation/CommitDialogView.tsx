@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 
 import type { ImpactBeat, PushTarget, PushTargetKind } from "../domain/assetCommit";
@@ -28,7 +28,7 @@ import type { Episode } from "@/modules/narrative_planning/public";
 const COMMIT_FIELD_BORDER_CLASS =
   "!border-border hover:!border-foreground/25 focus-visible:!border-primary/55";
 const COMMIT_SELECT_MENU_CLASS =
-  "!z-[260] !border-border !bg-popover text-popover-foreground shadow-2xl";
+  "!border-border !bg-popover text-popover-foreground shadow-2xl";
 
 interface CommitDialogTargetViewState {
   kind: PushTargetKind;
@@ -176,8 +176,7 @@ export function CommitDialogView({
     return null;
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[220] flex items-center justify-center">
+  return <OverlayPortal kind="modal"><div className="fixed inset-0 flex items-center justify-center">
       <div
         className={`absolute inset-0 bg-scrim backdrop-blur-[2px] transition-opacity duration-200 ${
           isVisible ? "opacity-100" : "opacity-0"
@@ -528,9 +527,7 @@ export function CommitDialogView({
           </UiButton>
         </footer>
       </UiPanel>
-    </div>,
-    document.body
-  );
+    </div></OverlayPortal>;
 }
 
 function sourceDisplayName(sourceUrl: string): string {

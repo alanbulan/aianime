@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Loader2, Megaphone, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -81,8 +81,7 @@ export function NotificationDrawer({
 
   if (!shouldRender) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[70]">
+  return <OverlayPortal kind="modal"><div className="fixed inset-0 ">
       <button
         type="button"
         aria-label={t("notifications.close")}
@@ -134,9 +133,7 @@ export function NotificationDrawer({
           </div>
         </div>
       </aside>
-    </div>,
-    document.body,
-  );
+    </div></OverlayPortal>;
 }
 
 function NotificationRow({ item }: { item: NotificationItem }) {

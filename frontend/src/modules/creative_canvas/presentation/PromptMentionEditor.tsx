@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import {
   forwardRef,
   useCallback,
@@ -12,7 +13,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
-import { createPortal } from 'react-dom';
 
 export interface MentionCandidate {
   key: string;
@@ -694,10 +694,9 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, PromptM
           onMouseOut={handleMouseOut}
         />
         {(mention || replaceTarget) && popoverStyle && filtered.length > 0
-          && createPortal(
-            <div
+          && <OverlayPortal kind="popover"><div
               ref={popoverRef}
-              className="ui-scrollbar fixed z-[10000] flex min-w-[200px] max-w-[280px] flex-col overflow-y-auto rounded-lg border border-border bg-popover/95 shadow-xl backdrop-blur-sm"
+              className="ui-scrollbar fixed flex min-w-[200px] max-w-[280px] flex-col overflow-y-auto rounded-lg border border-border bg-popover/95 shadow-xl backdrop-blur-sm"
               style={{
                 ...popoverStyle,
                 maxHeight: POPOVER_MAX_VISIBLE * POPOVER_ROW_PX,
@@ -750,13 +749,10 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, PromptM
                   <span className="text-[10px] text-text-muted/70">@{candidate.index}</span>
                 </button>
               ))}
-            </div>,
-            document.body,
-          )}
+            </div></OverlayPortal>}
         {hover && previewStyle
-          && createPortal(
-            <div
-              className="pointer-events-none fixed z-[10001] -translate-y-full overflow-hidden rounded-lg border border-border bg-popover/95 shadow-xl"
+          && <OverlayPortal kind="tooltip"><div
+              className="pointer-events-none fixed -translate-y-full overflow-hidden rounded-lg border border-border bg-popover/95 shadow-xl"
               style={{
                 left: previewStyle.left,
                 top: previewStyle.top,
@@ -780,9 +776,7 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, PromptM
                   className="block h-auto max-h-[220px] w-full object-contain"
                 />
               )}
-            </div>,
-            document.body,
-          )}
+            </div></OverlayPortal>}
       </>
     );
   },

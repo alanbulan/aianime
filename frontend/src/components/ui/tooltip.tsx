@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { overlayCollisionPadding } from "@/components/ui/use-anchored-overlay";
+import { OverlayRoot, useOverlayContainer } from "@/components/ui/overlay";
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
 import { cn } from "@/lib/utils"
@@ -41,9 +43,12 @@ function TooltipContent({
   > & {
     showArrow?: boolean
   }) {
+  const container = useOverlayContainer(typeof Element !== "undefined" && anchor instanceof Element ? anchor : undefined);
   return (
-    <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal container={container ?? undefined}>
+      <OverlayRoot kind="tooltip" anchor={typeof Element !== "undefined" && anchor instanceof Element ? anchor : undefined}>
       <TooltipPrimitive.Positioner
+        collisionPadding={overlayCollisionPadding()}
         anchor={anchor}
         align={align}
         alignOffset={alignOffset}
@@ -66,6 +71,7 @@ function TooltipContent({
           )}
         </TooltipPrimitive.Popup>
       </TooltipPrimitive.Positioner>
+    </OverlayRoot>
     </TooltipPrimitive.Portal>
   )
 }

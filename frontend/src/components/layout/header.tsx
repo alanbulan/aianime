@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -363,8 +364,7 @@ export function Header() {
       {isDesktop && desktopActionsHost ? createPortal(actions, desktopActionsHost) : null}
       {project ? <ProjectWorkspaceMenu project={project} /> : null}
       {accountPanelOpen
-        ? createPortal(
-            <AccountPanel
+        ? <OverlayPortal kind="popover"><AccountPanel
               activeLanguage={activeLanguage}
               avatarInitial={avatarInitial}
               avatarUrl={avatarUrl}
@@ -379,9 +379,7 @@ export function Header() {
               position={accountPanelPosition}
               visible={accountPanelVisible}
               t={t}
-            />,
-            document.body,
-          )
+            /></OverlayPortal>
         : null}
       <NotificationDrawer
         open={notificationOpen}
@@ -389,9 +387,8 @@ export function Header() {
       />
       {ceRuntime ? <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} /> : null}
       {settingsWarningBubble
-        ? createPortal(
-            <div
-              className="fixed z-[9999] w-[112px] rounded-md border border-warning/50 bg-warning py-1 pl-2 pr-6 text-[11px] font-medium leading-none text-warning-foreground shadow-lg"
+        ? <OverlayPortal kind="popover"><div
+              className="fixed w-[112px] rounded-md border border-warning/50 bg-warning py-1 pl-2 pr-6 text-[11px] font-medium leading-none text-warning-foreground shadow-lg"
               style={{ left: settingsWarningBubble.left, top: settingsWarningBubble.top }}
               role="status"
             >
@@ -409,9 +406,7 @@ export function Header() {
               >
                 <X className="size-3" strokeWidth={3} />
               </button>
-            </div>,
-            document.body,
-          )
+            </div></OverlayPortal>
         : null}
     </div>
   );

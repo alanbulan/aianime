@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import {
   memo,
   useCallback,
@@ -7,7 +8,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Brush,
@@ -671,7 +671,7 @@ export function createRedrawOverlay({
       return overlay;
     }
 
-    return createPortal(overlay, document.body);
+    return <OverlayPortal kind="modal">{overlay}</OverlayPortal>;
   });
 }
 

@@ -108,7 +108,7 @@ export function CanvasMinimapBookmarksOverlay({
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none absolute inset-0 z-[10001]"
+      className="pointer-events-none absolute inset-0 z-(--canvas-controls-layer)"
     >
       {metrics ? (
         <div

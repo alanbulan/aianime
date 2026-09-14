@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
+import { OverlayPortal } from "@/components/ui/overlay";
 import {
   memo,
   useEffect,
@@ -9,7 +11,6 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { SlidersHorizontal, Sparkles, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -64,13 +65,6 @@ export interface ModelParamsControlsProps {
   extraParamFieldClassName?: string;
   showExtraParamsHeading?: boolean;
   showExtraParamDescription?: boolean;
-  panelRenderMode?: 'portal' | 'inline';
-  inlinePanelClassName?: string;
-}
-
-interface PanelAnchor {
-  left: number;
-  top: number;
 }
 
 const OTHER_PARAMS_PANEL_CLASS_NAME = 'w-[280px] p-3';
@@ -183,8 +177,6 @@ export const ModelParamsControls = memo(({
   extraParamFieldClassName = DEFAULT_EXTRA_PARAM_FIELD_CLASS_NAME,
   showExtraParamsHeading = true,
   showExtraParamDescription = true,
-  panelRenderMode = 'portal',
-  inlinePanelClassName = 'absolute bottom-full left-0 z-[80] mb-2',
 }: ModelParamsControlsProps) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -197,12 +189,9 @@ export const ModelParamsControls = memo(({
   const [openPanel, setOpenPanel] = useState<'model' | 'params' | 'otherParams' | null>(null);
   const [renderPanel, setRenderPanel] = useState<'model' | 'params' | 'otherParams' | null>(null);
   const [isPanelVisible, setIsPanelVisible] = useState(false);
-  const [modelPanelAnchor, setModelPanelAnchor] = useState<PanelAnchor | null>(null);
-  const [paramsPanelAnchor, setParamsPanelAnchor] = useState<PanelAnchor | null>(null);
-  const [otherParamsPanelAnchor, setOtherParamsPanelAnchor] = useState<PanelAnchor | null>(null);
-  const [modelAnchorBaseWidth, setModelAnchorBaseWidth] = useState<number | null>(null);
-  const [paramsAnchorBaseWidth, setParamsAnchorBaseWidth] = useState<number | null>(null);
-  const [otherParamsAnchorBaseWidth, setOtherParamsAnchorBaseWidth] = useState<number | null>(null);
+  const modelPanelStyle = useAnchoredOverlay({ anchor: modelTriggerRef, panel: modelPanelRef, open: renderPanel === 'model', side: 'top', align: modelPanelAlign });
+  const paramsPanelStyle = useAnchoredOverlay({ anchor: paramsTriggerRef, panel: paramsPanelRef, open: renderPanel === 'params', side: 'top', align: paramsPanelAlign });
+  const otherParamsPanelStyle = useAnchoredOverlay({ anchor: otherParamsTriggerRef, panel: otherParamsPanelRef, open: renderPanel === 'otherParams', side: 'top', align: 'center' });
   const selectedModelName = useMemo(
     () => selectedModel
       ? selectedModel.displayName.replace(/\s*\([^)]*\)\s*$/u, '').trim()
@@ -340,61 +329,21 @@ export const ModelParamsControls = memo(({
     };
   }, []);
 
-  const getPanelAnchor = (
-    triggerElement: HTMLDivElement | null,
-    align: 'center' | 'start',
-    baseWidth?: number | null
-  ): PanelAnchor | null => {
-    if (!triggerElement) {
-      return null;
-    }
-    const rect = triggerElement.getBoundingClientRect();
-    const anchorWidth = typeof baseWidth === 'number' && baseWidth > 0 ? baseWidth : rect.width;
-    return {
-      left: align === 'center' ? rect.left + anchorWidth / 2 : rect.left,
-      top: rect.top - 8,
-    };
-  };
-
-  const buildPanelStyle = (
-    anchor: PanelAnchor | null,
-    align: 'center' | 'start'
-  ): CSSProperties | undefined => {
-    if (!anchor) {
-      return undefined;
-    }
-
-    const xTransform = align === 'center' ? 'translateX(-50%) ' : '';
-    return {
-      left: anchor.left,
-      top: anchor.top,
-      transform: `${xTransform}translateY(-100%)`,
-    };
-  };
-
   const renderPanelShell = (
     panelRef: RefObject<HTMLDivElement | null>,
-    anchor: PanelAnchor | null,
-    align: 'center' | 'start',
+    style: CSSProperties,
     children: ReactNode
-  ): ReactNode => {
-    const panel = (
-      <div
-        ref={panelRef}
-        className={`${panelRenderMode === 'inline' ? inlinePanelClassName : 'fixed z-[80]'} transition-opacity duration-200 ease-out ${isPanelVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
-          }`}
-        style={panelRenderMode === 'inline' ? undefined : buildPanelStyle(anchor, align)}
-      >
+  ): ReactNode => (
+    <OverlayPortal>
+      <div ref={panelRef} style={style}
+        className={`nodrag nowheel fixed overflow-auto overscroll-contain transition-opacity duration-200 ease-out ${isPanelVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}>
         {children}
       </div>
-    );
-
-    if (panelRenderMode === 'inline') {
-      return panel;
-    }
-
-    return typeof document !== 'undefined' ? createPortal(panel, document.body) : null;
-  };
+    </OverlayPortal>
+  );
 
   return (
     <div ref={containerRef} className="relative flex items-center gap-1">
@@ -409,12 +358,6 @@ export const ModelParamsControls = memo(({
               setOpenPanel(null);
               return;
             }
-            const triggerWidth = modelTriggerRef.current?.getBoundingClientRect().width ?? null;
-            const nextBaseWidth = modelAnchorBaseWidth ?? triggerWidth;
-            if (modelAnchorBaseWidth == null && triggerWidth) {
-              setModelAnchorBaseWidth(triggerWidth);
-            }
-            setModelPanelAnchor(getPanelAnchor(modelTriggerRef.current, modelPanelAlign, nextBaseWidth));
             setOpenPanel('model');
           }}
         >
@@ -434,12 +377,6 @@ export const ModelParamsControls = memo(({
               setOpenPanel(null);
               return;
             }
-            const triggerWidth = paramsTriggerRef.current?.getBoundingClientRect().width ?? null;
-            const nextBaseWidth = paramsAnchorBaseWidth ?? triggerWidth;
-            if (paramsAnchorBaseWidth == null && triggerWidth) {
-              setParamsAnchorBaseWidth(triggerWidth);
-            }
-            setParamsPanelAnchor(getPanelAnchor(paramsTriggerRef.current, paramsPanelAlign, nextBaseWidth));
             setOpenPanel('params');
           }}
         >
@@ -460,15 +397,7 @@ export const ModelParamsControls = memo(({
                 setOpenPanel(null);
                 return;
               }
-              const triggerWidth = otherParamsTriggerRef.current?.getBoundingClientRect().width ?? null;
-              const nextBaseWidth = otherParamsAnchorBaseWidth ?? triggerWidth;
-              if (otherParamsAnchorBaseWidth == null && triggerWidth) {
-                setOtherParamsAnchorBaseWidth(triggerWidth);
-              }
-              setOtherParamsPanelAnchor(
-                getPanelAnchor(otherParamsTriggerRef.current, 'center', nextBaseWidth)
-              );
-              setOpenPanel('otherParams');
+                setOpenPanel('otherParams');
             }}
           >
             <SlidersHorizontal className={paramsIconClassName} />
@@ -479,8 +408,7 @@ export const ModelParamsControls = memo(({
 
       {renderPanel === 'model' && renderPanelShell(
         modelPanelRef,
-        modelPanelAnchor,
-        modelPanelAlign,
+        modelPanelStyle,
         (
           <UiPanel className={modelPanelClassName}>
             <div className="ui-scrollbar max-h-[340px] overflow-y-auto p-1">
@@ -519,8 +447,7 @@ export const ModelParamsControls = memo(({
 
       {renderPanel === 'params' && renderPanelShell(
         paramsPanelRef,
-        paramsPanelAnchor,
-        paramsPanelAlign,
+        paramsPanelStyle,
         (
           <UiPanel className={paramsPanelClassName}>
             <div>
@@ -691,8 +618,7 @@ export const ModelParamsControls = memo(({
 
       {renderPanel === 'otherParams' && renderPanelShell(
         otherParamsPanelRef,
-        otherParamsPanelAnchor,
-        'center',
+        otherParamsPanelStyle,
         (
           <UiPanel className={OTHER_PARAMS_PANEL_CLASS_NAME}>
             <div className="space-y-3">

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Box, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,9 +13,8 @@ import { useCanvasImageModels, useCanvasVideoModels } from '../generationCatalog
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 import type { CanvasImageMode } from '../domain/imageModelCapability';
 
-const MODEL_PICKER_POPOVER_WIDTH = 260;
 const MODEL_PICKER_POPOVER_CLASS =
-  `nodrag nowheel fixed z-[10000] max-h-[280px] w-[260px] overflow-y-auto p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
+  `nodrag nowheel fixed overscroll-contain max-h-[280px] w-[260px] overflow-y-auto p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
 const MODEL_PICKER_OPTION_BASE_CLASS =
   'inline-flex h-8 w-full items-center gap-2 rounded-[6px] px-3 text-left text-xs font-medium transition-colors';
 
@@ -78,12 +78,8 @@ export function ProviderModelPicker({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [popoverPosition, setPopoverPosition] = useState<{
-    left: number;
-    top: number;
-  } | null>(null);
-  // 禁用项的 hover 提示。自渲染成一个 z 高于弹窗(z-[10001] > z-[10000])的浮层,
-  // 锚定到当前项的右下角并 portal 到 body,避免被弹窗遮挡 / 被列表 overflow 裁剪。
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: popoverPlacement, maxHeight: 280 });
+  // 禁用原因使用提示层，避开列表的滚动裁切。
   const [disabledTooltip, setDisabledTooltip] = useState<{
     reason: string;
     left: number;
@@ -91,24 +87,8 @@ export function ProviderModelPicker({
   } | null>(null);
   const selectedModel = effectiveModels.find((m) => m.id === selectedModelId) ?? effectiveModels[0];
 
-  const syncPopoverPosition = () => {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const margin = 8;
-    const left = Math.min(
-      Math.max(margin, rect.left),
-      window.innerWidth - MODEL_PICKER_POPOVER_WIDTH - margin,
-    );
-    const top = popoverPlacement === 'top'
-      ? rect.top - 8
-      : rect.bottom + 8;
-    setPopoverPosition({ left, top });
-  };
-
   useEffect(() => {
     if (!isOpen) return;
-    syncPopoverPosition();
     const onPointerDown = (event: MouseEvent) => {
       if (
         triggerRef.current?.contains(event.target as Node) ||
@@ -118,16 +98,11 @@ export function ProviderModelPicker({
       }
       setIsOpen(false);
     };
-    const onViewportChange = () => syncPopoverPosition();
     document.addEventListener('mousedown', onPointerDown, true);
-    window.addEventListener('resize', onViewportChange);
-    window.addEventListener('scroll', onViewportChange, true);
     return () => {
       document.removeEventListener('mousedown', onPointerDown, true);
-      window.removeEventListener('resize', onViewportChange);
-      window.removeEventListener('scroll', onViewportChange, true);
     };
-  }, [isOpen, popoverPlacement]);
+  }, [isOpen]);
 
   return (
     <div className={`relative ${className ?? ''}`}>
@@ -154,15 +129,10 @@ export function ProviderModelPicker({
         </span>
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
-      {isOpen && popoverPosition && createPortal(
-        <div
+      {isOpen && <OverlayPortal kind="popover"><div
           ref={popoverRef}
           className={MODEL_PICKER_POPOVER_CLASS}
-          style={{
-            left: popoverPosition.left,
-            top: popoverPosition.top,
-            transform: popoverPlacement === 'top' ? 'translateY(-100%)' : undefined,
-          }}
+          style={popoverStyle}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
@@ -237,18 +207,13 @@ export function ProviderModelPicker({
               </span>
             )}
           </div>
-        </div>,
-        document.body,
-      )}
-      {isOpen && disabledTooltip && createPortal(
-        <div
-          className="pointer-events-none fixed z-[10001] max-w-[240px] rounded-lg border border-border bg-popover/95 px-3 py-2 text-xs leading-5 text-popover-foreground shadow-lg"
+        </div></OverlayPortal>}
+      {isOpen && disabledTooltip && <OverlayPortal kind="tooltip"><div
+          className="pointer-events-none fixed max-w-[240px] rounded-lg border border-border bg-popover/95 px-3 py-2 text-xs leading-5 text-popover-foreground shadow-lg"
           style={{ left: disabledTooltip.left, top: disabledTooltip.top }}
         >
           {disabledTooltip.reason}
-        </div>,
-        document.body,
-      )}
+        </div></OverlayPortal>}
     </div>
   );
 }

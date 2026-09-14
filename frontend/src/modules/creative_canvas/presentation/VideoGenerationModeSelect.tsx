@@ -1,7 +1,8 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -12,9 +13,8 @@ import {
 import type { VideoGenerationModeOption } from "../domain/videoGenerationModeOptions";
 import type { VideoGenMode } from "../domain/videoGenerationMode";
 
-const VIDEO_MODE_POPOVER_WIDTH = 132;
 const VIDEO_MODE_POPOVER_CLASS =
-  `nodrag nowheel fixed z-[10000] w-[132px] overflow-visible p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
+  `nodrag nowheel fixed w-[132px] overflow-visible p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
 const VIDEO_MODE_TOOLTIP_CLASS =
   "pointer-events-none absolute left-full top-1/2 z-[10001] ml-2 -translate-y-1/2 " +
   "whitespace-nowrap rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] font-medium " +
@@ -36,33 +36,15 @@ export function VideoGenerationModeSelect({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredKey, setHoveredKey] = useState<VideoGenMode | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{
-    left: number;
-    top: number;
-  } | null>(null);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: "bottom", maxHeight: 280 });
   const activeOption =
     options.find((option) => option.key === value) ?? options[0];
-
-  const syncPopoverPosition = useCallback(() => {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const margin = 8;
-    setPopoverPosition({
-      left: Math.min(
-        Math.max(margin, rect.left),
-        window.innerWidth - VIDEO_MODE_POPOVER_WIDTH - margin,
-      ),
-      top: rect.bottom + 8,
-    });
-  }, []);
 
   useEffect(() => {
     if (!isOpen) {
       setHoveredKey(null);
       return;
     }
-    syncPopoverPosition();
     const onPointerDown = (event: MouseEvent) => {
       if (
         triggerRef.current?.contains(event.target as Node) ||
@@ -72,16 +54,11 @@ export function VideoGenerationModeSelect({
       }
       setIsOpen(false);
     };
-    const onViewportChange = () => syncPopoverPosition();
     document.addEventListener("mousedown", onPointerDown, true);
-    window.addEventListener("resize", onViewportChange);
-    window.addEventListener("scroll", onViewportChange, true);
     return () => {
       document.removeEventListener("mousedown", onPointerDown, true);
-      window.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("scroll", onViewportChange, true);
     };
-  }, [isOpen, syncPopoverPosition]);
+  }, [isOpen]);
 
   if (!activeOption) return null;
 
@@ -100,15 +77,10 @@ export function VideoGenerationModeSelect({
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen &&
-        popoverPosition &&
-        createPortal(
-          <div
+        <OverlayPortal kind="popover"><div
             ref={popoverRef}
             className={VIDEO_MODE_POPOVER_CLASS}
-            style={{
-              left: popoverPosition.left,
-              top: popoverPosition.top,
-            }}
+            style={popoverStyle}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
@@ -158,9 +130,7 @@ export function VideoGenerationModeSelect({
                 </div>
               );
             })}
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
     </div>
   );
 }

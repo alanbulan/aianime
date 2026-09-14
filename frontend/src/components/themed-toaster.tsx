@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import type { CSSProperties } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Toaster } from "sonner";
@@ -21,6 +22,7 @@ export function ThemedToaster() {
     : 24;
 
   return (
+    <OverlayPortal kind="toast">
     <Toaster
       position="top-center"
       theme={theme}
@@ -41,5 +43,6 @@ export function ThemedToaster() {
           "!min-h-0 !rounded-sm !border !border-border !bg-popover !px-4 !py-2 !text-sm !text-popover-foreground !shadow-lg",
       }}
     />
+    </OverlayPortal>
   );
 }

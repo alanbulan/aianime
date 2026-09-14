@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { Children, forwardRef, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
@@ -3145,9 +3145,8 @@ function ColorPaletteField({
           >
             <Pipette className="h-3 w-3" />
           </button>
-          {pickerOpen && pickerPosition && typeof document !== "undefined" ? createPortal(
-            <div
-              className="fixed z-[10000] w-[220px] rounded-[14px] border border-border bg-popover/95 p-3 shadow-xl backdrop-blur-2xl"
+          {pickerOpen && pickerPosition && typeof document !== "undefined" ? <OverlayPortal kind="popover"><div
+              className="fixed w-[220px] rounded-[14px] border border-border bg-popover/95 p-3 shadow-xl backdrop-blur-2xl"
               style={{ left: pickerPosition.left, top: pickerPosition.top }}
             >
               <div
@@ -3181,9 +3180,7 @@ function ColorPaletteField({
                 <span className="font-mono text-[11px] uppercase text-muted-foreground">{value}</span>
                 <span className="h-5 w-5 rounded-full border border-border shadow-sm" style={{ backgroundColor: value }} />
               </div>
-            </div>,
-            document.body,
-          ) : null}
+            </div></OverlayPortal> : null}
         </div>
       </div>
     </div>

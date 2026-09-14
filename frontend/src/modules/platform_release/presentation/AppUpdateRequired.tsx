@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -5,6 +6,7 @@ export function AppUpdateRequired() {
   const { t } = useTranslation();
 
   return (
+    <OverlayPortal kind="blocking">
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-background/92 px-6 text-foreground backdrop-blur-sm">
       <div className="w-full max-w-md rounded-[8px] border border-border bg-card p-8 text-center text-card-foreground shadow-xl">
         <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-primary/15 text-xl text-primary">
@@ -25,5 +27,6 @@ export function AppUpdateRequired() {
         </button>
       </div>
     </div>
+    </OverlayPortal>
   );
 }

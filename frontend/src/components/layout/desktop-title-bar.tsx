@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BRAND_NAME, BrandMark } from "@/components/brand";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { OverlayPortal } from "@/components/ui/overlay";
 
 export const DESKTOP_TITLE_BAR_HEIGHT = 36;
 
@@ -38,8 +39,11 @@ export function DesktopTitleBar() {
   if (!bridge) return null;
 
   return (
+    <>
+    <div className="h-9 shrink-0" aria-hidden="true" />
+    <OverlayPortal kind="chrome">
     <div
-      className="desktop-title-bar-drag relative z-[100] flex h-9 shrink-0 select-none items-center border-b border-border bg-background text-foreground"
+      className="desktop-title-bar-drag fixed inset-x-0 top-0 flex h-9 select-none items-center border-b border-border bg-background text-foreground"
       onDoubleClick={() => bridge.windowControls.toggleMaximize()}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
@@ -76,6 +80,8 @@ export function DesktopTitleBar() {
         </TitleBarButton>
       </div>
     </div>
+    </OverlayPortal>
+    </>
   );
 }
 

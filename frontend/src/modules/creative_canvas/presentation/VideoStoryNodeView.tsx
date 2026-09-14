@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { createPortal } from 'react-dom';
+import { OverlayPortal } from "@/components/ui/overlay";
 import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, Expand, FileVideo2, X } from 'lucide-react';
 
@@ -262,9 +262,8 @@ export function VideoStoryNodeView({
         )}
       </div>
 
-      {typeof document !== 'undefined' && controller.isFullscreen && createPortal(
-        <div
-          className="fixed inset-0 z-[220] flex flex-col bg-background/95 p-6 backdrop-blur-sm"
+      {typeof document !== 'undefined' && controller.isFullscreen && <OverlayPortal kind="modal"><div
+          className="fixed inset-0 flex flex-col bg-background/95 p-6 backdrop-blur-sm"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="mb-3 flex items-center justify-between text-foreground">
@@ -290,9 +289,7 @@ export function VideoStoryNodeView({
               onCellCommit={controller.commitCell}
             />
           </div>
-        </div>,
-        document.body,
-      )}
+        </div></OverlayPortal>}
     </div>
   );
 }

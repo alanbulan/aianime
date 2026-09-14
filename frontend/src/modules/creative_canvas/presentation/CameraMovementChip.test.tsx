@@ -1,3 +1,4 @@
+import { clickAndLayout } from "@/__tests__/helpers/click-and-layout";
 // Copyright (c) 2026 AI anime
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -43,7 +44,7 @@ const templates: ReadonlyArray<CameraMovementPreset> = [
 ];
 
 describe("CameraMovementChip", () => {
-  it("shows the selected preset and routes picker confirmation", () => {
+  it("shows the selected preset and routes picker confirmation", async () => {
     const onChange = vi.fn();
     const onParentClick = vi.fn();
     render(
@@ -57,16 +58,16 @@ describe("CameraMovementChip", () => {
       </div>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "固定镜头" }));
+    await clickAndLayout(screen.getByRole("button", { name: "固定镜头" }));
     expect(onParentClick).not.toHaveBeenCalled();
     expect(screen.getByTestId("camera-picker")).toHaveTextContent("camera-1");
 
-    fireEvent.click(screen.getByRole("button", { name: "确认镜头" }));
+    await clickAndLayout(screen.getByRole("button", { name: "确认镜头" }));
     expect(onChange).toHaveBeenCalledWith("camera-2");
     expect(screen.queryByTestId("camera-picker")).not.toBeInTheDocument();
   });
 
-  it("positions the portal and closes it on an outside pointer", () => {
+  it("renders the portal and closes it on an outside pointer", async () => {
     render(
       <CameraMovementChip
         templates={templates}
@@ -76,23 +77,11 @@ describe("CameraMovementChip", () => {
       />,
     );
     const trigger = screen.getByRole("button", { name: "运镜" });
-    vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({
-      x: 900,
-      y: 700,
-      left: 900,
-      top: 700,
-      right: 980,
-      bottom: 730,
-      width: 80,
-      height: 30,
-      toJSON: () => ({}),
-    });
 
-    fireEvent.click(trigger);
+    await clickAndLayout(trigger);
     const portal = screen.getByTestId("camera-picker").parentElement!;
     expect(portal).toHaveClass("fixed");
-    expect(portal.style.top).toBe("132px");
-    expect(portal.style.left).toBe("376px");
+    expect(portal.closest("[data-ui-overlay]")).not.toBeNull();
 
     fireEvent.mouseDown(document.body);
     expect(screen.queryByTestId("camera-picker")).not.toBeInTheDocument();

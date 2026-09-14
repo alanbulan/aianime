@@ -102,3 +102,46 @@ it("can also choose max with the keyboard", async () => {
   });
   await expect.element(select).toHaveTextContent("max");
 });
+
+it("keeps the complete H3 panel and max menu inside a small viewport above a clipped, zoomed canvas", async () => {
+  await page.viewport(420, 360);
+  const onChange = vi.fn();
+  const screen = await render(<div data-testid="zoomed-canvas" style={{
+    position: "fixed", left: 8, bottom: 12, width: 400, height: 38,
+    overflow: "hidden", transform: "scale(0.75)", transformOrigin: "left bottom",
+  }}><VideoConfigChip
+    aspectRatio="16:9" aspectRatioOptions={["16:9", "9:16", "21:9"]}
+    outputValue="1360x768" outputOptions={["1360x768", "768x1360", "1024x1024"]} outputParameter="size"
+    durationSec={5} durationBounds={{ min: 1, max: 15 }} durationOptions={[]}
+    normalizeDuration={(n) => n} sceneOptimizeOptions={[]} generateAudio={false} supportsGenerateAudio={false}
+    extraParams={{ reference_image_size: "match", seed: 42, steps: 8, turbo: true }}
+    extraParamDefinitions={[
+      { key: "seed", label: "seed", type: "number", defaultValue: 42 },
+      { key: "steps", label: "steps", type: "number", defaultValue: 8 },
+      { key: "turbo", label: "turbo", type: "boolean", defaultValue: true },
+      { key: "reference_image_size", label: "reference_image_size", type: "enum", defaultValue: "match",
+        description: "Ref2VA 参考图编码尺寸：match 匹配输出像素面积，max 保留最高 2048 短边。",
+        options: [{ value: "match", label: "match" }, { value: "max", label: "max" }] },
+    ]} onChange={onChange}
+  /></div>);
+  const trigger = screen.getByRole("button", { name: /Size 1360x768/ });
+  await trigger.click();
+  const panel = page.getByTestId("video-config-panel");
+  await expect.element(panel).toBeVisible();
+  const bounds = panel.element().getBoundingClientRect();
+  expect(bounds.top).toBeGreaterThanOrEqual(8);
+  expect(bounds.bottom).toBeLessThanOrEqual(352);
+  expect(bounds.right).toBeLessThanOrEqual(412);
+  expect(panel.element().scrollHeight).toBeGreaterThan(panel.element().clientHeight);
+  await page.getByRole("button", { name: referenceSizeLabel }).click();
+  const max = page.getByRole("option", { name: "max", exact: true });
+  await expect.element(max).toBeVisible();
+  const menuBounds = page.getByRole("listbox").element().getBoundingClientRect();
+  expect(menuBounds.top).toBeGreaterThanOrEqual(8);
+  expect(menuBounds.bottom).toBeLessThanOrEqual(352);
+  await max.click();
+  expect(onChange).toHaveBeenCalledWith({ extraParams: { reference_image_size: "max", seed: 42, steps: 8, turbo: true } });
+  screen.getByTestId("zoomed-canvas").element().style.transform = "translate(60px, -50px) scale(0.75)";
+  await expect.poll(() => Math.round(panel.element().getBoundingClientRect().bottom))
+    .toBe(Math.round(trigger.element().getBoundingClientRect().top - 8));
+});

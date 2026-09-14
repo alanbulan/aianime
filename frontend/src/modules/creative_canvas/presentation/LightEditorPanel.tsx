@@ -1,3 +1,5 @@
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
 // Copyright (c) 2026 AI anime
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -511,6 +513,7 @@ function DirectionPicker({ value, onChange, t }: DirectionPickerProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'bottom' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -539,9 +542,8 @@ function DirectionPicker({ value, onChange, t }: DirectionPickerProps) {
         <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
-          className={`absolute left-0 top-full z-50 mt-2 w-[132px] p-1.5 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
+          className={`fixed overflow-auto overscroll-contain w-[132px] p-1.5 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
           onPointerDown={(event) => event.stopPropagation()}
         >
           {LIGHT_DIRECTIONS.map((dir) => {
@@ -569,7 +571,7 @@ function DirectionPicker({ value, onChange, t }: DirectionPickerProps) {
               </button>
             );
           })}
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );
@@ -757,6 +759,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'bottom' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -792,9 +795,8 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
         <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
-          className={`absolute left-0 top-full z-50 mt-2 w-[206px] p-2 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
+          className={`fixed overflow-auto overscroll-contain w-[206px] p-2 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -823,7 +825,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
               );
             })}
           </div>
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

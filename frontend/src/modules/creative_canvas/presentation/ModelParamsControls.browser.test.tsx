@@ -11,8 +11,8 @@ import { ModelParamsControls } from "./ModelParamsControls";
 const aspect = { value: "1:1", label: "1:1" };
 const resolution = { value: "1024", label: "1024" };
 
-function Fixture({ mode, onChange }: {
-  mode: "portal" | "inline";
+function Fixture({ edge, onChange }: {
+  edge: "center" | "edge";
   onChange: (key: string, value: unknown) => void;
 }) {
   const [params, setParams] = useState<Record<string, unknown>>({});
@@ -27,7 +27,7 @@ function Fixture({ mode, onChange }: {
     })),
   };
   return (
-    <div style={{ paddingTop: 480, paddingLeft: 240 }}>
+    <div style={{ paddingTop: 480, paddingLeft: edge === "edge" ? 850 : 240 }}>
       <button type="button" style={{ position: "fixed", top: 20, right: 20 }}
         onMouseDown={(event) => event.stopPropagation()}>Outside control</button>
       <ModelParamsControls
@@ -35,7 +35,7 @@ function Fixture({ mode, onChange }: {
         resolutionOptions={[resolution]} selectedResolution={resolution}
         selectedAspectRatio={aspect} aspectRatioOptions={[aspect]}
         onModelChange={() => {}} onResolutionChange={() => {}} onAspectRatioChange={() => {}}
-        panelRenderMode={mode} extraParams={params}
+        extraParams={params}
         onExtraParamChange={(key, value) => {
           setParams((previous) => ({ ...previous, [key]: value }));
           onChange(key, value);
@@ -47,11 +47,11 @@ function Fixture({ mode, onChange }: {
 
 beforeEach(async () => { await page.viewport(960, 900); });
 
-for (const mode of ["portal", "inline"] as const) {
+for (const edge of ["center", "edge"] as const) {
   for (const key of ["quality", "thinking_level"]) {
-    it(`keeps ${mode} ${key} panel open after selecting a portaled option`, async () => {
+    it(`keeps ${edge} ${key} panel open after selecting a portaled option`, async () => {
       const onChange = vi.fn();
-      const screen = await render(<Fixture mode={mode} onChange={onChange} />);
+      const screen = await render(<Fixture edge={edge} onChange={onChange} />);
       await screen.getByRole("button", { name: key === "quality" ? "1:1 · 1024" : "modelParams.otherParams" }).click();
       const select = page.getByRole("button", { name: key, exact: true });
       await select.click();

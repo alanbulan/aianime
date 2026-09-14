@@ -395,8 +395,6 @@ export function StoryboardGenNodeView({
             extraParamFieldClassName={STORYBOARD_GEN_EXTRA_PARAM_FIELD_CLASS}
             showExtraParamsHeading={false}
             showExtraParamDescription={false}
-            panelRenderMode="inline"
-            inlinePanelClassName="absolute bottom-full left-0 z-[80] mb-2"
           />
         </div>
 

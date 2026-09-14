@@ -1,3 +1,4 @@
+import { clickAndLayout } from "@/__tests__/helpers/click-and-layout";
 // Copyright (c) 2026 AI anime
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -40,22 +41,22 @@ function configProps(
 }
 
 describe("VideoConfigChip", () => {
-  it("shows newly published exact HD sizes and submits their original values", () => {
+  it("shows newly published exact HD sizes and submits their original values", async () => {
     const onChange = vi.fn();
     const sizes = ["1920x1080", "1080x1920", "1080x1080", "2520x1080"];
     render(<VideoConfigChip {...configProps({
       outputValue: "1024x576", outputOptions: ["1024x576", ...sizes], onChange,
     })} />);
-    fireEvent.click(screen.getByText("1024x576").closest("button")!);
+    await clickAndLayout(screen.getByText("1024x576").closest("button")!);
     for (const size of sizes) {
       const option = screen.getByRole("button", { name: size });
       expect(option).toBeEnabled();
-      fireEvent.click(option);
+      await clickAndLayout(option);
       expect(onChange).toHaveBeenLastCalledWith({ generationResolution: size });
     }
   });
 
-  it("accepts BYOK duration input without a model maximum", () => {
+  it("accepts BYOK duration input without a model maximum", async () => {
     const onChange = vi.fn();
     render(<VideoConfigChip {...configProps({
       durationSec: 5,
@@ -63,7 +64,7 @@ describe("VideoConfigChip", () => {
       normalizeDuration: (value) => Math.max(1, Math.round(value)),
       onChange,
     })} />);
-    fireEvent.click(screen.getByText("720p").closest("button")!);
+    await clickAndLayout(screen.getByText("720p").closest("button")!);
     const input = screen.getByRole("spinbutton", { name: "node.videoNode.duration.title" });
     expect(input).not.toHaveAttribute("max");
     expect(screen.queryByRole("slider")).not.toBeInTheDocument();
@@ -72,7 +73,7 @@ describe("VideoConfigChip", () => {
     expect(onChange).toHaveBeenLastCalledWith({ durationSec: 30 });
   });
 
-  it("identifies an unconfigured model and updates when its parameters arrive", () => {
+  it("identifies an unconfigured model and updates when its parameters arrive", async () => {
     const { rerender } = render(<VideoConfigChip {...configProps({
       aspectRatio: null,
       aspectRatioOptions: [],
@@ -86,11 +87,11 @@ describe("VideoConfigChip", () => {
     expect(screen.getByRole("button", { name: "参数未配置" })).toBeInTheDocument();
     rerender(<VideoConfigChip {...configProps()} />);
     expect(screen.queryByText("参数未配置")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("720p").closest("button")!);
+    await clickAndLayout(screen.getByText("720p").closest("button")!);
     expect(screen.getByRole("spinbutton", { name: "node.videoNode.duration.title" })).toHaveValue(8);
   });
 
-  it("projects options and routes each configuration command", () => {
+  it("projects options and routes each configuration command", async () => {
     const onChange = vi.fn();
     const onParentClick = vi.fn();
     render(
@@ -99,16 +100,16 @@ describe("VideoConfigChip", () => {
       </div>,
     );
 
-    fireEvent.click(screen.getByText("16:9").closest("button")!);
+    await clickAndLayout(screen.getByText("16:9").closest("button")!);
     expect(onParentClick).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "9:16" }));
-    fireEvent.click(screen.getByRole("button", { name: "1080p" }));
-    fireEvent.click(
+    await clickAndLayout(screen.getByRole("button", { name: "9:16" }));
+    await clickAndLayout(screen.getByRole("button", { name: "1080p" }));
+    await clickAndLayout(
       screen.getByRole("button", {
         name: "node.videoNode.sceneOptimize.options.realistic",
       }),
     );
-    fireEvent.click(
+    await clickAndLayout(
       screen.getByRole("switch", { name: "node.videoNode.audio.title" }),
     );
 
@@ -120,7 +121,7 @@ describe("VideoConfigChip", () => {
     ]);
   });
 
-  it("renders H3 output and schema parameters while hiding unsupported audio", () => {
+  it("renders H3 output and schema parameters while hiding unsupported audio", async () => {
     const onChange = vi.fn();
     render(
       <VideoConfigChip
@@ -144,13 +145,13 @@ describe("VideoConfigChip", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("1344x768").closest("button")!);
+    await clickAndLayout(screen.getByText("1344x768").closest("button")!);
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "768x1344" }));
+    await clickAndLayout(screen.getByRole("button", { name: "768x1344" }));
     fireEvent.change(screen.getByRole("spinbutton", { name: "采样步数" }), {
       target: { value: "24" },
     });
-    fireEvent.click(screen.getByRole("checkbox", { name: "快速模式" }));
+    await clickAndLayout(screen.getByRole("checkbox", { name: "快速模式" }));
 
     expect(onChange).toHaveBeenCalledWith({
       generationResolution: "768x1344",
@@ -164,7 +165,7 @@ describe("VideoConfigChip", () => {
     expect(screen.getByText(/生成摘要/)).toBeInTheDocument();
   });
 
-  it("keeps partial duration input local and normalizes committed values", () => {
+  it("keeps partial duration input local and normalizes committed values", async () => {
     const onChange = vi.fn();
     const normalizeDuration = vi.fn((value: number) =>
       Math.min(Math.max(Math.round(value), 5), 15),
@@ -174,7 +175,7 @@ describe("VideoConfigChip", () => {
         {...configProps({ onChange, normalizeDuration })}
       />,
     );
-    fireEvent.click(screen.getByText("16:9").closest("button")!);
+    await clickAndLayout(screen.getByText("16:9").closest("button")!);
     const durationInput = screen.getByRole("spinbutton", {
       name: "node.videoNode.duration.title",
     });
@@ -198,9 +199,9 @@ describe("VideoConfigChip", () => {
     expect(onChange).toHaveBeenLastCalledWith({ durationSec: 7 });
   });
 
-  it("syncs duration props and closes on an outside pointer", () => {
+  it("syncs duration props and closes on an outside pointer", async () => {
     const { rerender } = render(<VideoConfigChip {...configProps()} />);
-    fireEvent.click(screen.getByText("16:9").closest("button")!);
+    await clickAndLayout(screen.getByText("16:9").closest("button")!);
     expect(
       screen.getByRole("spinbutton", {
         name: "node.videoNode.duration.title",

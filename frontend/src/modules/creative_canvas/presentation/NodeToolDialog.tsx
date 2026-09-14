@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 
@@ -527,7 +527,7 @@ export function createNodeToolDialog({
         </div>
       );
 
-      return createPortal(dialog, document.body);
+      return <OverlayPortal kind="modal">{dialog}</OverlayPortal>;
     }
 
     return (

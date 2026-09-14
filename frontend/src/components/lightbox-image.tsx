@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 // Copyright (c) 2026 AI anime
 import { Download, X } from "lucide-react";
 import { useState } from "react";
@@ -65,7 +66,7 @@ export function LightboxImage({
         />
       </button>
       {open && (
-        <div
+        <OverlayPortal kind="modal"><div
           className={cn(
             "fixed z-50 flex items-center justify-center bg-media/90 p-6",
             UI_CONTENT_OVERLAY_INSET_CLASS,
@@ -95,7 +96,7 @@ export function LightboxImage({
             className="h-auto max-h-[70vh] w-auto max-w-[min(68vw,1040px)] rounded-[12px] object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div></OverlayPortal>
       )}
     </>
   );

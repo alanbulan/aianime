@@ -1,3 +1,5 @@
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
 // Copyright (c) 2026 AI anime
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
@@ -417,6 +419,7 @@ function AspectRatioPicker({ value, onChange }: AspectRatioPickerProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -450,9 +453,8 @@ function AspectRatioPicker({ value, onChange }: AspectRatioPickerProps) {
         <ChevronDown className="h-3 w-3 text-text-muted" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
-          className="absolute bottom-full left-1/2 z-50 mb-2 w-[180px] -translate-x-1/2 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl"
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
+          className="fixed overflow-auto overscroll-contain w-[180px] rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="mb-1 px-2 py-1 text-[11px] uppercase tracking-wide text-text-muted">
@@ -482,7 +484,7 @@ function AspectRatioPicker({ value, onChange }: AspectRatioPickerProps) {
               );
             })}
           </div>
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );
@@ -507,6 +509,7 @@ function SimpleSegmentedDropdown<T extends string | number>({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -536,9 +539,8 @@ function SimpleSegmentedDropdown<T extends string | number>({
         <ChevronDown className="h-3 w-3 text-text-muted" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
-          className="absolute bottom-full left-1/2 z-50 mb-2 w-[160px] -translate-x-1/2 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl"
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
+          className="fixed overflow-auto overscroll-contain w-[160px] rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="mb-1 px-2 py-1 text-[11px] uppercase tracking-wide text-text-muted">
@@ -567,7 +569,7 @@ function SimpleSegmentedDropdown<T extends string | number>({
               );
             })}
           </div>
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

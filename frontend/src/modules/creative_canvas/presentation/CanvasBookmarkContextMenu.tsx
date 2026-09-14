@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 // Copyright (c) 2026 AI anime
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -68,6 +69,7 @@ export function CanvasBookmarkContextMenu({
   };
 
   return (
+    <OverlayPortal kind="popover">
     <div
       ref={ref}
       className="fixed z-[10010] min-w-[220px] rounded-lg border border-border bg-popover py-1 text-sm text-popover-foreground shadow-xl"
@@ -95,6 +97,7 @@ export function CanvasBookmarkContextMenu({
         onClick={() => run(onClearAll)}
       />
     </div>
+    </OverlayPortal>
   );
 }
 

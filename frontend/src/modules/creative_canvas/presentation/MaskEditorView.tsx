@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 // Copyright (c) 2026 AI anime
 import type { ReactNode } from "react";
 
@@ -20,6 +21,7 @@ export function MaskEditorView({
   controller,
 }: MaskEditorViewProps) {
   return (
+    <OverlayPortal kind="modal">
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6">
       <div className="bg-surface border border-border-default rounded-2xl w-[90vw] max-w-[1200px] h-[85vh] flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-5 py-3 border-b border-border-default">
@@ -148,6 +150,7 @@ export function MaskEditorView({
         </footer>
       </div>
     </div>
+    </OverlayPortal>
   );
 }
 

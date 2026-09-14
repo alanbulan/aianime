@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useEffect, useRef, useState } from 'react';
 import { Camera, ChevronDown, Palette } from 'lucide-react';
 
 import {
@@ -22,13 +23,12 @@ import {
   NODE_TEXT_CONTROL_TRIGGER_CLASS,
 } from './canvasNodeControlStyles';
 import {
-  CAMERA_PICKER_POPOVER_WIDTH,
   CameraPickerPopover,
 } from './CameraPickerPopover';
 import { StylePickerPopover } from './StylePickerPopover';
 
 const IMAGE_PARAM_POPOVER_CLASS =
-  `nodrag nowheel absolute bottom-full left-0 z-50 mb-2 w-[300px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
+  `nodrag nowheel fixed overflow-auto overscroll-contain w-[300px] p-4 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
 const IMAGE_PARAM_LABEL_CLASS =
   'mb-2 text-[11px] font-medium uppercase tracking-wide text-text-muted/85';
 const IMAGE_PARAM_BUTTON_BASE_CLASS =
@@ -54,6 +54,7 @@ export function AspectSizeChip({ aspectRatio, size, quality, showQuality, onChan
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -98,8 +99,7 @@ export function AspectSizeChip({ aspectRatio, size, quality, showQuality, onChan
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
           className={IMAGE_PARAM_POPOVER_CLASS}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
@@ -169,7 +169,7 @@ export function AspectSizeChip({ aspectRatio, size, quality, showQuality, onChan
               );
             })}
           </div>
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );
@@ -187,6 +187,7 @@ export function StyleChip({ projectId, selectedId, selectedLabel, onChange, onOp
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     onOpenChange?.(isOpen);
@@ -230,8 +231,7 @@ export function StyleChip({ projectId, selectedId, selectedLabel, onChange, onOp
         <span className="truncate">{label}</span>
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
           className="absolute top-full left-0 z-50 mt-2"
           onClick={(event) => event.stopPropagation()}
         >
@@ -244,7 +244,7 @@ export function StyleChip({ projectId, selectedId, selectedLabel, onChange, onOp
             }}
             onClose={() => setIsOpen(false)}
           />
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );
@@ -261,28 +261,10 @@ export function CameraChip({ projectId, selection, summary, onChange }: CameraCh
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [popoverPosition, setPopoverPosition] = useState<{
-    left: number;
-    top: number;
-  } | null>(null);
-
-  const syncPopoverPosition = useCallback(() => {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const margin = 12;
-    setPopoverPosition({
-      left: Math.min(
-        Math.max(margin, rect.left),
-        window.innerWidth - CAMERA_PICKER_POPOVER_WIDTH - margin,
-      ),
-      top: Math.max(margin, rect.top - 8),
-    });
-  }, []);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: "top", maxHeight: 560 });
 
   useEffect(() => {
     if (!isOpen) return;
-    syncPopoverPosition();
     const onPointerDown = (event: MouseEvent) => {
       if (
         triggerRef.current?.contains(event.target as Node) ||
@@ -292,16 +274,11 @@ export function CameraChip({ projectId, selection, summary, onChange }: CameraCh
       }
       setIsOpen(false);
     };
-    const onViewportChange = () => syncPopoverPosition();
     document.addEventListener('mousedown', onPointerDown, true);
-    window.addEventListener('resize', onViewportChange);
-    window.addEventListener('scroll', onViewportChange, true);
     return () => {
       document.removeEventListener('mousedown', onPointerDown, true);
-      window.removeEventListener('resize', onViewportChange);
-      window.removeEventListener('scroll', onViewportChange, true);
     };
-  }, [isOpen, syncPopoverPosition]);
+  }, [isOpen]);
 
   const isActive = Boolean(selection) && summary != null;
   const label = isActive && summary ? summary : '摄像机';
@@ -321,15 +298,10 @@ export function CameraChip({ projectId, selection, summary, onChange }: CameraCh
         <Camera className={`${NODE_TEXT_CONTROL_ICON_CLASS} shrink-0`} />
         <span className="truncate">{label}</span>
       </button>
-      {isOpen && popoverPosition && createPortal(
-        <div
+      {isOpen && <OverlayPortal kind="popover"><div
           ref={popoverRef}
-          className="fixed z-[10000]"
-          style={{
-            left: popoverPosition.left,
-            top: popoverPosition.top,
-            transform: 'translateY(-100%)',
-          }}
+          className="fixed overflow-auto overscroll-contain"
+          style={popoverStyle}
           onClick={(event) => event.stopPropagation()}
         >
           <CameraPickerPopover
@@ -341,9 +313,7 @@ export function CameraChip({ projectId, selection, summary, onChange }: CameraCh
             }}
             onClose={() => setIsOpen(false)}
           />
-        </div>,
-        document.body,
-      )}
+        </div></OverlayPortal>}
     </div>
   );
 }
@@ -357,6 +327,7 @@ export function CountSelect({ value, onChange }: CountSelectProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -388,8 +359,7 @@ export function CountSelect({ value, onChange }: CountSelectProps) {
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
           className={NODE_COUNT_POPOVER_CLASS}
         >
           {IMAGE_GEN_COUNT_OPTIONS.map((option) => {
@@ -412,7 +382,7 @@ export function CountSelect({ value, onChange }: CountSelectProps) {
               </button>
             );
           })}
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

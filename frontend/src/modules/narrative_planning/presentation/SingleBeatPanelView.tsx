@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 // Copyright (c) 2026 AI anime
 import { useState, type ElementType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -157,7 +158,7 @@ export function SingleBeatPanelView({
       </div>
 
       {previewUrl && (
-        <div
+        <OverlayPortal kind="modal"><div
           className={cn(
             "fixed z-50 flex items-center justify-center bg-media/90 p-8",
             UI_CONTENT_OVERLAY_INSET_CLASS,
@@ -179,7 +180,7 @@ export function SingleBeatPanelView({
             decoding="async"
             onClick={(event) => event.stopPropagation()}
           />
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

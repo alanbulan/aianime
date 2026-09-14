@@ -77,11 +77,14 @@ export default defineConfig({
       {
         extends: true,
         plugins: [tailwindcss()],
+        optimizeDeps: {
+          include: ["@base-ui/react/dialog", "@base-ui/react/alert-dialog", "@base-ui/react/menu", "@base-ui/react/select", "@base-ui/react/tooltip"],
+        },
         test: {
           name: "browser",
           include: browserTestPatterns,
           exclude: baseExclude,
-          setupFiles: ["./src/__tests__/setup.ui.ts"],
+          setupFiles: ["./src/__tests__/setup.ui.ts", "./src/__tests__/setup.browser.ts"],
           browser: {
             enabled: true,
             headless: true,

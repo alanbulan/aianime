@@ -1,3 +1,4 @@
+import { OverlayRoot, useOverlayContainer } from "@/components/ui/overlay";
 // Copyright (c) 2026 AI anime
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
@@ -18,8 +19,9 @@ function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
 }
 
-function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
+function SheetPortal({ children, ...props }: SheetPrimitive.Portal.Props) {
+  const container = useOverlayContainer();
+  return <SheetPrimitive.Portal container={container ?? undefined} data-slot="sheet-portal" {...props}><OverlayRoot kind="modal">{children}</OverlayRoot></SheetPrimitive.Portal>
 }
 
 function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {

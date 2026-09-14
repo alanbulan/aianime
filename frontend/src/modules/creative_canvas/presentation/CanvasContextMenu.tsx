@@ -83,7 +83,7 @@ export function CanvasContextMenu({ position, sections, onClose }: CanvasContext
       onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       onContextMenu={(event) => event.preventDefault()}
-      className={`absolute z-50 min-w-[212px] overflow-hidden rounded-[14px] border border-border bg-popover/95 py-1.5 shadow-xl backdrop-blur-2xl transition-opacity duration-150 ${
+      className={`absolute z-(--canvas-menu-layer) min-w-[212px] overflow-hidden rounded-[14px] border border-border bg-popover/95 py-1.5 shadow-xl backdrop-blur-2xl transition-opacity duration-150 ${
         isVisible && isPositioned ? 'opacity-100' : 'opacity-0'
       }`}
       style={{ left: panelPosition.x, top: panelPosition.y }}

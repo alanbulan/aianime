@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useEffect, useRef, useState } from "react";
 
 interface CompareDialogProps {
@@ -44,7 +45,7 @@ export function CompareDialog({ left, right, onClose }: CompareDialogProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6">
+    <OverlayPortal kind="modal"><div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6">
       <div className="bg-surface border border-border-default rounded-2xl w-[80vw] max-w-[1100px] h-[80vh] flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-5 py-3 border-b border-border-default">
           <div>
@@ -122,5 +123,6 @@ export function CompareDialog({ left, right, onClose }: CompareDialogProps) {
         </footer>
       </div>
     </div>
+    </OverlayPortal>
   );
 }

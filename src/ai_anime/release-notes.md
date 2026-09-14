@@ -1,19 +1,19 @@
 ---
-version: 1.1.71
+version: 1.1.72
 attention: medium
 ---
-# v1.1.71
+# v1.1.72
 
 ## User-facing Highlights (zh)
 
-- **Mac 安装包**：改进 Intel 与 Apple Silicon 安装包的生成稳定性，并增加 DMG 与 ZIP 完整性检查。
-- **高清视频参数**：支持服务端发布的精确 1080 视频尺寸，切换横屏、竖屏、方形与宽银幕比例时优先保留当前清晰度。
-- **长视频任务**：视频生成默认最多等待 6 小时；仍可主动取消任务。
-- **更新提示**：安装后重新启动客户端，使界面和本地视频任务运行时同时更新。
+- **弹窗与下拉菜单**：统一桌面客户端的弹窗、菜单、子菜单和提示层级，修复菜单被遮挡、选项无法点击以及预览层相互覆盖的问题。
+- **生成参数面板**：视频、图像、运镜、打光、多角度和放大参数面板会避让窗口边缘；长面板可滚动，画布平移或缩放后继续跟随按钮。
+- **桌面窗口控制**：弹窗打开时仍可使用窗口最小化、最大化和关闭按钮。
+- **更新提示**：安装后重新启动客户端即可使用修复后的界面。
 
 ## User-facing Highlights (en)
 
-- **Mac installers**: Improve installer generation reliability for Intel and Apple Silicon, with DMG and ZIP integrity verification.
-- **HD video settings**: Use exact 1080 video sizes from the model catalog and retain the resolution when changing aspect ratios.
-- **Long video jobs**: Allow up to six hours for video generation by default. Manual cancellation remains available.
-- **Update notice**: Restart the client after installation to update the interface and local video runtime.
+- **Dialogs and menus**: Unify stacking for dialogs, menus, submenus and tooltips. Fix hidden menus, unclickable options and overlapping previews.
+- **Generation settings**: Video, image, camera, lighting, angle and upscale panels stay within the window. Long panels scroll and follow their buttons when the canvas pans or zooms.
+- **Window controls**: Minimize, maximize and close remain accessible while a dialog is open.
+- **Update notice**: Restart the client after installation to use the updated interface.

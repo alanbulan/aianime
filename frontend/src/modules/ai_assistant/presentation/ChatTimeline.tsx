@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { File as FileIcon, Image } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -8,7 +9,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 
 import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
 import { calculateTimelineContextDelta } from "@/modules/ai_assistant/presentation/timelineScroll";
@@ -230,9 +230,8 @@ export function ChatTimeline({
       </div>
       {hoveredTurn &&
         turns[hoveredTurn.index] &&
-        createPortal(
-          <div
-            className="pointer-events-none fixed z-[80] -translate-y-1/2"
+        <OverlayPortal kind="tooltip"><div
+            className="pointer-events-none fixed -translate-y-1/2"
             style={{ top: hoveredTurn.top, right: hoveredTurn.right }}
           >
             <div className="max-w-[240px] rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-lg">
@@ -257,9 +256,7 @@ export function ChatTimeline({
                 })}
               </div>
             </div>
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
     </div>
   );
 }

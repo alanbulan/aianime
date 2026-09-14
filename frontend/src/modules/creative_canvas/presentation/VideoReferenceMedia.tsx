@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import {
   useCallback,
   useEffect,
@@ -8,7 +9,6 @@ import {
   type RefObject,
 } from "react";
 import { Music, Pause } from "lucide-react";
-import { createPortal } from "react-dom";
 
 import type {
   VideoReferenceCapEntry,
@@ -273,9 +273,8 @@ function ReferenceImageChip({
       </button>
       {pos &&
         typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="pointer-events-none fixed z-[400] -translate-y-full"
+        <OverlayPortal kind="tooltip"><div
+            className="pointer-events-none fixed -translate-y-full"
             style={{ left: pos.left, top: pos.top, width: previewWidth }}
           >
             <div className="overflow-hidden rounded-xl border border-border bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
@@ -286,9 +285,7 @@ function ReferenceImageChip({
                 draggable={false}
               />
             </div>
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
     </>
   );
 }
@@ -353,9 +350,8 @@ function ReferenceVideoChip({
       </button>
       {pos &&
         typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="pointer-events-none fixed z-[400] -translate-y-full"
+        <OverlayPortal kind="tooltip"><div
+            className="pointer-events-none fixed -translate-y-full"
             style={{ left: pos.left, top: pos.top, width: previewWidth }}
           >
             <div className="overflow-hidden rounded-xl border border-border bg-surface-dark/95 shadow-2xl backdrop-blur-sm">
@@ -368,9 +364,7 @@ function ReferenceVideoChip({
                 className="block h-auto w-full object-contain"
               />
             </div>
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
     </>
   );
 }

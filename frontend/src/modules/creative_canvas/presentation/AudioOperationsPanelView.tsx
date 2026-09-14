@@ -44,7 +44,7 @@ const AUDIO_INPUT_FIELD_CLASS =
 const MUSIC_LENGTH_SELECT_CLASS =
   '!h-8 !w-[116px] !rounded-[8px] !border-border !bg-muted !px-3 !text-[13px] !text-foreground hover:!border-foreground/25';
 const MUSIC_LENGTH_SELECT_MENU_CLASS =
-  '!z-[260] !min-w-[140px] !border-border !bg-popover !text-popover-foreground shadow-xl';
+  '!min-w-[140px] !border-border !bg-popover !text-popover-foreground shadow-xl';
 const AUDIO_MODEL_ROUTE_CLASS =
   'inline-flex h-8 max-w-[220px] items-center truncate rounded-[8px] border border-border bg-muted px-3 text-[12px] text-text-muted';
 

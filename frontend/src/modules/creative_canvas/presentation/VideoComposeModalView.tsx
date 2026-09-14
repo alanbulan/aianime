@@ -1,10 +1,10 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import type {
   PointerEvent as ReactPointerEvent,
   ReactNode,
   RefObject,
 } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeftToLine,
@@ -190,8 +190,7 @@ export function VideoComposeModalView({
   );
   const timelineWidthPx = rulerSeconds * timelineSurface.pxPerSec;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[120] flex flex-col bg-background text-foreground">
+  return <OverlayPortal kind="modal"><div className="fixed inset-0 flex flex-col bg-background text-foreground">
       <header className="flex items-center justify-between border-b border-border-dark px-5 py-3">
         <div className="flex items-center gap-2 text-text-dark">
           <Film className="h-5 w-5 text-text-muted" />
@@ -649,7 +648,5 @@ export function VideoComposeModalView({
       </div>
 
       {coverEditor}
-    </div>,
-    document.body,
-  );
+    </div></OverlayPortal>;
 }

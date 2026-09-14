@@ -28,7 +28,7 @@ import { timeOfDayLabel } from '@/lib/time-of-day';
 const BEAT_CONTEXT_SELECT_CLASS =
   '!h-8 !rounded-[6px] !border-border !bg-muted !px-2 !text-xs !text-foreground hover:!border-warning/45 focus-visible:!border-warning/55';
 const BEAT_CONTEXT_SELECT_MENU_CLASS =
-  '!z-[260] !border-border !bg-popover text-popover-foreground shadow-xl';
+  '!border-border !bg-popover text-popover-foreground shadow-xl';
 
 const STANDALONE_ACTOR_COLORS = [
   '#FF00FF',

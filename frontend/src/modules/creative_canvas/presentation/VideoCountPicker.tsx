@@ -1,3 +1,5 @@
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
 // Copyright (c) 2026 AI anime
 import { useEffect, useRef, useState } from "react";
 import { ChevronUp } from "lucide-react";
@@ -29,6 +31,7 @@ export function VideoCountPicker({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -60,8 +63,7 @@ export function VideoCountPicker({
         <ChevronUp className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
           className={NODE_COUNT_POPOVER_CLASS}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
@@ -86,7 +88,7 @@ export function VideoCountPicker({
               </button>
             );
           })}
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

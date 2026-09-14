@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { createPortal } from 'react-dom';
+import { OverlayPortal } from "@/components/ui/overlay";
 import {
   Check,
   Loader2,
@@ -82,8 +82,7 @@ export function AssetLibraryModalView({
 
   if (typeof document === 'undefined' || !open) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[300] flex items-center justify-center">
+  return <OverlayPortal kind="modal"><div className="fixed inset-0 flex items-center justify-center">
       <div
         className="absolute inset-0 bg-scrim backdrop-blur-sm"
         onClick={onClose}
@@ -406,8 +405,6 @@ export function AssetLibraryModalView({
         <AlertDialog open={deleteDialog.open} onOpenChange={deleteDialog.onOpenChange}>
           <AlertDialogContent
             size="sm"
-            overlayClassName="z-[310]"
-            className="z-[320]"
           >
             <AlertDialogHeader>
               <AlertDialogTitle>删除素材</AlertDialogTitle>
@@ -429,7 +426,5 @@ export function AssetLibraryModalView({
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </div>,
-    document.body,
-  );
+    </div></OverlayPortal>;
 }

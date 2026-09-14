@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { OverlayRoot, useOverlayContainer } from "@/components/ui/overlay";
 import * as React from "react"
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog"
 
@@ -15,9 +16,10 @@ function AlertDialogTrigger({ ...props }: AlertDialogPrimitive.Trigger.Props) {
   )
 }
 
-function AlertDialogPortal({ ...props }: AlertDialogPrimitive.Portal.Props) {
+function AlertDialogPortal({ children, ...props }: AlertDialogPrimitive.Portal.Props) {
+  const container = useOverlayContainer();
   return (
-    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
+    <AlertDialogPrimitive.Portal container={container ?? undefined} data-slot="alert-dialog-portal" {...props}><OverlayRoot kind="modal">{children}</OverlayRoot></AlertDialogPrimitive.Portal>
   )
 }
 

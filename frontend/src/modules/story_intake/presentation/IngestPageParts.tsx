@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 // Copyright (c) 2026 AI anime
 import {
   AlertTriangle,
@@ -139,7 +140,7 @@ function UploadZone({
 function UploadingOverlay() {
   const { t } = useTranslation();
   return (
-    <div
+    <OverlayPortal kind="blocking"><div
       role="alertdialog"
       aria-busy="true"
       aria-live="assertive"
@@ -168,7 +169,7 @@ function UploadingOverlay() {
           {t("ingest.uploadingHint")}
         </p>
       </div>
-    </div>
+    </div></OverlayPortal>
   );
 }
 

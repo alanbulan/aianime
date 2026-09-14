@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { memo } from 'react';
-import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import {
   Download,
@@ -250,10 +250,9 @@ export function StoryboardNodeView({
       </div>
 
       {controller.pickerState && typeof document !== 'undefined'
-        ? createPortal(
-            <div
+        ? <OverlayPortal kind="popover"><div
               ref={controller.pickerMenuRef}
-              className="nowheel fixed z-[140] w-[120px] overflow-hidden rounded-xl border border-border bg-popover shadow-xl"
+              className="nowheel fixed w-[120px] overflow-hidden rounded-xl border border-border bg-popover shadow-xl"
               style={{
                 left: `${controller.pickerState.x}px`,
                 top: `${controller.pickerState.y}px`,
@@ -297,9 +296,7 @@ export function StoryboardNodeView({
                   暂无输入图片
                 </div>
               )}
-            </div>,
-            document.body,
-          )
+            </div></OverlayPortal>
         : null}
 
       {controller.isExportPanelOpen ? (

@@ -1,3 +1,4 @@
+import { OverlayPortal } from "@/components/ui/overlay";
 // Copyright (c) 2026 AI anime
 import { useState } from "react";
 import {
@@ -556,7 +557,7 @@ export function SceneAssetCardView({
         </CardContent>
       </Card>
       {previewSrc && (
-        <div
+        <OverlayPortal kind="modal"><div
           className={cn(
             "fixed z-50 flex items-center justify-center bg-media/90 p-6",
             UI_CONTENT_OVERLAY_INSET_CLASS,
@@ -585,7 +586,7 @@ export function SceneAssetCardView({
             className="max-h-full max-w-full rounded-[8px] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div></OverlayPortal>
       )}
     </>
   );

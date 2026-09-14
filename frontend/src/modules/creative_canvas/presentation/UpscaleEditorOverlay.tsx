@@ -1,3 +1,5 @@
+import { OverlayPortal } from "@/components/ui/overlay";
+import { useAnchoredOverlay } from "@/components/ui/use-anchored-overlay";
 // Copyright (c) 2026 AI anime
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
@@ -259,6 +261,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverStyle = useAnchoredOverlay({ anchor: triggerRef, panel: popoverRef, open: isOpen, side: 'top' });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -292,9 +295,8 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
         <ChevronDown className="h-3 w-3 text-text-muted" />
       </button>
       {isOpen && (
-        <div
-          ref={popoverRef}
-          className="absolute bottom-full right-0 z-50 mb-2 w-[240px] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-2xl"
+        <OverlayPortal><div ref={popoverRef} style={popoverStyle}
+          className="fixed overflow-auto overscroll-contain w-[240px] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-2xl"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="mb-1 text-[11px] uppercase tracking-wide text-text-muted">{title}</div>
@@ -321,7 +323,7 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
               );
             })}
           </div>
-        </div>
+        </div></OverlayPortal>
       )}
     </div>
   );

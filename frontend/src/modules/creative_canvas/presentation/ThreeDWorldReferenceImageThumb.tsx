@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { OverlayPortal } from "@/components/ui/overlay";
 import { useCallback, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 import { resolveImageDisplayUrl } from '../domain/imageData';
 import type { ThreeDWorldReferenceImage } from '../application/threeDWorldNodeModel';
@@ -61,9 +61,8 @@ export function ThreeDWorldReferenceImageThumb({
       </button>
       {previewPosition &&
         typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="pointer-events-none fixed z-[400] -translate-y-full"
+        <OverlayPortal kind="tooltip"><div
+            className="pointer-events-none fixed -translate-y-full"
             style={{
               left: previewPosition.left,
               top: previewPosition.top,
@@ -78,9 +77,7 @@ export function ThreeDWorldReferenceImageThumb({
                 draggable={false}
               />
             </div>
-          </div>,
-          document.body,
-        )}
+          </div></OverlayPortal>}
     </>
   );
 }
