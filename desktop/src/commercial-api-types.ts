@@ -305,6 +305,10 @@ export interface RequestOptions {
   rawBody?: Uint8Array;
   formData?: FormData;
   contentType?: string;
+  billingClientVersion?: string;
+  billingMaximumMicroPoints?: string;
+  billingOriginInvocationId?: string;
+  signal?: AbortSignal;
   token?: string;
   deviceId?: string;
   accept?: string;

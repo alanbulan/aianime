@@ -281,6 +281,11 @@ async function startApplication(): Promise<void> {
     deviceIdentity,
     (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
     {
+      clientVersion: app.getVersion(),
+      confirmMeteredBudget: async (quote, signal) => {
+        const { confirmMeteredBudget } = await import("./commercial-billing-dialog.js");
+        return confirmMeteredBudget(quote, signal, mainWindow);
+      },
       invocationStore: new EncryptedFileModelInvocationStore(
         join(app.getPath("userData"), "commercial-model-invocations"),
         safeStorage,

@@ -1,7 +1,13 @@
+import { parseCommercialBill, type CommercialConsumptionBill } from "./commercial-bill";
+
 export type CommercialInvocationId = string;
 
 export interface CommercialInvocation {
   id: CommercialInvocationId;
+  billingVersion?: "METERED_V2";
+  billingQuoteId?: string;
+  consumptionBillId?: string;
+  billing?: CommercialConsumptionBill;
   modelCode: string;
   operation: string;
   executionMode: string;
@@ -52,8 +58,11 @@ export function parseCommercialInvocationList(
 export function parseCommercialInvocationDetails(
   value: unknown,
 ): CommercialInvocation {
-  const root = record(value, "invocation details", ["invocation"]);
-  return parseCommercialInvocation(root.invocation, "invocation");
+  const root = record(value, "invocation details", ["invocation"], ["billing"]);
+  const invocation = parseCommercialInvocation(root.invocation, "invocation");
+  if (root.billing === undefined) return invocation;
+  if (invocation.billingVersion !== "METERED_V2") throw new Error("A legacy invocation cannot be relabelled as metered");
+  return { ...invocation, billing: parseCommercialBill(root.billing, invocation.id) };
 }
 
 export function parseCommercialInvocationSaveResult(
@@ -130,7 +139,9 @@ function parseCommercialInvocation(
     "startedAt",
     "completedAt",
     "durationMs",
-  ]);
+  ], ["billingVersion", "billingQuoteId", "consumptionBillId"]);
+  if (invocation.billingVersion !== undefined && invocation.billingVersion !== "METERED_V2") throw new Error(`${name}: unsupported historical billing version`);
+  if (invocation.billingVersion === undefined && (invocation.billingQuoteId !== undefined || invocation.consumptionBillId !== undefined)) throw new Error(`${name}: billing references need a version`);
   const reservationId = stringValue(
     invocation.reservationId,
     `${name}.reservationId`,
@@ -138,6 +149,9 @@ function parseCommercialInvocation(
   if (reservationId) uuid(reservationId, `${name}.reservationId`);
   return {
     id: uuid(invocation.id, `${name}.id`),
+    ...(invocation.billingVersion === "METERED_V2" ? { billingVersion: "METERED_V2" as const } : {}),
+    ...(invocation.billingQuoteId === undefined ? {} : { billingQuoteId: uuid(invocation.billingQuoteId, `${name}.billingQuoteId`) }),
+    ...(invocation.consumptionBillId === undefined ? {} : { consumptionBillId: uuid(invocation.consumptionBillId, `${name}.consumptionBillId`) }),
     modelCode: text(invocation.modelCode, `${name}.modelCode`),
     operation: text(invocation.operation, `${name}.operation`),
     executionMode: text(invocation.executionMode, `${name}.executionMode`),
@@ -177,6 +191,7 @@ function record(
   value: unknown,
   name: string,
   fields: readonly string[],
+  optionalFields: readonly string[] = [],
 ): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${name} must be an object`);
@@ -185,8 +200,8 @@ function record(
   const actual = Object.keys(result).sort();
   const expected = [...fields].sort();
   if (
-    actual.length !== expected.length ||
-    actual.some((field, index) => field !== expected[index])
+    fields.some((field) => !Object.prototype.hasOwnProperty.call(result, field)) ||
+    actual.some((field) => !fields.includes(field) && !optionalFields.includes(field))
   ) {
     throw new Error(`${name} fields must be exactly ${expected.join(", ")}`);
   }

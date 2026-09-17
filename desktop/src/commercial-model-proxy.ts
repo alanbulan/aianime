@@ -53,6 +53,7 @@ import {
   videoTaskId,
 } from "./commercial-model-proxy-http.js";
 import type { ModelRoute, PreparedBody } from "./commercial-model-route.js";
+import { CommercialBudgetError, MeteredBudgetAuthorizer, modelQuoteKind, type CommercialMeteredQuote } from "./commercial-metered-billing.js";
 
 const RETRYABLE_ROUTE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const MAX_ROUTE_ATTEMPTS = 3;
@@ -102,6 +103,8 @@ export interface ModelRouteAuditEntry {
 interface CommercialModelProxyOptions {
   requestTimeoutMs?: number;
   invocationStore?: ModelInvocationStore;
+  clientVersion?: string;
+  confirmMeteredBudget?: (quote: CommercialMeteredQuote, signal: AbortSignal) => Promise<boolean>;
 }
 
 /**
@@ -159,6 +162,8 @@ export class CommercialModelProxy {
   >();
   private readonly requestTimeoutMs: number;
   private readonly invocationStore: ModelInvocationStore;
+  private readonly billingAuthorizer: MeteredBudgetAuthorizer;
+  private readonly clientVersion: string;
 
   constructor(
     private readonly client: CommercialApiClient,
@@ -171,6 +176,8 @@ export class CommercialModelProxy {
       Math.floor(options.requestTimeoutMs ?? MODEL_PROXY_REQUEST_TIMEOUT_MS),
     );
     this.invocationStore = options.invocationStore ?? new InMemoryModelInvocationStore();
+    this.clientVersion = options.clientVersion ?? "";
+    this.billingAuthorizer = new MeteredBudgetAuthorizer(options.confirmMeteredBudget ?? (async () => false));
   }
 
   get baseUrl(): string {
@@ -179,6 +186,7 @@ export class CommercialModelProxy {
   }
 
   configureRouting(configuration: CommercialModelRoutingConfiguration): void {
+    if (configuration.cloudModelAssignments.length === 0 && (configuration.explicitCloudModelAssignments?.length ?? 0) === 0) this.billingAuthorizer.clear();
     this.routing = {
       access: configuration.access,
       allowsCustomModels: configuration.allowsCustomModels,
@@ -796,6 +804,10 @@ export class CommercialModelProxy {
           break;
         } catch (error) {
           lastError = error;
+          if (error instanceof CommercialBudgetError) {
+            this.auditRouteAttempt(route, totalAttempts, error.status, "rejected", error);
+            throw error;
+          }
           if (input.signal.aborted) {
             if (isTimeoutAbort(input.signal.reason)) {
               throw new CommercialApiError(
@@ -889,7 +901,7 @@ export class CommercialModelProxy {
   }
 
   private async requestCloud(
-    _route: ModelRoute,
+    route: ModelRoute,
     input: {
       method: string;
       path: string;
@@ -899,11 +911,31 @@ export class CommercialModelProxy {
     prepared: PreparedBody,
   ): Promise<Response> {
     const device = await this.deviceIdentity.summary();
+    const capability = this.routing.modelCapabilities?.find((item) => item.modelId === route.modelId);
+    let body = prepared;
+    const headers = new Headers(forwardedHeaders(input.requestHeaders, prepared.contentType));
+    if (isModelWriteMethod(input.method) && capability?.billingVersion === "METERED_V2") {
+      try {
+      if (!capability.quoteRequired || !capability.pricingAvailable || !modelQuoteKind(input.path)) {
+        throw new CommercialApiError("该模型尚未开放当前请求的精细计费报价，没有提交生成", { status: 426 });
+      }
+      const idempotencyKey = headers.get("Idempotency-Key") ?? randomUUID();
+      headers.set("Idempotency-Key", idempotencyKey);
+      const scope = await this.client.meteredSessionScope(device.publicKeyHash);
+      body = await this.billingAuthorizer.authorize(`${scope}:${idempotencyKey}`, route.modelId, input.path, prepared,
+        this.clientVersion, () => this.client.quoteModel({ modelCode: route.modelId, path: input.path, prepared,
+          clientVersion: this.clientVersion, devicePublicKeyHash: device.publicKeyHash, signal: input.signal }), input.signal);
+      if (body.contentType) headers.set("Content-Type", body.contentType);
+      else headers.delete("Content-Type");
+      } catch (error) {
+        throw new CommercialBudgetError(error instanceof Error ? error.message : "本次消费未获确认，没有提交模型生成");
+      }
+    }
     return this.client.modelRequest({
       method: input.method,
       path: input.path,
-      headers: forwardedHeaders(input.requestHeaders, prepared.contentType),
-      ...(prepared.body === undefined ? {} : { body: prepared.body }),
+      headers,
+      ...(body.body === undefined ? {} : { body: body.body }),
       devicePublicKeyHash: device.publicKeyHash,
       signal: input.signal,
       retryTransientFailures: false,

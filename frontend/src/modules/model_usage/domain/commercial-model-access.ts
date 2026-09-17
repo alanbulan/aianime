@@ -2,6 +2,7 @@ export interface CommercialQuota {
   spendableUnits: number;
   availableUnits: number;
   reservedUnits: number;
+  assetVersion?: "MICRO_POINT_V1";
 }
 
 export interface CommercialModelCatalogItem {
@@ -12,6 +13,12 @@ export interface CommercialModelCatalogItem {
   capabilities: Record<string, unknown>;
   parameterSchema: Record<string, unknown>;
   unitsPerCall?: number;
+  billingVersion?: string;
+  pricingMode?: string;
+  quoteRequired?: boolean;
+  minimumClientVersion?: string;
+  pricingDescription?: string;
+  pricingAvailable?: boolean;
   clientVisible?: boolean;
   status?: string;
   isDefault?: boolean;
@@ -557,7 +564,8 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
     "account",
     "buckets",
     "spendableUnits",
-  ]);
+  ], ["assetVersion"]);
+  if (root.assetVersion !== undefined && root.assetVersion !== "MICRO_POINT_V1") throw new Error("Unsupported quota asset version");
   const account = exactRecord(root.account, "commercial quota account", [
     "availableUnits",
     "id",
@@ -603,6 +611,7 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
       root.spendableUnits,
       "spendableUnits",
     ),
+    ...(root.assetVersion === "MICRO_POINT_V1" ? { assetVersion: "MICRO_POINT_V1" as const } : {}),
     availableUnits: nonNegativeInteger(
       account.availableUnits,
       "account.availableUnits",
@@ -650,6 +659,12 @@ export function parseCommercialModelCatalogItem(
       "parameterSchemaJson",
       "status",
       "unitsPerCall",
+      "billingVersion",
+      "pricingMode",
+      "quoteRequired",
+      "minimumClientVersion",
+      "pricingDescription",
+      "pricingAvailable",
     ],
     [
       "capabilityJson",
@@ -671,6 +686,12 @@ export function parseCommercialModelCatalogItem(
       `${name}.parameterSchemaJson`,
     ),
     ...optionalNumber("unitsPerCall", item.unitsPerCall),
+    ...optionalText("billingVersion", item.billingVersion),
+    ...optionalText("pricingMode", item.pricingMode),
+    ...optionalBoolean("quoteRequired", item.quoteRequired),
+    ...optionalText("minimumClientVersion", item.minimumClientVersion),
+    ...optionalText("pricingDescription", item.pricingDescription),
+    ...optionalBoolean("pricingAvailable", item.pricingAvailable),
     ...optionalBoolean("clientVisible", item.clientVisible),
     ...optionalText("status", item.status),
     ...optionalBoolean("isDefault", item.isDefault),
@@ -730,13 +751,14 @@ function exactRecord(
   value: unknown,
   name: string,
   fields: readonly string[],
+  optionalFields: readonly string[] = [],
 ): Record<string, unknown> {
   const result = record(value, name);
   const actual = Object.keys(result).sort();
   const expected = [...fields].sort();
   if (
-    actual.length !== expected.length ||
-    actual.some((field, index) => field !== expected[index])
+    fields.some((field) => !Object.prototype.hasOwnProperty.call(result, field)) ||
+    actual.some((field) => !fields.includes(field) && !optionalFields.includes(field))
   ) {
     throw new Error(`${name} fields must be exactly ${expected.join(", ")}`);
   }

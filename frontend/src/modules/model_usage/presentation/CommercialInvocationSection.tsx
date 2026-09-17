@@ -47,6 +47,8 @@ import {
   useSaveCommercialInvocationResult,
 } from "@/modules/model_usage/composition";
 import type { CommercialModelCatalogItem } from "@/modules/model_usage/domain/commercial-model-access";
+import { formatCommercialUnits } from "@/modules/model_usage/domain/quota-units";
+import { ConsumptionBillExplanation } from "./ConsumptionBillExplanation";
 import {
   canCancelCommercialInvocation,
   canSaveCommercialInvocationResult,
@@ -350,7 +352,11 @@ function InvocationRow({
 }) {
   const { t } = useTranslation();
   const quotaSummary =
-    isCommercialQuotaPending(invocation.quotaStatus)
+    invocation.billingVersion === "METERED_V2"
+      ? t(isCommercialQuotaPending(invocation.quotaStatus) ? "settings.invocations.meteredReservedSummary" : "settings.invocations.meteredChargedSummary", {
+          amount: formatCommercialUnits(isCommercialQuotaPending(invocation.quotaStatus) ? invocation.reservedUnits : invocation.chargedUnits, invocation.billingVersion),
+        })
+      : isCommercialQuotaPending(invocation.quotaStatus)
       ? t("settings.invocations.reservedSummary", { count: invocation.reservedUnits })
       : invocation.chargedUnits !== undefined
       ? t("settings.invocations.chargedSummary", {
@@ -447,27 +453,29 @@ function InvocationDetails({
     ],
     [
       t("settings.invocations.reservedUnits"),
-      formatQuotaUnits(invocation.reservedUnits, t),
+      formatQuotaUnits(invocation.reservedUnits, t, invocation.billingVersion),
     ],
     [
       t("settings.invocations.chargedUnits"),
-      quotaPending ? pendingLabel : formatQuotaUnits(invocation.chargedUnits, t),
+      quotaPending ? pendingLabel : formatQuotaUnits(invocation.chargedUnits, t, invocation.billingVersion),
     ],
     [
       t("settings.invocations.refundedUnits"),
-      quotaPending ? pendingLabel : formatQuotaUnits(invocation.refundedUnits, t),
+      quotaPending ? pendingLabel : formatQuotaUnits(invocation.refundedUnits, t, invocation.billingVersion),
     ],
     [
       t("settings.invocations.balanceChange"),
       quotaPending ? pendingLabel : invocation.balanceBefore === undefined || invocation.balanceAfter === undefined
         ? undefined
-        : t("settings.invocations.balanceChangeValue", {
-            before: invocation.balanceBefore,
-            after: invocation.balanceAfter,
+        : t(invocation.billingVersion === "METERED_V2" ? "settings.invocations.meteredBalanceChangeValue" : "settings.invocations.balanceChangeValue", {
+            before: formatCommercialUnits(invocation.balanceBefore, invocation.billingVersion),
+            after: formatCommercialUnits(invocation.balanceAfter, invocation.billingVersion),
           }),
     ],
     [t("settings.invocations.createdAt"), formatDate(invocation.createdAt)],
     [t("settings.invocations.completedAt"), formatDate(invocation.completedAt)],
+    [t("settings.invocations.billingQuoteId"), invocation.billingQuoteId],
+    [t("settings.invocations.consumptionBillId"), invocation.consumptionBillId],
   ].filter((field): field is [string, string] => Boolean(field[1]));
   return (
     <div>
@@ -484,6 +492,7 @@ function InvocationDetails({
           {t("settings.invocations.quotaSettlementPending")}
         </p>
       ) : null}
+      {invocation.billing ? <ConsumptionBillExplanation bill={invocation.billing} /> : null}
       {invocation.errorMessage ? (
         <p className="mt-3 border-l-2 border-destructive pl-3 text-xs text-destructive">
           {invocation.errorMessage}
@@ -496,10 +505,13 @@ function InvocationDetails({
 function formatQuotaUnits(
   value: number | undefined,
   t: (key: string, options?: Record<string, unknown>) => string,
+  billingVersion?: string,
 ): string | undefined {
   return value === undefined
     ? undefined
-    : t("settings.invocations.quotaUnitsValue", { count: value });
+    : billingVersion === "METERED_V2"
+      ? t("settings.invocations.meteredPointsValue", { amount: formatCommercialUnits(value, billingVersion) })
+      : t("settings.invocations.quotaUnitsValue", { count: value });
 }
 
 function resolveModelLabel(

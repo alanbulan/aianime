@@ -15,7 +15,15 @@ import {
 import { useCommercialQuota } from "@/modules/model_usage/public";
 import { cn } from "@/lib/utils";
 
-function formatQuotaUnits(value: number, language: string): string {
+function formatQuotaUnits(value: number, language: string, assetVersion?: string): string {
+  if (assetVersion === "MICRO_POINT_V1") {
+    if (!Number.isSafeInteger(value) || value < 0) return "--";
+    const units = BigInt(value);
+    const whole = new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(units / BigInt(1000000));
+    const fraction = (units % BigInt(1000000)).toString().padStart(6, "0").replace(/0+$/u, "");
+    const decimal = new Intl.NumberFormat(language).formatToParts(1.1).find((part) => part.type === "decimal")?.value ?? ".";
+    return fraction ? `${whole}${decimal}${fraction}` : whole;
+  }
   return new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(value);
 }
 
@@ -44,7 +52,7 @@ export function ModelQuotaBadge() {
   const tooltipLabel =
     balance === undefined
       ? t("modelQuota.balance")
-      : `${t("modelQuota.balance")}: ${formatQuotaUnits(balance, language)}`;
+      : `${t("modelQuota.balance")}: ${formatQuotaUnits(balance, language, cloudQuota.data?.assetVersion)}`;
   const handleRefresh = () => {
     if (isFetching) return;
     void cloudQuota.refetch();
@@ -71,7 +79,7 @@ export function ModelQuotaBadge() {
             />
           </span>
           <span className={cn("shrink-0 whitespace-nowrap text-[12px] leading-none tabular-nums", QUOTA_VALUE_CLASS)}>
-            {isLoading || balance === undefined ? "--" : formatQuotaUnits(balance, language)}
+            {isLoading || balance === undefined ? "--" : formatQuotaUnits(balance, language, cloudQuota.data?.assetVersion)}
           </span>
         </TooltipTrigger>
         <TooltipContent

@@ -106,6 +106,7 @@ export interface CommercialAuthorizationSnapshot {
 
 export interface CommercialQuotaSnapshot {
   spendableUnits: number;
+  assetVersion?: "MICRO_POINT_V1";
   account: {
     id: UUID;
     subjectType: string;
@@ -113,6 +114,7 @@ export interface CommercialQuotaSnapshot {
     status: string;
     availableUnits: number;
     reservedUnits: number;
+    refundFrozenUnits?: number;
     version: number;
   };
   buckets: Array<{
@@ -121,6 +123,7 @@ export interface CommercialQuotaSnapshot {
     initialUnits: number;
     remainingUnits: number;
     reservedUnits: number;
+    refundFrozenUnits?: number;
     expiresAt: string;
     status: string;
     bucketType: string;
@@ -135,6 +138,12 @@ export interface CommercialModelCatalogItemSnapshot {
   capabilityJson?: string;
   parameterSchemaJson?: string;
   unitsPerCall?: number;
+  billingVersion?: string;
+  pricingMode?: string;
+  quoteRequired?: boolean;
+  minimumClientVersion?: string;
+  pricingDescription?: string;
+  pricingAvailable?: boolean;
   clientVisible?: boolean;
   status?: string;
   isDefault?: boolean;
@@ -147,6 +156,9 @@ export interface CommercialModelCatalogSnapshot {
 
 export interface CommercialInvocationSnapshot {
   id: UUID;
+  billingVersion?: "METERED_V2";
+  billingQuoteId?: UUID;
+  consumptionBillId?: UUID;
   modelCode: string;
   operation: string;
   executionMode: string;
@@ -182,6 +194,10 @@ export interface CommercialInvocationKeyStateSnapshot {
 
 export interface CommercialModelCapabilitySnapshot {
   modelId: string;
+  billingVersion?: string;
+  quoteRequired?: boolean;
+  minimumClientVersion?: string;
+  pricingAvailable?: boolean;
   extraParameterNames?: string[];
   audioResponseFormats?: string[];
   audioDefaultResponseFormat?: string;
@@ -492,7 +508,8 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
     "account",
     "buckets",
     "spendableUnits",
-  ]);
+  ], ["assetVersion"]);
+  if (root.assetVersion !== undefined && root.assetVersion !== "MICRO_POINT_V1") throw new Error("Unsupported quota asset version; update the desktop client");
   const account = exactRecord(root.account, "quota.account", [
     "id",
     "subjectType",
@@ -501,25 +518,27 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
     "availableUnits",
     "reservedUnits",
     "version",
-  ]);
+  ], ["refundFrozenUnits"]);
   if (!Array.isArray(root.buckets)) {
     throw new Error("quota.buckets must be an array");
   }
   return {
-    spendableUnits: nonNegativeNumber(root.spendableUnits, "spendableUnits"),
+    spendableUnits: nonNegativeInteger(root.spendableUnits, "spendableUnits"),
+    ...(root.assetVersion === "MICRO_POINT_V1" ? { assetVersion: "MICRO_POINT_V1" as const } : {}),
     account: {
       id: uuid(account.id, "account.id"),
       subjectType: requiredText(account.subjectType, "account.subjectType"),
       subjectId: positiveInteger(account.subjectId, "account.subjectId"),
       status: requiredText(account.status, "account.status"),
-      availableUnits: nonNegativeNumber(
+      availableUnits: nonNegativeInteger(
         account.availableUnits,
         "account.availableUnits",
       ),
-      reservedUnits: nonNegativeNumber(
+      reservedUnits: nonNegativeInteger(
         account.reservedUnits,
         "account.reservedUnits",
       ),
+      refundFrozenUnits: nonNegativeInteger(account.refundFrozenUnits ?? 0, "account.refundFrozenUnits"),
       version: nonNegativeInteger(account.version, "account.version"),
     },
     buckets: root.buckets.map((value, index) => {
@@ -533,22 +552,23 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
         "expiresAt",
         "status",
         "bucketType",
-      ]);
+      ], ["refundFrozenUnits"]);
       return {
         id: uuid(bucket.id, `${name}.id`),
         sourceType: requiredText(bucket.sourceType, `${name}.sourceType`),
-        initialUnits: nonNegativeNumber(
+        initialUnits: nonNegativeInteger(
           bucket.initialUnits,
           `${name}.initialUnits`,
         ),
-        remainingUnits: nonNegativeNumber(
+        remainingUnits: nonNegativeInteger(
           bucket.remainingUnits,
           `${name}.remainingUnits`,
         ),
-        reservedUnits: nonNegativeNumber(
+        reservedUnits: nonNegativeInteger(
           bucket.reservedUnits,
           `${name}.reservedUnits`,
         ),
+        refundFrozenUnits: nonNegativeInteger(bucket.refundFrozenUnits ?? 0, `${name}.refundFrozenUnits`),
         expiresAt: stringValue(bucket.expiresAt, `${name}.expiresAt`),
         status: requiredText(bucket.status, `${name}.status`),
         bucketType: requiredText(bucket.bucketType, `${name}.bucketType`),
@@ -586,15 +606,21 @@ export function projectCommercialModelCatalogItem(
     "operation",
     "capabilityJson",
     "parameterSchemaJson",
-    "unitsPerCall",
     "clientVisible",
     "status",
     "createdAt",
     "updatedAt",
     "isDefault",
-  ]);
+  ], ["unitsPerCall", "billingVersion", "pricingMode", "quoteRequired", "minimumClientVersion", "pricingDescription", "pricingAvailable"]);
   stringValue(item.createdAt, `${name}.createdAt`);
   stringValue(item.updatedAt, `${name}.updatedAt`);
+  const metered = item.billingVersion === "METERED_V2";
+  if (item.billingVersion !== undefined && item.billingVersion !== "" && !metered) {
+    throw new Error(`${name}: unsupported billing version; update the desktop client`);
+  }
+  if (metered && (item.quoteRequired !== true || item.unitsPerCall !== undefined)) {
+    throw new Error(`${name}: variable pricing cannot masquerade as a fixed per-call amount`);
+  }
   return {
     id: uuid(item.id, `${name}.id`),
     code: requiredText(item.code, `${name}.code`),
@@ -605,7 +631,13 @@ export function projectCommercialModelCatalogItem(
       item.parameterSchemaJson,
       `${name}.parameterSchemaJson`,
     ),
-    unitsPerCall: nonNegativeNumber(item.unitsPerCall, `${name}.unitsPerCall`),
+    ...(metered ? {
+      billingVersion: "METERED_V2", quoteRequired: true,
+      pricingMode: requiredText(item.pricingMode, `${name}.pricingMode`),
+      minimumClientVersion: item.minimumClientVersion === undefined ? "" : stringValue(item.minimumClientVersion, `${name}.minimumClientVersion`),
+      pricingDescription: item.pricingDescription === undefined ? "" : stringValue(item.pricingDescription, `${name}.pricingDescription`),
+      pricingAvailable: item.pricingAvailable === undefined ? false : booleanValue(item.pricingAvailable, `${name}.pricingAvailable`),
+    } : { unitsPerCall: nonNegativeNumber(item.unitsPerCall, `${name}.unitsPerCall`) }),
     clientVisible: booleanValue(item.clientVisible, `${name}.clientVisible`),
     status: requiredText(item.status, `${name}.status`),
     isDefault: booleanValue(item.isDefault, `${name}.isDefault`),
@@ -704,7 +736,9 @@ export function projectCommercialInvocation(
     "startedAt",
     "completedAt",
     "durationMs",
-  ]);
+  ], ["billingVersion", "billingQuoteId", "consumptionBillId"]);
+  if (invocation.billingVersion !== undefined && invocation.billingVersion !== "METERED_V2") throw new Error(`${name}: unsupported historical billing version`);
+  if (invocation.billingVersion === undefined && (invocation.billingQuoteId !== undefined || invocation.consumptionBillId !== undefined)) throw new Error(`${name}: billing references need a version`);
   const reservationId = stringValue(
     invocation.reservationId,
     `${name}.reservationId`,
@@ -712,6 +746,9 @@ export function projectCommercialInvocation(
   if (reservationId) uuid(reservationId, `${name}.reservationId`);
   return {
     id: uuid(invocation.id, `${name}.id`),
+    ...(invocation.billingVersion === "METERED_V2" ? { billingVersion: "METERED_V2" as const } : {}),
+    ...(invocation.billingQuoteId === undefined ? {} : { billingQuoteId: uuid(invocation.billingQuoteId, `${name}.billingQuoteId`) }),
+    ...(invocation.consumptionBillId === undefined ? {} : { consumptionBillId: uuid(invocation.consumptionBillId, `${name}.consumptionBillId`) }),
     modelCode: requiredText(invocation.modelCode, `${name}.modelCode`),
     operation: requiredText(invocation.operation, `${name}.operation`),
     executionMode: requiredText(
@@ -925,13 +962,14 @@ function exactRecord(
   value: unknown,
   name: string,
   fields: readonly string[],
+  optionalFields: readonly string[] = [],
 ): Record<string, unknown> {
   const record = requiredRecord(value, name);
   const actual = Object.keys(record).sort();
   const expected = [...fields].sort();
   if (
-    actual.length !== expected.length ||
-    actual.some((field, index) => field !== expected[index])
+    fields.some((field) => !Object.prototype.hasOwnProperty.call(record, field)) ||
+    actual.some((field) => !fields.includes(field) && !optionalFields.includes(field))
   ) {
     throw new Error(`${name} fields must be exactly ${expected.join(", ")}`);
   }

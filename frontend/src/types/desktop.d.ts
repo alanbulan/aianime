@@ -145,6 +145,7 @@ interface AIAnimeCommercialAuthorization {
 
 interface AIAnimeCommercialQuota {
   spendableUnits: number;
+  assetVersion?: "MICRO_POINT_V1";
   account: {
     id: string;
     subjectType: string;
@@ -152,6 +153,7 @@ interface AIAnimeCommercialQuota {
     status: string;
     availableUnits: number;
     reservedUnits: number;
+    refundFrozenUnits?: number;
     version: number;
   };
   buckets: Array<{
@@ -160,6 +162,7 @@ interface AIAnimeCommercialQuota {
     initialUnits: number;
     remainingUnits: number;
     reservedUnits: number;
+    refundFrozenUnits?: number;
     expiresAt: string;
     status: string;
     bucketType: string;
@@ -174,6 +177,12 @@ interface AIAnimeCommercialModel {
   capabilityJson?: string;
   parameterSchemaJson?: string;
   unitsPerCall?: number;
+  billingVersion?: string;
+  pricingMode?: string;
+  quoteRequired?: boolean;
+  minimumClientVersion?: string;
+  pricingDescription?: string;
+  pricingAvailable?: boolean;
   clientVisible?: boolean;
   status?: string;
   isDefault?: boolean;
@@ -186,6 +195,9 @@ interface AIAnimeCommercialModelCatalog {
 
 interface AIAnimeCommercialInvocation {
   id: string;
+  billingVersion?: "METERED_V2";
+  billingQuoteId?: string;
+  consumptionBillId?: string;
   modelCode: string;
   operation: string;
   executionMode: string;
@@ -488,7 +500,7 @@ interface AIAnimeCommercialBridge {
   }) => Promise<{ items: AIAnimeCommercialInvocation[]; total: number }>;
   invocationDetails: (
     id: string,
-  ) => Promise<{ invocation: AIAnimeCommercialInvocation }>;
+  ) => Promise<{ invocation: AIAnimeCommercialInvocation; billing?: import("@/modules/model_usage/public").CommercialConsumptionBill }>;
   cancelInvocation: (input: {
     id: string;
     reason: string;

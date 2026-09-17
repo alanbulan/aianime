@@ -38,6 +38,7 @@ export function CommercialLicensePage() {
     entitlement?.license && !entitlement.capabilities.deviceActivated,
   );
   const busy = status === "loading" || pendingAction !== null;
+  const verificationFailed = !activationRequired && Boolean(entitlementError);
 
   useEffect(() => {
     if (status !== "idle") return;
@@ -110,14 +111,14 @@ export function CommercialLicensePage() {
           {t(
             activationRequired
               ? "license.activateTitle"
-              : "license.requiredTitle",
+              : verificationFailed ? "license.verificationTitle" : "license.requiredTitle",
           )}
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           {t(
             activationRequired
               ? "license.activateDescription"
-              : "license.requiredDescription",
+              : verificationFailed ? "license.verificationDescription" : "license.requiredDescription",
           )}
         </p>
 
@@ -136,12 +137,13 @@ export function CommercialLicensePage() {
         ) : null}
 
         {actionError || entitlementError ? (
-          <p
+          <details
             className="mt-5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm leading-5 text-destructive"
             role="alert"
           >
-            {actionError ?? entitlementError}
-          </p>
+            <summary className="cursor-pointer font-medium">{t("license.diagnostics")}</summary>
+            <p className="mt-2 break-words select-text">{actionError ?? entitlementError}</p>
+          </details>
         ) : null}
 
         <div className="mt-7 flex flex-wrap items-center gap-2">

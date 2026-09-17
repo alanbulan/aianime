@@ -1276,7 +1276,9 @@ function ModelDetailsPanel({
         />
         <DetailValue
           label={t("settings.modelAccess.unitsPerCall")}
-          value={model.unitsPerCall === undefined ? "-" : String(model.unitsPerCall)}
+          value={model.billingVersion === "METERED_V2"
+            ? t("settings.modelAccess.quoteRequired")
+            : model.unitsPerCall === undefined ? "-" : String(model.unitsPerCall)}
         />
         <DetailValue
           label={t("settings.modelAccess.status")}

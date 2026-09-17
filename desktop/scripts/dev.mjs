@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { hostname } from "node:os";
 import {
@@ -64,6 +64,7 @@ const VITE_PORT = process.env.AI_ANIME_DEV_VITE_PORT?.trim() || "5173";
 const VITE_URL = `http://127.0.0.1:${VITE_PORT}`;
 const START_TIMEOUT_MS = 30_000;
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
+const DEVELOPMENT_CLIENT_VERSION = JSON.parse(readFileSync(join(REPO_ROOT, "desktop", "package.json"), "utf8")).version;
 const FRONTEND_ROOT = join(REPO_ROOT, "frontend");
 const VITE_ENTRY = join(FRONTEND_ROOT, "node_modules", "vite", "bin", "vite.js");
 const HERMES_RUNTIME_ROOT = join(REPO_ROOT, "desktop", "hermes-runtime");
@@ -382,6 +383,11 @@ async function startApplication() {
     deviceIdentity,
     (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
     {
+      clientVersion: DEVELOPMENT_CLIENT_VERSION,
+      confirmMeteredBudget: async (quote, signal) => {
+        const { confirmMeteredBudget } = await import("../src/commercial-billing-dialog.ts");
+        return confirmMeteredBudget(quote, signal, mainWindow);
+      },
       invocationStore: new EncryptedFileModelInvocationStore(
         join(app.getPath("userData"), "commercial-model-invocations"),
         safeStorage,

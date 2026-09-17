@@ -3,6 +3,9 @@
 import { randomUUID } from "node:crypto";
 
 import { CommercialApiError } from "./commercial-api-error.js";
+import { modelQuoteKind, videoRemixQuoteOrigin, parseMeteredQuote, exactMicroPoints, type CommercialMeteredQuote } from "./commercial-metered-billing.js";
+import type { PreparedBody } from "./commercial-model-route.js";
+import { projectConsumptionBill, type CommercialConsumptionBill } from "./commercial-consumption-bill.js";
 import {
   parseCommercialAuthorizationWire,
   parseCommercialBootstrapWire,
@@ -109,6 +112,30 @@ export const COMMERCIAL_RUNTIME_DEPENDENCIES_URL =
   `${COMMERCIAL_GATEWAY_URL}/api/v1/client/runtime-dependencies`;
 
 export class CommercialApiClient extends CommercialApiTransport {
+  async meteredSessionScope(devicePublicKeyHash: string): Promise<string> {
+    const session = await this.requireFreshSession();
+    if (this.activeDeviceId === null) await this.loadCurrentLicense(devicePublicKeyHash);
+    if (this.activeDeviceId === null) throw new CommercialApiError("当前设备尚未激活", { status: 403 });
+    return `${session.tenant.id}:${session.user.id}:${this.activeDeviceId}`;
+  }
+
+  async quoteModel(input: { modelCode: string; path: string; prepared: PreparedBody; clientVersion: string;
+    devicePublicKeyHash: string; maximumMicroPoints?: string; signal: AbortSignal }): Promise<CommercialMeteredQuote> {
+    await this.meteredSessionScope(input.devicePublicKeyHash);
+    const kind = modelQuoteKind(input.path);
+    if (!kind || !/^\d+\.\d+\.\d+$/u.test(input.clientVersion)) throw new CommercialApiError("当前客户端不能为该请求生成安全报价", { status: 426 });
+    const body = input.prepared.body;
+    const rawBody = typeof body === "string" ? Buffer.from(body) : body instanceof Uint8Array ? body : body instanceof ArrayBuffer ? new Uint8Array(body) : undefined;
+    if (!(body instanceof FormData) && rawBody === undefined) throw new CommercialApiError("报价请求体不可重放", { status: 422 });
+    const value = await this.authenticatedJson("POST", `/api/v1/client/quota/protocol-quotes/${kind}`, {
+      deviceId: this.activeDeviceId!, billingClientVersion: input.clientVersion, signal: input.signal,
+      ...(kind === "video-remix" ? { billingOriginInvocationId: videoRemixQuoteOrigin(input.path)! } : {}),
+      ...(input.maximumMicroPoints === undefined ? {} : { billingMaximumMicroPoints: exactMicroPoints(input.maximumMicroPoints) }),
+      ...(body instanceof FormData ? { formData: body } : { rawBody: rawBody!, contentType: input.prepared.contentType ?? "application/json" }),
+    });
+    return parseMeteredQuote(value, input.modelCode, this.now());
+  }
+
   async publicConfig(
     tenantCode: string,
   ): Promise<CommercialDesktopPublicConfig> {
@@ -691,13 +718,17 @@ export class CommercialApiClient extends CommercialApiTransport {
 
   async invocationDetails(
     id: string,
-  ): Promise<{ invocation: CommercialInvocationSnapshot }> {
-    return projectCommercialInvocationDetails(
+  ): Promise<{ invocation: CommercialInvocationSnapshot; billing?: CommercialConsumptionBill }> {
+    const detail = projectCommercialInvocationDetails(
       await this.authenticatedJson(
         "GET",
         `/api/v1/client/relay/invocations/${encodeURIComponent(requiredUUID(id, "id"))}`,
       ),
     );
+    if (detail.invocation.billingVersion !== "METERED_V2") return detail;
+    const billing = projectConsumptionBill(await this.authenticatedJson("GET",
+      `/api/v1/client/quota/bills/by-invocation/${encodeURIComponent(requiredUUID(id, "id"))}`), detail.invocation.id);
+    return { ...detail, billing };
   }
 
   async invocationByIdempotencyKey(

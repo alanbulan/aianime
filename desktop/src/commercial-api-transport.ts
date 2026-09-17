@@ -454,6 +454,9 @@ export class CommercialApiTransport {
       if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
     }
     const headers = new Headers({ Accept: options.accept ?? "application/json" });
+    if (options.billingClientVersion !== undefined) headers.set("X-Aigo-Client-Version", options.billingClientVersion);
+    if (options.billingMaximumMicroPoints !== undefined) headers.set("X-Aigo-Max-Cost-Micro-Points", options.billingMaximumMicroPoints);
+    if (options.billingOriginInvocationId !== undefined) headers.set("X-Aigo-Origin-Invocation-Id", options.billingOriginInvocationId);
     if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
     if (options.deviceId !== undefined) {
       headers.set("X-Device-Id", String(options.deviceId));
@@ -478,7 +481,7 @@ export class CommercialApiTransport {
         method,
         headers,
         ...(body === undefined ? {} : { body }),
-        signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+        signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(DEFAULT_TIMEOUT_MS)]) : AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
       });
     } catch (error) {
       throw new CommercialApiError(

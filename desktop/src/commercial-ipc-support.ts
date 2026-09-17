@@ -396,7 +396,7 @@ export function mergeModelCapabilities(
     if (
       normalizedOperation !== "VIDEO" &&
       normalizedOperation !== "IMAGE" &&
-      !isAudioOperation
+      !isAudioOperation && item.billingVersion !== "METERED_V2"
     ) {
       continue;
     }
@@ -420,6 +420,10 @@ export function mergeModelCapabilities(
     const referencesProperty = optionalRecord(properties.references);
     const projected: CommercialModelCapabilitySnapshot = {
       modelId: item.code,
+      ...(item.billingVersion === "METERED_V2" ? {
+        billingVersion: item.billingVersion, quoteRequired: item.quoteRequired,
+        minimumClientVersion: item.minimumClientVersion, pricingAvailable: item.pricingAvailable,
+      } : {}),
     };
     const extraParameterNames = projectedExtraParameterNames(properties);
     if (extraParameterNames.length) {
