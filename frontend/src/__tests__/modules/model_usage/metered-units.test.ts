@@ -26,8 +26,8 @@ describe("versioned quota unit projections", () => {
     expect(() => parseCommercialInvocationDetails({ invocation: { ...invocation, consumptionBillId: id } })).toThrow();
   });
   it("preserves the balance asset marker without rewriting ledger amounts", () => {
-    const quota = { account: { id, subjectType: "USER", subjectId: 7, status: "ACTIVE", availableUnits: 1000001, reservedUnits: 1, version: 1 }, buckets: [], spendableUnits: 1000000 };
-    expect(parseCommercialQuota(quota)).toEqual({ spendableUnits: 1000000, availableUnits: 1000001, reservedUnits: 1 });
+    const quota = { assetVersion: "MICRO_POINT_V1", account: { id, subjectType: "USER", subjectId: 7, status: "ACTIVE", availableUnits: 1000001, reservedUnits: 1, refundFrozenUnits: 0, version: 1 }, buckets: [], spendableUnits: 1000000 };
+    expect(parseCommercialQuota(quota)).toEqual({ spendableUnits: 1000000, availableUnits: 1000001, reservedUnits: 1, refundFrozenUnits: 0, assetVersion: "MICRO_POINT_V1" });
     expect(parseCommercialQuota({ ...quota, assetVersion: "MICRO_POINT_V1" }).assetVersion).toBe("MICRO_POINT_V1");
     expect(() => parseCommercialQuota({ ...quota, assetVersion: "MYSTERY" })).toThrow();
   });

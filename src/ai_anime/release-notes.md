@@ -1,8 +1,20 @@
 ---
-version: 1.1.74
+version: 1.1.75
 attention: medium
 ---
-# v1.1.74
+# v1.1.75
+
+## 启动与积分合同修复 / Startup and points contract fix
+
+- 修复界面层仍使用旧账户字段表、拒绝退款冻结字段导致无法进入的问题；账户与每个额度桶均校验当前完整字段。
+- 云端响应、Electron、IPC、界面解析和查询缓存统一使用 `MICRO_POINT_V1`，冻结数量为零时也明确传递；不把缺失版本当作旧单位兼容。
+- 保留服务端给出的可用积分，不在客户端重新计算或把冻结积分变成可消费余额。
+- 增加从主进程输出到界面启动、余额刷新、失败重试的回归；三平台发布前执行这些检查。
+- Fixed the renderer rejecting current refund-hold fields during application bootstrap.
+- Aligned the current point asset version and account/bucket fields across Gateway, Electron, IPC and renderer caches.
+- Preserve the server-authoritative spendable balance. Startup, refresh and retry checks now gate all three native builds.
+
+## v1.1.74 模型能力修复
 
 ## 模型能力同步修复 / Model capability synchronization
 

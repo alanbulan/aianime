@@ -362,6 +362,7 @@ describe("commercial model details", () => {
 
 describe("commercial quota contract", () => {
   const quota = {
+    assetVersion: "MICRO_POINT_V1",
     spendableUnits: 70,
     account: {
       id: "11111111-1111-4111-8111-111111111111",
@@ -370,6 +371,7 @@ describe("commercial quota contract", () => {
       status: "ACTIVE",
       availableUnits: 80,
       reservedUnits: 10,
+      refundFrozenUnits: 0,
       version: 3,
     },
     buckets: [
@@ -379,6 +381,7 @@ describe("commercial quota contract", () => {
         initialUnits: 100,
         remainingUnits: 80,
         reservedUnits: 10,
+        refundFrozenUnits: 0,
         expiresAt: "2027-01-01T00:00:00Z",
         status: "ACTIVE",
         bucketType: "ALLOCATED",
@@ -391,6 +394,8 @@ describe("commercial quota contract", () => {
       spendableUnits: 70,
       availableUnits: 80,
       reservedUnits: 10,
+      refundFrozenUnits: 0,
+      assetVersion: "MICRO_POINT_V1",
     });
     expect(() =>
       parseCommercialQuota({

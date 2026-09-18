@@ -145,7 +145,7 @@ interface AIAnimeCommercialAuthorization {
 
 interface AIAnimeCommercialQuota {
   spendableUnits: number;
-  assetVersion?: "MICRO_POINT_V1";
+  assetVersion: "MICRO_POINT_V1";
   account: {
     id: string;
     subjectType: string;
@@ -153,7 +153,7 @@ interface AIAnimeCommercialQuota {
     status: string;
     availableUnits: number;
     reservedUnits: number;
-    refundFrozenUnits?: number;
+    refundFrozenUnits: number;
     version: number;
   };
   buckets: Array<{
@@ -162,7 +162,7 @@ interface AIAnimeCommercialQuota {
     initialUnits: number;
     remainingUnits: number;
     reservedUnits: number;
-    refundFrozenUnits?: number;
+    refundFrozenUnits: number;
     expiresAt: string;
     status: string;
     bucketType: string;

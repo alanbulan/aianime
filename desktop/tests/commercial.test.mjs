@@ -65,6 +65,7 @@ const loginResponse = {
 };
 
 const quotaResponse = {
+  assetVersion: "MICRO_POINT_V1",
   account: {
     id: "77777777-7777-4777-8777-777777777777",
     subjectType: "USER",
@@ -72,6 +73,7 @@ const quotaResponse = {
     status: "ACTIVE",
     availableUnits: 100,
     reservedUnits: 0,
+    refundFrozenUnits: 0,
     version: 1,
   },
   buckets: [],

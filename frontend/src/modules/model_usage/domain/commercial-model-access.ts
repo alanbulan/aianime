@@ -2,7 +2,8 @@ export interface CommercialQuota {
   spendableUnits: number;
   availableUnits: number;
   reservedUnits: number;
-  assetVersion?: "MICRO_POINT_V1";
+  refundFrozenUnits: number;
+  assetVersion: "MICRO_POINT_V1";
 }
 
 export interface CommercialModelCatalogItem {
@@ -564,12 +565,14 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
     "account",
     "buckets",
     "spendableUnits",
-  ], ["assetVersion"]);
-  if (root.assetVersion !== undefined && root.assetVersion !== "MICRO_POINT_V1") throw new Error("Unsupported quota asset version");
+    "assetVersion",
+  ]);
+  if (root.assetVersion !== "MICRO_POINT_V1") throw new Error("Unsupported quota asset version");
   const account = exactRecord(root.account, "commercial quota account", [
     "availableUnits",
     "id",
     "reservedUnits",
+    "refundFrozenUnits",
     "status",
     "subjectId",
     "subjectType",
@@ -592,6 +595,7 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
       "initialUnits",
       "remainingUnits",
       "reservedUnits",
+      "refundFrozenUnits",
       "sourceType",
       "status",
     ]);
@@ -600,6 +604,7 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
     nonNegativeInteger(bucket.initialUnits, `${name}.initialUnits`);
     nonNegativeInteger(bucket.remainingUnits, `${name}.remainingUnits`);
     nonNegativeInteger(bucket.reservedUnits, `${name}.reservedUnits`);
+    nonNegativeInteger(bucket.refundFrozenUnits, `${name}.refundFrozenUnits`);
     if (typeof bucket.expiresAt !== "string") {
       throw new Error(`${name}.expiresAt must be a string`);
     }
@@ -611,7 +616,7 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
       root.spendableUnits,
       "spendableUnits",
     ),
-    ...(root.assetVersion === "MICRO_POINT_V1" ? { assetVersion: "MICRO_POINT_V1" as const } : {}),
+    assetVersion: "MICRO_POINT_V1",
     availableUnits: nonNegativeInteger(
       account.availableUnits,
       "account.availableUnits",
@@ -619,6 +624,10 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
     reservedUnits: nonNegativeInteger(
       account.reservedUnits,
       "account.reservedUnits",
+    ),
+    refundFrozenUnits: nonNegativeInteger(
+      account.refundFrozenUnits,
+      "account.refundFrozenUnits",
     ),
   };
 }

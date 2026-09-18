@@ -10,7 +10,8 @@ const commercialState = vi.hoisted(() => ({
   availability: "configured",
   session: { authenticated: true } as { authenticated: true } | null,
   allowsCloudModels: true,
-  balance: 7300,
+  balance: 7300000000,
+  assetVersion: "MICRO_POINT_V1" as string | undefined,
   isError: false,
   isLoading: false,
 }));
@@ -36,7 +37,13 @@ vi.mock("@/modules/identity_access/public", () => ({
 
 vi.mock("@/modules/model_usage/public", () => ({
   useCommercialQuota: (enabled: boolean) => ({
-    data: enabled ? { spendableUnits: commercialState.balance } : undefined,
+    data: enabled ? {
+      spendableUnits: commercialState.balance,
+      availableUnits: 9000000000,
+      reservedUnits: 500000000,
+      refundFrozenUnits: 1200000000,
+      assetVersion: commercialState.assetVersion,
+    } : undefined,
     isLoading: commercialState.isLoading,
     isError: commercialState.isError,
     isFetching: false,
@@ -85,7 +92,8 @@ describe("ModelQuotaBadge", () => {
     commercialState.availability = "configured";
     commercialState.session = { authenticated: true };
     commercialState.allowsCloudModels = true;
-    commercialState.balance = 7300;
+    commercialState.balance = 7300000000;
+    commercialState.assetVersion = "MICRO_POINT_V1";
     commercialState.isError = false;
     commercialState.isLoading = false;
     refreshQuota.mockReset();
@@ -96,6 +104,23 @@ describe("ModelQuotaBadge", () => {
 
     expect(screen.getByText("7,300")).toBeInTheDocument();
     expect(document.body).toHaveTextContent("云端模型配额: 7,300 · 点击刷新");
+  });
+
+  it.each([[0, "0"], [1, "0.000001"], [4750000, "4.75"], [1000001, "1.000001"]])(
+    "formats exact current points from the authoritative spendable amount %s",
+    (balance, expected) => {
+      commercialState.balance = Number(balance);
+      renderBadge();
+      expect(screen.getByText(String(expected))).toBeInTheDocument();
+      expect(document.body).not.toHaveTextContent("9,000,000,000");
+    },
+  );
+
+  it.each([undefined, "LEGACY_UNIT", "UNKNOWN"])("never labels storage integers as points for asset %s", (version) => {
+    commercialState.assetVersion = version;
+    renderBadge();
+    expect(screen.getByText("--")).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("7,300");
   });
 
   it("renders nothing when commercial access is not configured", () => {

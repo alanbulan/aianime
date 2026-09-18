@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
 
 import {
   ensureCommercialBootstrap,
@@ -8,10 +12,12 @@ import { queryKeys } from "@/lib/query-keys";
 import { useCommercialEntitlementStore } from "@/modules/identity_access/public";
 import {
   loadCommercialModelCatalog,
+  useCommercialQuota,
   type CommercialModelCatalog,
   type CommercialQuota,
 } from "@/modules/model_usage/public";
 import type { CommercialReleaseStatus } from "@/modules/platform_release/public";
+import currentQuota from "../../../../tests/fixtures/commercial-quota-current.json";
 
 const bootstrapPayload = {
   softwareAuthorization: {
@@ -56,19 +62,7 @@ const bootstrapPayload = {
       allowsCustomModels: true,
     },
   },
-  personalQuota: {
-    account: {
-      id: "44444444-4444-4444-8444-444444444444",
-      subjectType: "USER",
-      subjectId: 1001,
-      status: "ACTIVE",
-      availableUnits: 75,
-      reservedUnits: 2,
-      version: 1,
-    },
-    buckets: [],
-    spendableUnits: 73,
-  },
+  personalQuota: currentQuota,
   models: {
     catalogVersion: "catalog-1",
     items: [
@@ -79,7 +73,12 @@ const bootstrapPayload = {
         operation: "TEXT",
         capabilityJson: "{}",
         parameterSchemaJson: "{}",
-        unitsPerCall: 1,
+        billingVersion: "METERED_V2",
+        pricingMode: "METERED",
+        quoteRequired: true,
+        minimumClientVersion: "1.1.75",
+        pricingDescription: "测试文本积分报价",
+        pricingAvailable: true,
         clientVisible: true,
         status: "ACTIVE",
         isDefault: true,
@@ -91,7 +90,12 @@ const bootstrapPayload = {
         operation: "IMAGE",
         capabilityJson: "{}",
         parameterSchemaJson: "{}",
-        unitsPerCall: 2,
+        billingVersion: "METERED_V2",
+        pricingMode: "METERED",
+        quoteRequired: true,
+        minimumClientVersion: "1.1.75",
+        pricingDescription: "测试图片积分报价",
+        pricingAvailable: true,
         clientVisible: true,
         status: "ACTIVE",
         isDefault: true,
@@ -152,7 +156,7 @@ describe("commercial application bootstrap", () => {
     });
     expect(
       queryClient.getQueryData<CommercialQuota>(queryKeys.commercialQuota()),
-    ).toMatchObject({ spendableUnits: 73 });
+    ).toEqual({ spendableUnits: 4750000, availableUnits: 10000000, reservedUnits: 2000000, refundFrozenUnits: 3000000, assetVersion: "MICRO_POINT_V1" });
     expect(
       queryClient.getQueryData<CommercialModelCatalog>(
         queryKeys.commercialModels("TEXT"),
@@ -176,5 +180,65 @@ describe("commercial application bootstrap", () => {
       items: [{ code: "cloud/text-standard" }],
     });
     expect(modelCatalog).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed current balance, then recovers on retry without resetting the license", async () => {
+    const broken = structuredClone(bootstrapPayload);
+    broken.personalQuota.account.refundFrozenUnits = -1;
+    const bootstrap = vi.fn()
+      .mockResolvedValueOnce(broken)
+      .mockResolvedValueOnce(structuredClone(bootstrapPayload));
+    window.aiAnimeDesktop = { commercial: { bootstrap } } as unknown as AIAnimeDesktopBridge;
+
+    await expect(ensureCommercialBootstrap()).rejects.toThrow(/refundFrozenUnits/);
+    expect(useCommercialEntitlementStore.getState().status).not.toBe("ready");
+    expect(queryClient.getQueryData(queryKeys.commercialQuota())).toBeUndefined();
+    await expect(ensureCommercialBootstrap()).resolves.toMatchObject({
+      license: { status: "ACTIVE" }, capabilities: { allowsCloudModels: true },
+    });
+    expect(bootstrap).toHaveBeenCalledTimes(2);
+    expect(useCommercialEntitlementStore.getState().status).toBe("ready");
+    expect(queryClient.getQueryData<CommercialQuota>(queryKeys.commercialQuota())?.refundFrozenUnits).toBe(3000000);
+  });
+
+  it("ordinary quota refresh uses the same current contract as startup", async () => {
+    const next = structuredClone(currentQuota);
+    next.account.refundFrozenUnits = 1000000;
+    next.buckets[0].refundFrozenUnits = 1000000;
+    next.spendableUnits = 6750000;
+    const quotaBalance = vi.fn(async () => next);
+    window.aiAnimeDesktop = {
+      commercial: { bootstrap: vi.fn(async () => bootstrapPayload), quotaBalance },
+    } as unknown as AIAnimeDesktopBridge;
+    await ensureCommercialBootstrap();
+    const hook = renderHook(() => {
+      const { data, error, refetch } = useCommercialQuota();
+      return { data, error, refetch };
+    }, {
+      wrapper: ({ children }) => createElement(QueryClientProvider, { client: queryClient }, children),
+    });
+    await act(async () => {
+      const refreshed = await hook.result.current.refetch();
+      expect(refreshed.error).toBeNull();
+      expect(refreshed.data?.refundFrozenUnits).toBe(1000000);
+    });
+    await waitFor(() => expect(hook.result.current.data?.refundFrozenUnits).toBe(1000000));
+    expect(hook.result.current.data?.spendableUnits).toBe(6750000);
+    expect(hook.result.current.error).toBeNull();
+    expect(quotaBalance).toHaveBeenCalled();
+    hook.unmount();
+  });
+
+  it.skipIf(!process.env.AI_ANIME_RENDERER_CONTRACT_FILE)("boots with actual cloud quota and model data already projected by Electron", async () => {
+    const projected = JSON.parse(readFileSync(process.env.AI_ANIME_RENDERER_CONTRACT_FILE!, "utf8"));
+    const payload = { ...bootstrapPayload, personalQuota: projected.personalQuota, models: projected.models };
+    window.aiAnimeDesktop = { commercial: { bootstrap: vi.fn(async () => payload) } } as unknown as AIAnimeDesktopBridge;
+    await expect(ensureCommercialBootstrap()).resolves.toMatchObject({ license: { status: "ACTIVE" } });
+    expect(useCommercialEntitlementStore.getState().status).toBe("ready");
+    expect(queryClient.getQueryData<CommercialQuota>(queryKeys.commercialQuota())).toMatchObject({
+      assetVersion: "MICRO_POINT_V1",
+      spendableUnits: projected.personalQuota.spendableUnits,
+      refundFrozenUnits: projected.personalQuota.account.refundFrozenUnits,
+    });
   });
 });

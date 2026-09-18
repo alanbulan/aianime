@@ -90,8 +90,8 @@ test("metered catalogs never present a fake fixed price and unknown versions fai
 
 test("versioned balances and invocation history keep exact source units", () => {
   const id = quote().id;
-  const quota = { account: { id, subjectType: "USER", subjectId: 7, status: "ACTIVE", availableUnits: 1000001, reservedUnits: 1, version: 1 }, buckets: [], spendableUnits: 1000000 };
-  assert.equal(projectCommercialQuota(quota).assetVersion, undefined);
+  const quota = { assetVersion: "MICRO_POINT_V1", account: { id, subjectType: "USER", subjectId: 7, status: "ACTIVE", availableUnits: 1000001, reservedUnits: 1, refundFrozenUnits: 0, version: 1 }, buckets: [], spendableUnits: 1000000 };
+  assert.equal(projectCommercialQuota(quota).assetVersion, "MICRO_POINT_V1");
   assert.equal(projectCommercialQuota({ ...quota, assetVersion: "MICRO_POINT_V1" }).spendableUnits, 1000000);
   assert.throws(() => projectCommercialQuota({ ...quota, assetVersion: "UNKNOWN" }));
   const invocation = { id, modelCode: "cloud-test", operation: "TEXT", executionMode: "SYNC", status: "SUCCEEDED", quotaStatus: "COMMITTED", reservationId: id,

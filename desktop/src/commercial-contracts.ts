@@ -106,7 +106,7 @@ export interface CommercialAuthorizationSnapshot {
 
 export interface CommercialQuotaSnapshot {
   spendableUnits: number;
-  assetVersion?: "MICRO_POINT_V1";
+  assetVersion: "MICRO_POINT_V1";
   account: {
     id: UUID;
     subjectType: string;
@@ -114,7 +114,7 @@ export interface CommercialQuotaSnapshot {
     status: string;
     availableUnits: number;
     reservedUnits: number;
-    refundFrozenUnits?: number;
+    refundFrozenUnits: number;
     version: number;
   };
   buckets: Array<{
@@ -123,7 +123,7 @@ export interface CommercialQuotaSnapshot {
     initialUnits: number;
     remainingUnits: number;
     reservedUnits: number;
-    refundFrozenUnits?: number;
+    refundFrozenUnits: number;
     expiresAt: string;
     status: string;
     bucketType: string;
@@ -508,8 +508,9 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
     "account",
     "buckets",
     "spendableUnits",
-  ], ["assetVersion"]);
-  if (root.assetVersion !== undefined && root.assetVersion !== "MICRO_POINT_V1") throw new Error("Unsupported quota asset version; update the desktop client");
+    "assetVersion",
+  ]);
+  if (root.assetVersion !== "MICRO_POINT_V1") throw new Error("Unsupported quota asset version; update the desktop client");
   const account = exactRecord(root.account, "quota.account", [
     "id",
     "subjectType",
@@ -517,14 +518,15 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
     "status",
     "availableUnits",
     "reservedUnits",
+    "refundFrozenUnits",
     "version",
-  ], ["refundFrozenUnits"]);
+  ]);
   if (!Array.isArray(root.buckets)) {
     throw new Error("quota.buckets must be an array");
   }
   return {
     spendableUnits: nonNegativeInteger(root.spendableUnits, "spendableUnits"),
-    ...(root.assetVersion === "MICRO_POINT_V1" ? { assetVersion: "MICRO_POINT_V1" as const } : {}),
+    assetVersion: "MICRO_POINT_V1",
     account: {
       id: uuid(account.id, "account.id"),
       subjectType: requiredText(account.subjectType, "account.subjectType"),
@@ -538,7 +540,7 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
         account.reservedUnits,
         "account.reservedUnits",
       ),
-      refundFrozenUnits: nonNegativeInteger(account.refundFrozenUnits ?? 0, "account.refundFrozenUnits"),
+      refundFrozenUnits: nonNegativeInteger(account.refundFrozenUnits, "account.refundFrozenUnits"),
       version: nonNegativeInteger(account.version, "account.version"),
     },
     buckets: root.buckets.map((value, index) => {
@@ -549,10 +551,11 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
         "initialUnits",
         "remainingUnits",
         "reservedUnits",
+        "refundFrozenUnits",
         "expiresAt",
         "status",
         "bucketType",
-      ], ["refundFrozenUnits"]);
+      ]);
       return {
         id: uuid(bucket.id, `${name}.id`),
         sourceType: requiredText(bucket.sourceType, `${name}.sourceType`),
@@ -568,7 +571,7 @@ export function projectCommercialQuota(value: unknown): CommercialQuotaSnapshot 
           bucket.reservedUnits,
           `${name}.reservedUnits`,
         ),
-        refundFrozenUnits: nonNegativeInteger(bucket.refundFrozenUnits ?? 0, `${name}.refundFrozenUnits`),
+        refundFrozenUnits: nonNegativeInteger(bucket.refundFrozenUnits, `${name}.refundFrozenUnits`),
         expiresAt: stringValue(bucket.expiresAt, `${name}.expiresAt`),
         status: requiredText(bucket.status, `${name}.status`),
         bucketType: requiredText(bucket.bucketType, `${name}.bucketType`),

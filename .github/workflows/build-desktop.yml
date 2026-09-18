@@ -107,6 +107,11 @@ jobs:
       - name: Test desktop packaging contracts
         run: pnpm --dir desktop typecheck && pnpm --dir desktop test
 
+      - name: Verify current quota and renderer startup contract
+        run: |
+          pnpm --dir frontend test:unit src/__tests__/modules/model_usage/commercial-model-access.test.ts src/__tests__/modules/model_usage/metered-units.test.ts
+          pnpm --dir frontend test:component src/__tests__/app/commercial-bootstrap.dom.test.ts src/__tests__/components/layout/model-quota-badge.test.tsx
+
       - name: Verify Electron to Python capability contract
         run: >-
           uv run --locked pytest

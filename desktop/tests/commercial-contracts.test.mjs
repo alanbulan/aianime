@@ -330,10 +330,12 @@ test("strict client projections reject missing and extra response fields", () =>
       status: "ACTIVE",
       availableUnits: 10,
       reservedUnits: 0,
+      refundFrozenUnits: 0,
       version: 1,
     },
     buckets: [],
     spendableUnits: 10,
+    assetVersion: "MICRO_POINT_V1",
   };
 
   assert.throws(

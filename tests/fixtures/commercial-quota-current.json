@@ -1,0 +1,27 @@
+{
+  "assetVersion": "MICRO_POINT_V1",
+  "spendableUnits": 4750000,
+  "account": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "subjectType": "USER",
+    "subjectId": 42,
+    "status": "ACTIVE",
+    "availableUnits": 10000000,
+    "reservedUnits": 2000000,
+    "refundFrozenUnits": 3000000,
+    "version": 7
+  },
+  "buckets": [
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "sourceType": "TENANT_ALLOCATION",
+      "initialUnits": 10000000,
+      "remainingUnits": 10000000,
+      "reservedUnits": 2000000,
+      "refundFrozenUnits": 3000000,
+      "expiresAt": "2027-01-01T00:00:00Z",
+      "status": "ACTIVE",
+      "bucketType": "USER_ALLOCATION"
+    }
+  ]
+}

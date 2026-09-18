@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { projectCommercialQuota } from "../src/commercial-contracts.ts";
 
-// Canonical Gateway ClientQuotaBalanceResp, including explicit optional fields.
+// Current Gateway ClientQuotaBalanceResp. Zero holds are explicit, not absent.
 const fixture = {
   assetVersion: "MICRO_POINT_V1",
   account: {
@@ -27,11 +27,14 @@ test("current Gateway quota fields survive desktop projection without overriding
   assert.equal(result.spendableUnits, 5000000);
 });
 
-test("optional frozen fields may be absent but undeclared fields still fail closed", () => {
+test("missing current fields and undeclared fields both fail closed", () => {
   const value = structuredClone(fixture);
   delete value.account.refundFrozenUnits;
   delete value.buckets[0].refundFrozenUnits;
-  assert.equal(projectCommercialQuota(value).account.refundFrozenUnits, 0);
+  assert.throws(() => projectCommercialQuota(value), /fields must be exactly/);
+  const unversioned = structuredClone(fixture);
+  delete unversioned.assetVersion;
+  assert.throws(() => projectCommercialQuota(unversioned), /fields must be exactly/);
   assert.throws(() => projectCommercialQuota({ ...fixture, internalTenantSecret: "forbidden" }), /fields must be exactly/);
   assert.throws(() => projectCommercialQuota({ ...fixture, account: { ...fixture.account, tenantId: 14 } }), /fields must be exactly/);
   assert.throws(() => projectCommercialQuota({ ...fixture, assetVersion: "LEGACY_UNIT" }), /Unsupported quota asset version/);
@@ -47,5 +50,5 @@ test("quota amounts remain safe nonnegative integers and never round an unsafe b
 test("renderer quota wire type includes the same refund freeze fields", () => {
   const types = readFileSync(new URL("../../frontend/src/types/desktop.d.ts", import.meta.url), "utf8");
   const quota = types.split("interface AIAnimeCommercialQuota {")[1].split("interface AIAnimeCommercialModel")[0];
-  assert.equal((quota.match(/refundFrozenUnits\?: number/g) ?? []).length, 2);
+  assert.equal((quota.match(/refundFrozenUnits: number/g) ?? []).length, 2);
 });
