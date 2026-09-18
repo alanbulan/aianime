@@ -2,6 +2,7 @@
 
 import type { CommercialDeviceSigner } from "./commercial-device.js";
 import type { MeteredBudgetDialog } from "./commercial-billing-dialog.js";
+import { ExecutionPolicySync, type DesktopExecutionPolicy } from "./commercial-execution-policy.js";
 import type {
   ByokModelAssignment,
   EncryptedFileCommercialModelAccessStore,
@@ -55,6 +56,7 @@ export interface RegisterCommercialIpcOptions {
     explicitCloudModelAssignments: readonly ByokModelAssignment[],
   ) => void | Promise<void>;
   onLoggedOut: () => void | Promise<void>;
+  onExecutionPolicyChanged?: (policy: DesktopExecutionPolicy | null) => Promise<void>;
   budgetDialog?: Pick<MeteredBudgetDialog, "snapshot" | "respond" | "clear">;
   releaseUpdater?: {
     download(artifactId: string): Promise<{ version: string }>;
@@ -88,6 +90,7 @@ export class CommercialIpcContext {
   private modelAccessHydration: Promise<void> | null = null;
   private modelAccessSyncChain: Promise<void> = Promise.resolve();
   private modelAccessFallbackWarningShown = false;
+  private readonly executionPolicySync: ExecutionPolicySync | null;
 
   constructor(
     readonly options: RegisterCommercialIpcOptions,
@@ -95,6 +98,11 @@ export class CommercialIpcContext {
     private readonly errorPrefix: string,
   ) {
     this.client = options.client;
+    this.executionPolicySync = options.onExecutionPolicyChanged ? new ExecutionPolicySync(
+      () => this.client.executionPolicy(),
+      async () => this.client.meteredSessionScope((await options.deviceIdentity.summary()).publicKeyHash),
+      options.onExecutionPolicyChanged,
+    ) : null;
   }
 
   handle(channel: string, listener: (input: unknown) => unknown): void {
@@ -139,6 +147,7 @@ export class CommercialIpcContext {
   }
 
   async prepareAuthentication(): Promise<void> {
+    await this.executionPolicySync?.reset();
     this.options.budgetDialog?.clear();
     this.resetModelState();
     await this.synchronizeModelAccess();
@@ -160,10 +169,19 @@ export class CommercialIpcContext {
   }
 
   async clearAuthenticatedState(): Promise<void> {
+    await this.executionPolicySync?.reset();
     this.options.budgetDialog?.clear();
     await this.options.onLoggedOut();
     this.resetModelState();
     await this.synchronizeModelAccess();
+  }
+
+  async synchronizeExecutionPolicy(): Promise<void> {
+    try { await this.executionPolicySync?.start(); }
+    catch {
+      // Scheduling-setting outages must not be reported as license failures.
+      console.warn("[commercial] task policy unavailable; existing limits retained");
+    }
   }
 
   async loadModelAccessForRouting(): Promise<StoredCommercialModelAccess> {

@@ -88,6 +88,7 @@ export function registerCommercialModelHandlers(
       );
     }
     await context.synchronizeModelAccess();
+    await context.synchronizeExecutionPolicy();
     return bootstrap;
   });
   context.handle(channels.quotaBalance, () => client.quotaBalance());

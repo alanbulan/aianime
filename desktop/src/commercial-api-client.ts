@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import { CommercialApiError } from "./commercial-api-error.js";
+import { parseExecutionPolicy, type CommercialExecutionPolicy } from "./commercial-execution-policy.js";
 import { modelQuoteKind, videoRemixQuoteOrigin, parseMeteredQuote, exactMicroPoints, type CommercialMeteredQuote } from "./commercial-metered-billing.js";
 import type { PreparedBody } from "./commercial-model-route.js";
 import { projectConsumptionBill, type CommercialConsumptionBill } from "./commercial-consumption-bill.js";
@@ -524,6 +525,10 @@ export class CommercialApiClient extends CommercialApiTransport {
     return projectCommercialQuota(
       await this.authenticatedJson("GET", "/api/v1/client/quota/balance"),
     );
+  }
+
+  async executionPolicy(): Promise<CommercialExecutionPolicy> {
+    return parseExecutionPolicy(await this.authenticatedJson("GET", "/api/v1/client/relay/execution-policy"));
   }
 
   async modelCatalog(

@@ -1,7 +1,18 @@
 ---
-version: 1.1.76
+version: 1.1.77
 attention: medium
 ---
+# v1.1.77
+
+## 租户任务调度策略同步 / Tenant task scheduling policy sync
+
+- 登录业务租户后读取当前租户的桌面并发与队列策略，并严格校验字段、范围和版本，异常时保留上一份已确认配置。
+- 本地 Python sidecar 按通用任务和视频任务分别应用并发、排队限制；策略热更新降低限制时不取消已经受理的任务，sidecar 重启后会重新下发。
+- 策略同步使用独立的主进程通道，不把调度字段混入模型能力或计费合同；退出登录、租户切换和失效响应均会清理旧策略。
+- Added tenant-scoped desktop concurrency and queue synchronization with strict validation and stale-policy rejection.
+- The local sidecar applies separate general and video lanes, preserves accepted work while limits are lowered, and reapplies the last verified policy after restart.
+- Scheduling data remains separate from model capability and billing contracts; failed reads retain the previous verified policy.
+
 # v1.1.76
 
 ## 应用内预算确认 / In-app budget confirmation

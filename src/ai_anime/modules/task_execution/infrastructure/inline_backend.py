@@ -87,12 +87,29 @@ class InlineTaskBackend:
                 concurrency=global_lane_concurrency(lane),
                 queue_limit=global_lane_queue_limit(lane),
                 executor=ThreadPoolExecutor(
-                    max_workers=global_lane_concurrency(lane),
+                    # Threads are lazy; the scheduler enforces current policy.
+                    max_workers=max(
+                        global_lane_concurrency(lane),
+                        {"default": 16, "video": 8}.get(lane, 1),
+                    ),
                     thread_name_prefix=f"inline-{lane}",
                 ),
             )
             for lane in sorted(QUEUE_KINDS)
         }
+
+    def configure_execution_policy(self, policy) -> None:
+        from ai_anime.modules.task_execution.infrastructure.admission_policy import (
+            configure_managed_policy,
+        )
+
+        configure_managed_policy(policy)
+        for lane_name in ("default", "video"):
+            lane = self._lanes[lane_name]
+            lane.concurrency = global_lane_concurrency(lane_name)
+            lane.queue_limit = global_lane_queue_limit(lane_name)
+            # Lowering a limit never cancels or loses accepted work.
+            self._drain_lane(lane_name)
 
     async def enqueue_project_task(
         self,

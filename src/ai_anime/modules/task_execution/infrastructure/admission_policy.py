@@ -3,11 +3,35 @@
 from __future__ import annotations
 
 import os
+from threading import RLock
+
+from ai_anime.modules.task_execution.domain.execution_policy import (
+    ManagedExecutionPolicy,
+)
 
 from ai_anime.modules.task_execution.domain.queue import (
     QUEUE_KINDS,
     normalize_queue_kind,
 )
+
+_managed_lock = RLock()
+_managed_policy: ManagedExecutionPolicy | None = None
+
+
+def configure_managed_policy(value: ManagedExecutionPolicy | None) -> None:
+    global _managed_policy
+    with _managed_lock:
+        _managed_policy = value
+
+
+def _managed_lane(queue_kind: str | None) -> tuple[int, int] | None:
+    with _managed_lock:
+        return (
+            _managed_policy.lane(normalize_queue_kind(queue_kind))
+            if _managed_policy
+            else None
+        )
+
 
 PROJECT_LANE_LIMIT_DEFAULTS = {
     "default": 12,
@@ -85,6 +109,9 @@ def _positive_lane_int(
 
 
 def project_lane_active_limit(queue_kind: str | None) -> int | None:
+    managed = _managed_lane(queue_kind)
+    if managed is not None:
+        return sum(managed)
     return _lane_active_limit(
         queue_kind,
         env_prefix="AI_ANIME_PROJECT_MAX_ACTIVE",
@@ -107,6 +134,9 @@ def project_lane_min_active_limit(queue_kind: str | None) -> int:
 
 
 def project_user_lane_active_limit(queue_kind: str | None) -> int | None:
+    managed = _managed_lane(queue_kind)
+    if managed is not None:
+        return sum(managed)
     return _lane_active_limit(
         queue_kind,
         env_prefix="AI_ANIME_PROJECT_USER_MAX_ACTIVE",
@@ -119,6 +149,9 @@ def project_lane_effective_active_limit(
     *,
     eligible_user_count: int,
 ) -> int | None:
+    managed = _managed_lane(queue_kind)
+    if managed is not None:
+        return sum(managed)
     hard_limit = project_lane_active_limit(queue_kind)
     user_limit = project_user_lane_active_limit(queue_kind)
     if hard_limit is None:
@@ -134,6 +167,9 @@ def project_lane_effective_active_limit(
 
 
 def global_lane_concurrency(queue_kind: str | None) -> int:
+    managed = _managed_lane(queue_kind)
+    if managed is not None:
+        return managed[0]
     return _positive_lane_int(
         queue_kind,
         env_prefix="AI_ANIME_CE_GLOBAL_MAX_ACTIVE",
@@ -142,6 +178,9 @@ def global_lane_concurrency(queue_kind: str | None) -> int:
 
 
 def global_lane_queue_limit(queue_kind: str | None) -> int:
+    managed = _managed_lane(queue_kind)
+    if managed is not None:
+        return managed[1]
     return _positive_lane_int(
         queue_kind,
         env_prefix="AI_ANIME_CE_GLOBAL_MAX_QUEUED",

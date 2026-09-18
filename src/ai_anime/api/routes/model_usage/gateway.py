@@ -16,6 +16,41 @@ from ai_anime.modules.model_usage.public import build_model_gateway_status
 router = APIRouter(prefix="/model-gateway")
 
 
+class DesktopExecutionPolicyBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    general_concurrency: int = Field(alias="desktopGeneralConcurrency", ge=1, le=16)
+    general_queue: int = Field(alias="desktopGeneralQueue", ge=0, le=256)
+    video_concurrency: int = Field(alias="desktopVideoConcurrency", ge=1, le=8)
+    video_queue: int = Field(alias="desktopVideoQueue", ge=0, le=256)
+    version: int = Field(ge=0, le=9_007_199_254_740_991)
+
+
+@router.post("/internal/execution-policy", include_in_schema=False)
+async def set_desktop_execution_policy(
+    body: DesktopExecutionPolicyBody | None = None,
+    model_admin_token: str | None = Header(
+        default=None, alias="X-AI-Anime-Model-Admin-Token"
+    ),
+) -> dict[str, bool]:
+    from ai_anime.modules.task_execution.public import (
+        configure_desktop_execution_policy,
+    )
+
+    try:
+        require_model_admin_token(model_admin_token)
+        configure_desktop_execution_policy(
+            body.model_dump(by_alias=True) if body else None
+        )
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=403, detail="任务调度配置仅允许桌面主进程修改"
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"ok": True}
+
+
 class CommercialModelAssignmentBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

@@ -221,6 +221,7 @@ async function registerCommercialGatewayIpc(
     isAllowedSender: isAllowedDesktopIpcSender,
     onAuthenticated: (cloudSession) =>
       setDesktopSessionCookie(localBackend.baseUrl, cloudSession),
+    onExecutionPolicyChanged: (policy) => localBackend.configureExecutionPolicy(policy),
     onModelAccessChanged: async (
       access,
       allowsCustomModels,

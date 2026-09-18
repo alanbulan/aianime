@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
 import type { CommercialModelCapabilitySnapshot } from "./commercial-contracts.js";
 import { sidecarModelCapability, sidecarCapabilityError } from "./backend-model-capability.js";
+import type { DesktopExecutionPolicy } from "./commercial-execution-policy.js";
 import {
   bundledBackendPath,
   bundledFfmpegPath,
@@ -105,6 +106,8 @@ export class LocalBackend {
   private restartExhausted = false;
   private hasStarted = false;
   private modelAccess: ModelAccessInput | null = null;
+  private executionPolicy: DesktopExecutionPolicy | null = null;
+  private executionPolicyConfigured = false;
   private healthCheckTimer: ReturnType<typeof setTimeout> | null = null;
   private healthCheckChild: ChildProcessWithoutNullStreams | null = null;
   private healthCheckFailures = 0;
@@ -269,6 +272,7 @@ export class LocalBackend {
       this._baseUrl = `http://${socketEvent.host}:${socketEvent.port}`;
       await this.waitForHealth();
       if (this.modelAccess) await this.postModelAccess(this.modelAccess);
+      if (this.executionPolicyConfigured) await this.postExecutionPolicy(this.executionPolicy);
       this.readyChild = child;
       this.startHealthWatchdog(child);
       const restarted = this.hasStarted;
@@ -394,6 +398,22 @@ export class LocalBackend {
     };
     await this.postModelAccess(snapshot);
     this.modelAccess = snapshot;
+  }
+
+  async configureExecutionPolicy(input: DesktopExecutionPolicy | null): Promise<void> {
+    const policy = input ? { ...input } : null;
+    await this.postExecutionPolicy(policy);
+    this.executionPolicy = policy;
+    this.executionPolicyConfigured = true;
+  }
+
+  private async postExecutionPolicy(input: DesktopExecutionPolicy | null): Promise<void> {
+    const response = await this.fetchImpl(`${this.baseUrl}/api/v1/model-gateway/internal/execution-policy`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", [TOKEN_HEADER]: this.token, "X-AI-Anime-Model-Admin-Token": this.modelAdminToken },
+      body: JSON.stringify(input), signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) throw new Error("本地任务调度策略未能应用，保留原有配置");
   }
 
   private async postModelAccess(input: ModelAccessInput): Promise<void> {

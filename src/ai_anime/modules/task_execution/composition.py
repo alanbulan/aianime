@@ -130,6 +130,16 @@ def build_inline_task_backend() -> Any:
     )
 
 
+def configure_desktop_execution_policy(value: dict[str, Any] | None) -> None:
+    from ai_anime.modules.task_execution.domain.execution_policy import (
+        ManagedExecutionPolicy,
+    )
+
+    policy = ManagedExecutionPolicy.from_wire(value) if value is not None else None
+    backend = _task_backend()
+    backend.configure_execution_policy(policy)
+
+
 def build_in_memory_cancellation_store() -> Any:
     from ai_anime.modules.task_execution.infrastructure.inline_backend import (
         InMemoryCancellationStore,
