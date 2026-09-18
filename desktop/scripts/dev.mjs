@@ -49,6 +49,7 @@ import {
   isSameOrigin,
 } from "../src/desktop-runtime-contracts.ts";
 import { createDiagnosticWriter } from "./diagnostic-output.mjs";
+import { MeteredBudgetDialog } from "../src/commercial-billing-dialog.ts";
 
 const WINDOW_CHANNELS = {
   minimize: "desktop:window:minimize",
@@ -73,6 +74,11 @@ let backend = null;
 let commercialModelProxy = null;
 let viteProcess = null;
 let quitting = false;
+const budgetDialog = new MeteredBudgetDialog((state) => {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return false;
+  mainWindow.webContents.send(COMMERCIAL_CHANNELS.budgetChanged, state);
+  return true;
+});
 const writeStdout = createDiagnosticWriter(process.stdout);
 const writeStderr = createDiagnosticWriter(process.stderr);
 
@@ -161,6 +167,7 @@ async function registerCommercialGatewayIpc(
   const device = await deviceIdentity.summary();
   registerCommercialIpc({
     ipcMain,
+    budgetDialog,
     client,
     deviceIdentity,
     modelAccessStore,
@@ -307,6 +314,7 @@ async function createMainWindow() {
     },
   );
   window.webContents.on("render-process-gone", (_event, details) => {
+    budgetDialog.clear();
     writeStderr(
       `[render-process-gone] ${details.reason} exitCode=${details.exitCode}\n`,
     );
@@ -320,7 +328,11 @@ async function createMainWindow() {
   window.on("maximize", emitMaximizedState);
   window.on("unmaximize", emitMaximizedState);
   window.on("closed", () => {
+    budgetDialog.clear();
     mainWindow = null;
+  });
+  window.webContents.on("did-start-navigation", (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) budgetDialog.clear();
   });
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (isAllowedExternalUrl(url)) void shell.openExternal(url);
@@ -333,6 +345,7 @@ async function createMainWindow() {
 }
 
 async function stopServices() {
+  budgetDialog.clear();
   const child = viteProcess;
   viteProcess = null;
   if (child && child.exitCode === null) {
@@ -384,10 +397,7 @@ async function startApplication() {
     (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
     {
       clientVersion: DEVELOPMENT_CLIENT_VERSION,
-      confirmMeteredBudget: async (quote, signal) => {
-        const { confirmMeteredBudget } = await import("../src/commercial-billing-dialog.ts");
-        return confirmMeteredBudget(quote, signal, mainWindow);
-      },
+      confirmMeteredBudget: (quote, signal) => budgetDialog.confirm(quote, signal),
       invocationStore: new EncryptedFileModelInvocationStore(
         join(app.getPath("userData"), "commercial-model-invocations"),
         safeStorage,

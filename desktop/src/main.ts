@@ -36,6 +36,7 @@ import { COMMERCIAL_LEASE_SIGNING_KEYS } from "./commercial-trust.js";
 import { CommercialDesktopUpdater } from "./commercial-updater.js";
 import { installSparkleUpdate } from "./commercial-sparkle-installer.js";
 import { COMMERCIAL_CHANNELS } from "./commercial-ipc.js";
+import { MeteredBudgetDialog } from "./commercial-billing-dialog.js";
 import { installDesktopSessionSecurity } from "./desktop-session-security.js";
 import { installDesktopApplicationMenu, installDesktopTextContextMenu } from "./desktop-editing.js";
 import { appendModelRouteAudit } from "./model-route-audit.js";
@@ -58,6 +59,11 @@ let backend: LocalBackend | null = null;
 let commercialModelProxy: CommercialModelProxy | null = null;
 let stopPromise: Promise<void> | null = null;
 let quitting = false;
+const budgetDialog = new MeteredBudgetDialog((state) => {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return false;
+  mainWindow.webContents.send(COMMERCIAL_CHANNELS.budgetChanged, state);
+  return true;
+});
 const WINDOW_CHANNELS = {
   minimize: "desktop:window:minimize",
   toggleMaximize: "desktop:window:toggle-maximize",
@@ -113,7 +119,12 @@ async function createMainWindow(localBackend: LocalBackend): Promise<void> {
   window.on("maximize", emitMaximizedState);
   window.on("unmaximize", emitMaximizedState);
   window.on("closed", () => {
+    budgetDialog.clear();
     mainWindow = null;
+  });
+  window.webContents.on("render-process-gone", () => budgetDialog.clear());
+  window.webContents.on("did-start-navigation", (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) budgetDialog.clear();
   });
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (isAllowedExternalUrl(url)) void shell.openExternal(url);
@@ -199,6 +210,7 @@ async function registerCommercialGatewayIpc(
   );
   registerCommercialIpc({
     ipcMain,
+    budgetDialog,
     client,
     deviceIdentity,
     modelAccessStore,
@@ -282,10 +294,7 @@ async function startApplication(): Promise<void> {
     (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
     {
       clientVersion: app.getVersion(),
-      confirmMeteredBudget: async (quote, signal) => {
-        const { confirmMeteredBudget } = await import("./commercial-billing-dialog.js");
-        return confirmMeteredBudget(quote, signal, mainWindow);
-      },
+      confirmMeteredBudget: (quote, signal) => budgetDialog.confirm(quote, signal),
       invocationStore: new EncryptedFileModelInvocationStore(
         join(app.getPath("userData"), "commercial-model-invocations"),
         safeStorage,
@@ -333,6 +342,7 @@ async function startApplication(): Promise<void> {
 }
 
 async function stopApplication(): Promise<void> {
+  budgetDialog.clear();
   if (stopPromise) return stopPromise;
   const pending = (async () => {
     const localBackend = backend;

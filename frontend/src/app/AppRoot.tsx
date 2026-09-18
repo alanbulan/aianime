@@ -7,6 +7,7 @@ import { AppRouterShell } from "@/app/AppRouterShell";
 import { queryClient } from "@/app/query-client";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppTitleTooltip } from "@/components/ui/app-title-tooltip";
+import { CommercialBudgetDialog } from "@/modules/model_usage/public";
 
 export function AppRoot() {
   return (
@@ -16,6 +17,7 @@ export function AppRoot() {
           <ThemeProvider>
             <AppRouterShell />
             <AppTitleTooltip />
+            <CommercialBudgetDialog />
           </ThemeProvider>
         </QueryClientProvider>
       </AppErrorBoundary>

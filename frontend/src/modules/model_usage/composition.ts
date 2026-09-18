@@ -1,4 +1,8 @@
 import { createModelGatewayQueries } from "@/modules/model_usage/application/model-gateway-query-hooks";
+import { createBudgetConfirmationController } from "@/modules/model_usage/application/budget-confirmation-controller";
+import { electronBudgetConfirmationGateway } from "@/modules/model_usage/infrastructure/electron-budget-confirmation-gateway";
+
+export const useBudgetConfirmation = createBudgetConfirmationController(electronBudgetConfirmationGateway);
 import { createCommercialModelAccessQueries } from "@/modules/model_usage/application/commercial-model-access-queries";
 import { createCommercialInvocationQueries } from "@/modules/model_usage/application/commercial-invocation-queries";
 import { httpModelGatewayGateway } from "@/modules/model_usage/infrastructure/http-model-gateway-gateway";

@@ -1,8 +1,20 @@
 ---
-version: 1.1.75
+version: 1.1.76
 attention: medium
 ---
-# v1.1.75
+# v1.1.76
+
+## 应用内预算确认 / In-app budget confirmation
+
+- 云端消费确认改用现有 UI 框架的弹窗，不再弹出 Windows/macOS 原生消息框；跟随应用主题，倍率去除多余零位。
+- 并行任务逐个展示报价；取消、关闭、报价过期、窗口重载、退出登录和进程中断不会默认确认消费。
+- 冻结的报价和金额仍保留在主进程，界面只能确认或取消当前请求，不能改预算；同一请求重试不会重复授权或提高价格。
+- 保留1.1.75完整的账户、退款冻结、积分和模型能力合同修复。本次不修改上游模型、售价、用户积分或商户配置。
+- Cloud usage confirmation now uses the application's themed dialog instead of a native operating-system message box.
+- Concurrent requests are confirmed individually. Dismissal, expiry, navigation, sign-out and renderer failure never authorize a charge.
+- Main owns the immutable quote and budget; the renderer can only accept or cancel its current request. Existing points and capability fixes are retained.
+
+## v1.1.75 保留启动修复
 
 ## 启动与积分合同修复 / Startup and points contract fix
 

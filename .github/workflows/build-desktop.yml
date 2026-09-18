@@ -112,6 +112,12 @@ jobs:
           pnpm --dir frontend test:unit src/__tests__/modules/model_usage/commercial-model-access.test.ts src/__tests__/modules/model_usage/metered-units.test.ts
           pnpm --dir frontend test:component src/__tests__/app/commercial-bootstrap.dom.test.ts src/__tests__/components/layout/model-quota-badge.test.tsx
 
+      - name: Verify framework budget confirmation
+        run: |
+          pnpm --dir frontend test:unit src/modules/model_usage/domain/budget-confirmation.test.ts
+          pnpm --dir frontend test:component src/modules/model_usage/application/budget-confirmation-controller.dom.test.ts
+          pnpm --dir frontend test:browser src/modules/model_usage/presentation/CommercialBudgetDialog.browser.test.tsx
+
       - name: Verify Electron to Python capability contract
         run: >-
           uv run --locked pytest

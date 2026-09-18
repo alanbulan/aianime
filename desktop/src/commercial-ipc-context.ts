@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 
 import type { CommercialDeviceSigner } from "./commercial-device.js";
+import type { MeteredBudgetDialog } from "./commercial-billing-dialog.js";
 import type {
   ByokModelAssignment,
   EncryptedFileCommercialModelAccessStore,
@@ -54,6 +55,7 @@ export interface RegisterCommercialIpcOptions {
     explicitCloudModelAssignments: readonly ByokModelAssignment[],
   ) => void | Promise<void>;
   onLoggedOut: () => void | Promise<void>;
+  budgetDialog?: Pick<MeteredBudgetDialog, "snapshot" | "respond" | "clear">;
   releaseUpdater?: {
     download(artifactId: string): Promise<{ version: string }>;
     install(): Promise<void>;
@@ -137,6 +139,7 @@ export class CommercialIpcContext {
   }
 
   async prepareAuthentication(): Promise<void> {
+    this.options.budgetDialog?.clear();
     this.resetModelState();
     await this.synchronizeModelAccess();
   }
@@ -157,6 +160,7 @@ export class CommercialIpcContext {
   }
 
   async clearAuthenticatedState(): Promise<void> {
+    this.options.budgetDialog?.clear();
     await this.options.onLoggedOut();
     this.resetModelState();
     await this.synchronizeModelAccess();

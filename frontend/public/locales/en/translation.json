@@ -1,4 +1,20 @@
 {
+  "budgetConfirmation": {
+    "title": "Confirm model usage",
+    "estimated": "Estimated hold",
+    "maximum": "Budget limit",
+    "points": "points",
+    "locked": "Price locked · v{{version}}",
+    "multiplier": "Multiplier {{value}}×",
+    "expires": "Expires in {{time}}",
+    "expired": "Quote expired. Start a new request.",
+    "hint": "Billed on actual usage; unused holds are released. Cancel submits nothing. Retries never increase this budget.",
+    "queue": "{{count}} more requests await individual confirmation",
+    "failed": "Could not synchronize confirmation. Retry safely; this never increases the budget or duplicates generation.",
+    "cancel": "Cancel",
+    "accept": "Authorize and continue",
+    "close": "Cancel and close"
+  },
   "voiceSourceTypes": {
     "voice_design": "Design from text",
     "preset_voice": "Preset voice",

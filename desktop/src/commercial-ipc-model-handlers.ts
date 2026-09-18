@@ -38,6 +38,10 @@ export function registerCommercialModelHandlers(
 ): void {
   const { channels, client, options } = context;
 
+  // Inherits the main-window/main-frame sender check used by bootstrap.
+  context.handle(channels.budgetSnapshot, () => options.budgetDialog?.snapshot() ?? { revision: 0, pendingCount: 0, request: null });
+  context.handle(channels.budgetDecision, (input) => options.budgetDialog?.respond(input) ?? { applied: false });
+
   context.handle(channels.bootstrap, async (input) => {
     const device = await options.deviceIdentity.summary();
     const query = parseBootstrapQuery(input);

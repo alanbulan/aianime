@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { playwright } from "@vitest/browser-playwright";
 import path from "path";
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vitest/config";
 
 const baseExclude = [
@@ -34,6 +35,11 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify("test"),
     __BUILD_ID__: JSON.stringify("test-build"),
+    // Browser tests receive the real local strings without bypassing the
+    // unhandled-network guard or importing Vite's public assets as modules.
+    __BUDGET_CONFIRMATION_LOCALES__: JSON.stringify(Object.fromEntries(["zh", "en"].map((locale) => [locale, {
+      translation: { budgetConfirmation: JSON.parse(readFileSync(path.resolve(import.meta.dirname, `public/locales/${locale}/translation.json`), "utf8")).budgetConfirmation },
+    }]))),
   },
   test: {
     globals: true,

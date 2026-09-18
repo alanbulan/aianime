@@ -485,6 +485,9 @@ interface AIAnimeCommercialBridge {
     catalogVersion: string;
   }>;
   quotaBalance: () => Promise<AIAnimeCommercialQuota>;
+  budgetSnapshot: () => Promise<import("@/modules/model_usage/public").BudgetConfirmationState>;
+  respondBudget: (input: { requestId: string; decision: "accept" | "cancel" }) => Promise<{ applied: boolean }>;
+  onBudgetChanged: (listener: (state: import("@/modules/model_usage/public").BudgetConfirmationState) => void) => () => void;
   modelCatalog: (query: {
     operation?: string;
     catalogVersion?: string;

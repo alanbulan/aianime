@@ -39,6 +39,9 @@ const COMMERCIAL_CHANNELS = {
   resetPassword: "desktop:commercial:reset-password",
   bootstrap: "desktop:commercial:bootstrap",
   quotaBalance: "desktop:commercial:quota-balance",
+  budgetSnapshot: "desktop:commercial:budget-snapshot",
+  budgetDecision: "desktop:commercial:budget-decision",
+  budgetChanged: "desktop:commercial:budget-changed",
   modelCatalog: "desktop:commercial:model-catalog",
   modelDetails: "desktop:commercial:model-details",
   invocationList: "desktop:commercial:invocation-list",
@@ -140,6 +143,13 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     byokProviderModels: (input) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.byokProviderModels, input),
     quotaBalance: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.quotaBalance),
+    budgetSnapshot: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.budgetSnapshot),
+    respondBudget: (input) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.budgetDecision, input),
+    onBudgetChanged: (listener) => {
+      const handler = (_event, state) => listener(state);
+      ipcRenderer.on(COMMERCIAL_CHANNELS.budgetChanged, handler);
+      return () => ipcRenderer.removeListener(COMMERCIAL_CHANNELS.budgetChanged, handler);
+    },
     modelCatalog: (query) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelCatalog, query),
     modelDetails: (sku) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelDetails, sku),
     invocationList: (query) =>

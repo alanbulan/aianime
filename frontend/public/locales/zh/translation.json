@@ -1,4 +1,20 @@
 {
+  "budgetConfirmation": {
+    "title": "确认本次模型消费",
+    "estimated": "预计预占",
+    "maximum": "本次预算上限",
+    "points": "积分",
+    "locked": "价格已锁定 · v{{version}}",
+    "multiplier": "倍率 {{value}}×",
+    "expires": "{{time}} 后过期",
+    "expired": "报价已过期，请重新发起",
+    "hint": "按实际用量结算，未用积分释放。取消不提交生成；重试不会自动提高预算。",
+    "queue": "另有 {{count}} 个请求等待逐一确认",
+    "failed": "确认状态暂时无法同步。请重试；不会自动追加预算或重复提交生成。",
+    "cancel": "取消",
+    "accept": "确认预算并继续",
+    "close": "取消并关闭"
+  },
   "voiceSourceTypes": {
     "voice_design": "文字设计声线",
     "preset_voice": "预设声线",

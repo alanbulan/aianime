@@ -96,4 +96,6 @@ export type {
   ModelRuntimeMetadata,
 } from "@/modules/model_usage/domain/model-runtime-metadata";
 export { CommercialInvocationSection } from "@/modules/model_usage/presentation/CommercialInvocationSection";
+export { CommercialBudgetDialog } from "@/modules/model_usage/presentation/CommercialBudgetDialog";
+export type { BudgetConfirmationState } from "@/modules/model_usage/domain/budget-confirmation";
 export type { CommercialConsumptionBill } from "@/modules/model_usage/domain/commercial-bill";

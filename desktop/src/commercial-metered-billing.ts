@@ -138,10 +138,17 @@ type Confirmation = (quote: CommercialMeteredQuote, signal: AbortSignal) => Prom
 // rejected or changed intent never silently becomes a newly priced generation.
 export class MeteredBudgetAuthorizer {
   private readonly intents = new Map<string, { fingerprint: string; quote: Promise<CommercialMeteredQuote> }>();
+  private session = new AbortController();
   constructor(private readonly confirm: Confirmation, private readonly now: () => number = Date.now) {}
-  clear(): void { this.intents.clear(); }
+  clear(): void {
+    this.session.abort();
+    this.session = new AbortController();
+    this.intents.clear();
+  }
   async authorize(key: string, model: string, path: string, prepared: PreparedBody, version: string,
     request: () => Promise<CommercialMeteredQuote>, signal: AbortSignal): Promise<PreparedBody> {
+    // A quote arriving after logout/routing reset cannot ask a new session to pay.
+    signal = AbortSignal.any([signal, this.session.signal]);
     signal.throwIfAborted();
     const fingerprint = await billingRequestFingerprint(model, path, prepared);
     let entry = this.intents.get(key);
