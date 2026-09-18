@@ -7,6 +7,7 @@ import { createInterface } from "node:readline";
 import { randomBytes } from "node:crypto";
 import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
 import type { CommercialModelCapabilitySnapshot } from "./commercial-contracts.js";
+import { sidecarModelCapability, sidecarCapabilityError } from "./backend-model-capability.js";
 import {
   bundledBackendPath,
   bundledFfmpegPath,
@@ -391,8 +392,8 @@ export class LocalBackend {
           }
         : {}),
     };
-    this.modelAccess = snapshot;
     await this.postModelAccess(snapshot);
+    this.modelAccess = snapshot;
   }
 
   private async postModelAccess(input: ModelAccessInput): Promise<void> {
@@ -405,12 +406,13 @@ export class LocalBackend {
           [TOKEN_HEADER]: this.token,
           "X-AI-Anime-Model-Admin-Token": this.modelAdminToken,
         },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, ...(input.modelCapabilities
+          ? { modelCapabilities: input.modelCapabilities.map(sidecarModelCapability) } : {}) }),
         signal: AbortSignal.timeout(5_000),
       },
     );
     if (!response.ok) {
-      throw new Error(`model capability update returned HTTP ${response.status}`);
+      throw await sidecarCapabilityError(response);
     }
   }
 

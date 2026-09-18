@@ -1,0 +1,12 @@
+{
+  "main": [
+    {"modelId":"cloud-text","billingVersion":"METERED_V2","quoteRequired":true,"minimumClientVersion":"1.1.73","pricingAvailable":true,"extraParameterNames":["temperature"]},
+    {"modelId":"cloud-video","billingVersion":"METERED_V2","quoteRequired":true,"minimumClientVersion":"1.1.73","pricingAvailable":true,"videoWorkflow":"standard","videoResolutionOptions":["720p","1080p"],"videoGenerationMinSeconds":4,"videoGenerationMaxSeconds":15,"videoDurationOptions":[5,10,15],"maxReferenceImages":1},
+    {"modelId":"byok-audio","audioResponseFormats":["wav","mp3"],"audioDefaultResponseFormat":"wav","audioSupportsEmotionPrompt":true}
+  ],
+  "sidecar": [
+    {"modelId":"cloud-text","extraParameterNames":["temperature"]},
+    {"modelId":"cloud-video","videoWorkflow":"standard","videoResolutionOptions":["720p","1080p"],"videoGenerationMinSeconds":4,"videoGenerationMaxSeconds":15,"videoDurationOptions":[5,10,15],"maxReferenceImages":1},
+    {"modelId":"byok-audio","audioResponseFormats":["wav","mp3"],"audioDefaultResponseFormat":"wav","audioSupportsEmotionPrompt":true}
+  ]
+}

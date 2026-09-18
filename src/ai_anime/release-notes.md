@@ -1,8 +1,21 @@
 ---
-version: 1.1.73
+version: 1.1.74
 attention: medium
 ---
-# v1.1.73
+# v1.1.74
+
+## 模型能力同步修复 / Model capability synchronization
+
+- 修复云端计费元数据被误传给本地执行接口而导致的 HTTP 422，模型能力按双方声明的合同传递。
+- 报价、预算、定价可用性仍由 Electron 代理校验；不放宽本地接口、软件许可或积分检查。
+- 能力同步失败时保留上一份已确认的重启状态，并报告安全的字段位置，不输出密钥或请求正文。
+- 安装时应整体更新并重启，不要混用不同版本的 Electron、前端和 Python 后端。
+- Fix HTTP 422 caused by forwarding cloud billing metadata to the local execution router.
+- Preserve quote and budget enforcement in Electron and strict schema validation in Python.
+- Keep the last acknowledged restart snapshot on failure and report field paths without sensitive values.
+- Install and restart the complete client; do not mix Electron, renderer and Python files from different builds.
+
+## v1.1.73 保留修复 / Retained fixes
 
 ## 启动与余额修复 / Startup and balance fixes
 
