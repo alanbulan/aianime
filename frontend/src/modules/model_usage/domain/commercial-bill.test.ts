@@ -7,8 +7,8 @@ describe("confirmed consumption bill amounts", () => {
     for (const status of ["ESTIMATED", "PROVISIONAL", "REVIEW_REQUIRED", "PENDING", "UNKNOWN", ""]) expect(hasFinalBillAmount(status)).toBe(false);
   });
   it("keeps micro-point display exact at both numerical extremes", () => {
-    expect(formatBillPoints("1")).toBe("0.000001");
-    expect(formatBillPoints("9000000000000000")).toBe("9000000000");
+    expect(formatBillPoints("1")).toBe("0.00000001");
+    expect(formatBillPoints("9000000000000000")).toBe("90000000");
     expect(formatBillPoints("0")).toBe("0");
     expect(() => formatBillPoints("9000000000000001")).toThrow();
   });

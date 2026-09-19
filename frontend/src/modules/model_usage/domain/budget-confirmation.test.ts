@@ -20,9 +20,10 @@ describe("bounded display-only billing prompt", () => {
       { ...state, request: { ...state.request, expiresAt: "invalid" } } ]) expect(() => parseBudgetConfirmation(invalid)).toThrow();
   });
   it("formats points and rates without floating point or long trailing zeros", () => {
-    expect(formatBudgetPoints("2160000000", "en")).toBe("2,160");
-    expect(formatBudgetPoints("1", "en")).toBe("0.000001");
-    expect(formatBudgetPoints("9000000000000000", "en")).toBe("9,000,000,000");
+    expect(formatBudgetPoints("2160000000", "en")).toBe("21.6");
+    expect(formatBudgetPoints("217500000", "zh")).toBe("2.175");
+    expect(formatBudgetPoints("1", "en")).toBe("0.00000001");
+    expect(formatBudgetPoints("9000000000000000", "en")).toBe("90,000,000");
     expect(formatBudgetMultiplier("1.000000000000000000")).toBe("1");
     expect(formatBudgetMultiplier("1.150000000000000000")).toBe("1.15");
     expect(formatBudgetMultiplier("0.00000100")).toBe("0.000001");

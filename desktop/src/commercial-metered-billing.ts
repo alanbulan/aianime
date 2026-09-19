@@ -33,7 +33,7 @@ export interface CommercialMeteredQuote {
 
 export function exactMicroPoints(value: unknown): string {
   if (typeof value !== "string" || !/^(0|[1-9][0-9]{0,15})$/u.test(value) || BigInt(value) > MAX_MICRO_POINTS) {
-    throw new CommercialApiError("计费金额必须是范围内的精确微积分字符串", { status: 422 });
+    throw new CommercialApiError("创作点金额格式无效，请刷新报价后重试", { status: 422 });
   }
   return value;
 }

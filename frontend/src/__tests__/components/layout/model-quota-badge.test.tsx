@@ -106,7 +106,7 @@ describe("ModelQuotaBadge", () => {
     expect(document.body).toHaveTextContent("云端模型配额: 73 · 点击刷新");
   });
 
-  it.each([[0, "0"], [1, "0.00000001"], [4750000, "0.0475"], [1000001, "0.01000001"]])(
+  it.each([[0, "0"], [1, "0.00000001"], [4750000, "0.0475"], [1000001, "0.01000001"], [991110000000, "9,911.1"]])(
     "formats exact current points from the authoritative spendable amount %s",
     (balance, expected) => {
       commercialState.balance = Number(balance);

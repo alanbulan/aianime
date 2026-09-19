@@ -15,3 +15,6 @@
 
 服务端实施与校验见主仓库
 `docs/operations/20260919-creation-points-and-feedback.zh-CN.md`。
+
+后续用户授权推送并反馈旧正式包显示不一致，已完成全量回归及新版本准备，详见
+[一一点一点七十八修复与发布记录](20260919-creation-point-release-1.1.78.md)。

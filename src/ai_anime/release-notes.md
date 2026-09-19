@@ -1,7 +1,19 @@
 ---
-version: 1.1.77
+version: 1.1.78
 attention: medium
 ---
+# v1.1.78
+
+## 创作点显示统一 / Creation point display
+
+- 余额、预计费用、预算上限和消费记录统一显示“创作点”，1 元＝10 创作点。
+- 原积分数字统一缩小 100 倍，实际费用与购买力不变。例如 217.5 积分显示为 2.175 创作点，991,110 积分余额显示为 9,911.1 创作点。
+- 优化金额格式异常的中文提示，保留报价、授权上限和请求的原始精确金额，避免重复换算。
+- 更新后请完全退出并重新启动客户端，使顶栏余额与预算确认框同时使用新口径。
+- Balance, quotes, budget limits, and usage records now use creation points: CNY 1 = 10 creation points.
+- Displayed values are divided by 100 while charges, purchasing power, and exact billing authorization remain unchanged.
+- Restart the complete application after updating so the balance badge and budget confirmation use the same unit.
+
 # v1.1.77
 
 ## 租户任务调度策略同步 / Tenant task scheduling policy sync

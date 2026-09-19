@@ -29,13 +29,28 @@ function Fixture({ request = prompt(), decide = async () => true }: { request?: 
 beforeEach(async () => { await page.viewport(1440, 920); await i18n.changeLanguage("zh"); });
 afterEach(() => document.documentElement.classList.remove("dark"));
 
+it("shows the reported image quote as 2.175 creation points without changing authorization", async () => {
+  const request = prompt({ modelName: "Qwen-Image-2512 / Qwen-Image-Edit-2511", estimatedMicroPoints: "217500000", maximumMicroPoints: "217500000" });
+  const decide = vi.fn(async () => true);
+  await render(<Fixture request={request} decide={decide} />);
+  const dialog = page.getByRole("dialog");
+  await expect.element(dialog).toHaveTextContent("2.175");
+  await expect.element(dialog).toHaveTextContent("创作点");
+  await expect.element(dialog).not.toHaveTextContent("217.5");
+  await page.screenshot({ path: "../.codex-tmp/creation-points-budget-confirmation.png" });
+  await page.getByRole("button", { name: "确认预算并继续" }).click();
+  expect(decide).toHaveBeenCalledExactlyOnceWith(request.requestId, "accept");
+  expect(request.maximumMicroPoints).toBe("217500000");
+});
+
 for (const theme of ["light", "dark"]) it(`uses framework portal above the canvas and shows exact budget in ${theme}`, async () => {
   document.documentElement.classList.toggle("dark", theme === "dark");
   const decide = vi.fn(async () => true);
   await render(<Fixture decide={decide} />);
   const dialog = page.getByRole("dialog");
   await expect.element(dialog).toBeVisible();
-  await expect.element(dialog).toHaveTextContent("2,160");
+  await expect.element(dialog).toHaveTextContent("21.6");
+  await expect.element(dialog).toHaveTextContent("创作点");
   await expect.element(dialog).toHaveTextContent("倍率 1×");
   await expect.element(dialog).not.toHaveTextContent("1.000000000000000000");
   const accept = page.getByRole("button", { name: "确认预算并继续" });
@@ -89,7 +104,7 @@ it("never enables acceptance after expiry, and long names fit a narrow viewport"
 it("English does not fall back to technical translation keys", async () => {
   await i18n.changeLanguage("en");
   await render(<Fixture request={prompt({ maximumMicroPoints: "9000000000000000" })} />);
-  await expect.element(page.getByRole("dialog")).toHaveTextContent("9,000,000,000");
+  await expect.element(page.getByRole("dialog")).toHaveTextContent("90,000,000");
   await expect.element(page.getByRole("button", { name: "Authorize and continue" })).toBeVisible();
   await expect.element(page.getByRole("dialog")).not.toHaveTextContent("budgetConfirmation.");
 });

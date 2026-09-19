@@ -32,6 +32,12 @@ test("quote parser rejects mismatches, expiry, unsafe numbers and unbounded prop
   assert.equal(parseMeteredQuote(quote({ estimatedMicroPoints: "0", maximumMicroPoints: "0" }), "cloud-test", now).maximumMicroPoints, "0");
 });
 
+test("creation-point display preserves the reported image quote's exact authorized amount", () => {
+  const parsed = parseMeteredQuote(quote({ estimatedMicroPoints: "217500000", maximumMicroPoints: "217500000" }), "cloud-test", now);
+  assert.equal(formatMicroPoints(parsed.estimatedMicroPoints), "2.175");
+  assert.equal(parsed.maximumMicroPoints, "217500000");
+});
+
 test("one intent has one quote and one confirmation across concurrent retries", async () => {
   let quotes = 0; let confirmations = 0;
   const authorizer = new MeteredBudgetAuthorizer(async () => { confirmations++; return true; }, () => now);
