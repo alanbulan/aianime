@@ -4,7 +4,7 @@ export function formatCommercialUnits(value: number, billingVersion?: string): s
   if (!Number.isSafeInteger(value) || value < 0) throw new Error("Invalid quota amount");
   if (billingVersion !== "METERED_V2") return String(value);
   const units = BigInt(value);
-  const whole = units / BigInt(1000000);
-  const fraction = (units % BigInt(1000000)).toString().padStart(6, "0").replace(/0+$/u, "");
+  const whole = units / BigInt(100000000);
+  const fraction = (units % BigInt(100000000)).toString().padStart(8, "0").replace(/0+$/u, "");
   return fraction ? `${whole}.${fraction}` : whole.toString();
 }

@@ -102,11 +102,11 @@ describe("ModelQuotaBadge", () => {
   it("renders the current cloud model quota", () => {
     renderBadge();
 
-    expect(screen.getByText("7,300")).toBeInTheDocument();
-    expect(document.body).toHaveTextContent("云端模型配额: 7,300 · 点击刷新");
+    expect(screen.getByText("73")).toBeInTheDocument();
+    expect(document.body).toHaveTextContent("云端模型配额: 73 · 点击刷新");
   });
 
-  it.each([[0, "0"], [1, "0.000001"], [4750000, "4.75"], [1000001, "1.000001"]])(
+  it.each([[0, "0"], [1, "0.00000001"], [4750000, "0.0475"], [1000001, "0.01000001"]])(
     "formats exact current points from the authoritative spendable amount %s",
     (balance, expected) => {
       commercialState.balance = Number(balance);
@@ -120,7 +120,7 @@ describe("ModelQuotaBadge", () => {
     commercialState.assetVersion = version;
     renderBadge();
     expect(screen.getByText("--")).toBeInTheDocument();
-    expect(document.body).not.toHaveTextContent("7,300");
+    expect(document.body).not.toHaveTextContent("73");
   });
 
   it("renders nothing when commercial access is not configured", () => {

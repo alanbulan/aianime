@@ -11,10 +11,10 @@ const invocation = { id, modelCode: "cloud-test", operation: "TEXT", executionMo
 describe("versioned quota unit projections", () => {
   it("keeps legacy records in their original units and formats micro points exactly", () => {
     expect(formatCommercialUnits(1000001)).toBe("1000001");
-    expect(formatCommercialUnits(1000001, "METERED_V2")).toBe("1.000001");
-    expect(formatCommercialUnits(1, "METERED_V2")).toBe("0.000001");
+    expect(formatCommercialUnits(1000001, "METERED_V2")).toBe("0.01000001");
+    expect(formatCommercialUnits(1, "METERED_V2")).toBe("0.00000001");
     expect(formatCommercialUnits(0, "METERED_V2")).toBe("0");
-    expect(formatCommercialUnits(9000000000000000, "METERED_V2")).toBe("9000000000");
+    expect(formatCommercialUnits(9000000000000000, "METERED_V2")).toBe("90000000");
     expect(() => formatCommercialUnits(Number.MAX_SAFE_INTEGER + 1, "METERED_V2")).toThrow();
   });
   it("accepts either the old exact contract or versioned quote and bill references", () => {

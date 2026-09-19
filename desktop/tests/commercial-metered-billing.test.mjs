@@ -15,9 +15,9 @@ const quote = (extra = {}) => ({ id: "11111111-1111-4111-8111-111111111111", bil
 const prepared = { contentType: "application/json", body: JSON.stringify({ model: "cloud-test", prompt: "a frame" }) };
 
 test("micro point display never passes through float and permits explicit zero", () => {
-  assert.equal(formatMicroPoints("1"), "0.000001");
-  assert.equal(formatMicroPoints("9000000000000000"), "9000000000");
-  assert.equal(formatMicroPoints("1000100"), "1.0001");
+  assert.equal(formatMicroPoints("1"), "0.00000001");
+  assert.equal(formatMicroPoints("9000000000000000"), "90000000");
+  assert.equal(formatMicroPoints("1000100"), "0.010001");
   assert.equal(formatMicroPoints("0"), "0");
   for (const amount of [1, "-1", "1.1", "01", "1e6", "9000000000000001"]) assert.throws(() => formatMicroPoints(amount));
 });

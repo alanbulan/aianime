@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils";
 function formatQuotaUnits(value: number, language: string, assetVersion?: string): string {
   if (assetVersion !== "MICRO_POINT_V1" || !Number.isSafeInteger(value) || value < 0) return "--";
   const units = BigInt(value);
-  const whole = new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(units / BigInt(1000000));
-  const fraction = (units % BigInt(1000000)).toString().padStart(6, "0").replace(/0+$/u, "");
+  const whole = new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(units / BigInt(100000000));
+  const fraction = (units % BigInt(100000000)).toString().padStart(8, "0").replace(/0+$/u, "");
   const decimal = new Intl.NumberFormat(language).formatToParts(1.1).find((part) => part.type === "decimal")?.value ?? ".";
   return fraction ? `${whole}${decimal}${fraction}` : whole;
 }

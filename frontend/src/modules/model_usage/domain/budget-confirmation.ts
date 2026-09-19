@@ -64,8 +64,8 @@ export function parseBudgetConfirmation(value: unknown): BudgetConfirmationState
 
 export function formatBudgetPoints(value: string, locale: string): string {
   const units = BigInt(amount(value));
-  const whole = new Intl.NumberFormat(locale).format(units / BigInt(1_000_000));
-  const fraction = (units % BigInt(1_000_000)).toString().padStart(6, "0").replace(/0+$/u, "");
+  const whole = new Intl.NumberFormat(locale).format(units / BigInt(100_000_000));
+  const fraction = (units % BigInt(100_000_000)).toString().padStart(8, "0").replace(/0+$/u, "");
   const decimal = new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === "decimal")?.value ?? ".";
   return whole + (fraction ? decimal + fraction : "");
 }

@@ -40,8 +40,8 @@ export function exactMicroPoints(value: unknown): string {
 
 export function formatMicroPoints(value: string): string {
   const integer = BigInt(exactMicroPoints(value));
-  const whole = integer / BigInt(1000000);
-  const fraction = (integer % BigInt(1000000)).toString().padStart(6, "0").replace(/0+$/u, "");
+  const whole = integer / BigInt(100000000);
+  const fraction = (integer % BigInt(100000000)).toString().padStart(8, "0").replace(/0+$/u, "");
   return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 

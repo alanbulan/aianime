@@ -22,8 +22,8 @@ export function formatBillPoints(raw: string): string {
   if (!/^(0|-?[1-9][0-9]{0,15})$/u.test(raw)) throw new Error("Invalid exact point amount");
   const signed = BigInt(raw); const units = signed < BigInt(0) ? -signed : signed;
   if (units > BigInt("9000000000000000")) throw new Error("Point amount exceeds the supported range");
-  const whole = units / BigInt(1000000);
-  const fraction = (units % BigInt(1000000)).toString().padStart(6, "0").replace(/0+$/u, "");
+  const whole = units / BigInt(100000000);
+  const fraction = (units % BigInt(100000000)).toString().padStart(8, "0").replace(/0+$/u, "");
   return `${signed < BigInt(0) ? "-" : ""}${whole}${fraction ? `.${fraction}` : ""}`;
 }
 

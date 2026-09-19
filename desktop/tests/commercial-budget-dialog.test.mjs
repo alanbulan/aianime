@@ -28,7 +28,7 @@ test("main snapshots roundtrip through the real renderer parser without leaking 
   const { queue, events } = fixture(t);
   const waiting = queue.confirm(quote(), new AbortController().signal);
   const state = parseBudgetConfirmation(events.at(-1));
-  assert.equal(formatBudgetPoints(state.request.maximumMicroPoints, "en"), "2,160");
+  assert.equal(formatBudgetPoints(state.request.maximumMicroPoints, "en"), "21.6");
   assert.equal(formatBudgetMultiplier(state.request.tenantMultiplier), "1");
   assert(!JSON.stringify(state).includes("requestHash"));
   assert(!JSON.stringify(state).includes(quote().id));
