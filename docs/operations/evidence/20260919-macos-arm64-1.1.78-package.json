@@ -1,0 +1,26 @@
+{
+  "artifactId": 10577504314,
+  "artifactDigestVerified": true,
+  "target": "macos-arm64",
+  "installerName": "AI-anime-1.1.78-macos-arm64.zip",
+  "installerBytes": 796488656,
+  "installerSHA256": "b8ce719f41f370bf0dd0d1748cdc1f46aaefaf3b3ddabb013e0a95d6907bf7b5",
+  "bundleVersion": "1.1.78",
+  "sparklePublicKeyPresent": true,
+  "nativeUserMachineInstallationClaimed": false,
+  "mainPackageVersion": "1.1.78",
+  "packagedMainBootstrap": "PASS",
+  "packagedCreationPointDisplay": "PASS",
+  "liveModelCount": 10,
+  "assetVersionPreserved": true,
+  "spendableAndAccountUnitsPreserved": true,
+  "packagedSourceHashes": {
+    "commercial-contracts.js": "6495b269cbfa33878d7563cf5aab9c5a8c510e030bdaa174141d2a0fface9ee3",
+    "value-validation.js": "778d34fbd1382beed7bfad1ea7a878f6b22b237e17868501040a4d14b83b46cb",
+    "commercial-metered-billing.js": "791b40866d8e2af22bb41d25d4603f938968f26398f440c64a65a902a7b3e545",
+    "commercial-api-error.js": "19815d03a6cf80e51f461ca17fe6c4364f917f1f50426e3d3a9c349c6c2b6538"
+  },
+  "sourceCommit": "2059c7bf609fa6692614bab2607e1e21ece708d5",
+  "runId": 35421370703,
+  "cloudPublishedInstallerMatches": true
+}

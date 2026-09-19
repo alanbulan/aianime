@@ -1,0 +1,145 @@
+{
+  "status": "PASS",
+  "observedAt": "2026-09-19T05:04:11.724001+00:00",
+  "repository": "alanbulan/aianime",
+  "runId": 35421370703,
+  "sourceSHA": "2059c7bf609fa6692614bab2607e1e21ece708d5",
+  "version": "1.1.78",
+  "jobs": [
+    {
+      "id": 105839585009,
+      "name": "Package windows-x64",
+      "conclusion": "success",
+      "completedAt": "2026-09-19T04:52:33Z",
+      "verifiedSteps": [
+        "Build and verify native package",
+        "Stage verified package and checksums",
+        "Test desktop packaging contracts",
+        "Test parameter panel interactions",
+        "Upload platform artifact",
+        "Verify Electron to Python capability contract",
+        "Verify current quota and renderer startup contract",
+        "Verify framework budget confirmation",
+        "Verify native build host",
+        "Verify workspace version and release tag"
+      ]
+    },
+    {
+      "id": 105839585113,
+      "name": "Package macos-arm64",
+      "conclusion": "success",
+      "completedAt": "2026-09-19T04:42:42Z",
+      "verifiedSteps": [
+        "Build and verify native package",
+        "Sign update archive with Sparkle Ed25519",
+        "Stage verified package and checksums",
+        "Test desktop packaging contracts",
+        "Test parameter panel interactions",
+        "Upload platform artifact",
+        "Verify Electron to Python capability contract",
+        "Verify current quota and renderer startup contract",
+        "Verify framework budget confirmation",
+        "Verify native Sparkle update and signature rejection",
+        "Verify native build host",
+        "Verify workspace version and release tag"
+      ]
+    },
+    {
+      "id": 105839585169,
+      "name": "Package macos-x64",
+      "conclusion": "success",
+      "completedAt": "2026-09-19T05:00:26Z",
+      "verifiedSteps": [
+        "Build and verify native package",
+        "Sign update archive with Sparkle Ed25519",
+        "Stage verified package and checksums",
+        "Test desktop packaging contracts",
+        "Test parameter panel interactions",
+        "Upload platform artifact",
+        "Verify Electron to Python capability contract",
+        "Verify current quota and renderer startup contract",
+        "Verify framework budget confirmation",
+        "Verify native Sparkle update and signature rejection",
+        "Verify native build host",
+        "Verify workspace version and release tag"
+      ]
+    },
+    {
+      "id": 105843381896,
+      "name": "Collect and publish all three targets",
+      "conclusion": "success",
+      "completedAt": "2026-09-19T05:04:04Z",
+      "verifiedSteps": [
+        "Publish verified packages to cloud",
+        "Verify all artifacts and prepare one cloud plan"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 10578345530,
+      "name": "AI-anime-macos-x64",
+      "size_in_bytes": 1581360921,
+      "digest": "sha256:48d533a6fc729b880e61a77d4860c4e7ef25751ef9f07124b8ddb12c0d807daa"
+    },
+    {
+      "id": 10577739724,
+      "name": "AI-anime-windows-x64",
+      "size_in_bytes": 678310496,
+      "digest": "sha256:6e83fab531ab84499cc087ea2c330b29d7b1d9f827dff686b6d5d098f25ad6a9"
+    },
+    {
+      "id": 10577504314,
+      "name": "AI-anime-macos-arm64",
+      "size_in_bytes": 1556143716,
+      "digest": "sha256:d20cb8a66e5540edf7b8698b3c5572c283c5fa060a7408b7931e5eedd000a183"
+    }
+  ],
+  "cloudUpdate": {
+    "alreadyCurrentTargets": 3,
+    "exactFileResolutions": 6,
+    "manifestBytesVerified": 3,
+    "nativeInstalledUserSessionClaimed": false,
+    "observedAt": "2026-09-19T05:04:11.503701157Z",
+    "previousVersion": "1.1.77",
+    "readOnly": true,
+    "status": "PASS",
+    "targets": [
+      {
+        "target": "windows",
+        "architecture": "x86_64",
+        "installerKind": "nsis",
+        "fileName": "AI-anime-1.1.78-x64-setup.exe",
+        "sha256": "d689c902a1591c40bf92b07e49c8fdd705934c64824847a5ec2669779f057249",
+        "bytes": 678300347,
+        "manifestFileName": "latest.yml",
+        "manifestSHA256": "0de843e3fa4208faded5da6b411ad09b9eb5dd1cdf512465d88d1332a4ac3329"
+      },
+      {
+        "target": "macos",
+        "architecture": "x86_64",
+        "installerKind": "zip",
+        "fileName": "AI-anime-1.1.78-macos-x64.zip",
+        "sha256": "5dd22b2a4fa554c2e2ba5c8fb3babf9879487942f336b1b4704003b52a8a82f4",
+        "bytes": 811208960,
+        "manifestFileName": "latest-mac.yml",
+        "manifestSHA256": "efccd0a0e2425c03e1510a70532324d3259adc41428c70cae7c0344353036149"
+      },
+      {
+        "target": "macos",
+        "architecture": "arm64",
+        "installerKind": "zip",
+        "fileName": "AI-anime-1.1.78-macos-arm64.zip",
+        "sha256": "b8ce719f41f370bf0dd0d1748cdc1f46aaefaf3b3ddabb013e0a95d6907bf7b5",
+        "bytes": 796488656,
+        "manifestFileName": "latest-mac.yml",
+        "manifestSHA256": "72fe46b0562d15a6162ebb97e0d0160eac78fcf84b93b1a32a3da3b76df2d8e8"
+      }
+    ],
+    "unrelatedFileNamesRejected": 3,
+    "version": "1.1.78",
+    "versionId": "1e1d544e-593b-4bca-ab57-fb33079256da"
+  },
+  "nativeUserMachineInstallationClaimed": false,
+  "financialWrites": false
+}
