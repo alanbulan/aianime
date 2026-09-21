@@ -1,7 +1,16 @@
 ---
-version: 1.1.79
+version: 1.1.80
 attention: medium
 ---
+# v1.1.80
+
+## 人脸直过正式发布 / Face Pass release
+
+- 本版本与 1.1.79 功能相同：1.1.79 的云端发布在上传安装包时中断，改以 1.1.80 重新构建并发布，所有用户可直接更新到本版本。
+- 人脸直过工具、图片处理运行环境的变更说明见下方 1.1.79 条目；已安装旧抠图环境的用户需在“设置 > 环境依赖”重新安装一次。
+- Functionally identical to 1.1.79, whose cloud publication was interrupted during upload; this build is republished as 1.1.80 so every client can update directly.
+- See the 1.1.79 entry below for the Face Pass tool and image processing runtime changes; reinstall the runtime once under Settings > Dependencies.
+
 # v1.1.79
 
 ## 画布新增人脸直过 / Face Pass on the canvas
