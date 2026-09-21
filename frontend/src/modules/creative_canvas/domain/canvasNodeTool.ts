@@ -3,6 +3,7 @@ export const NODE_TOOL_TYPES = {
   crop: "crop",
   annotate: "annotate",
   splitStoryboard: "split-storyboard",
+  facePass: "face-pass",
 } as const;
 
 export type NodeToolType =

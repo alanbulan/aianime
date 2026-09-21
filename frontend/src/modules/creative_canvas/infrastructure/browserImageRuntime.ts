@@ -42,7 +42,7 @@ export async function loadImageElement(source: string): Promise<HTMLImageElement
   });
 }
 
-async function blobToDataUrl(blob: Blob): Promise<string> {
+export async function blobToDataUrl(blob: Blob): Promise<string> {
   const reader = new FileReader();
   return await new Promise((resolve, reject) => {
     reader.onload = () => resolve(reader.result as string);
@@ -51,7 +51,7 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-async function imageUrlToDataUrl(imageUrl: string): Promise<string> {
+export async function imageUrlToDataUrl(imageUrl: string): Promise<string> {
   if (imageUrl.startsWith('data:')) {
     return imageUrl;
   }

@@ -99,6 +99,9 @@ importers:
       mediabunny:
         specifier: ^1.55.2
         version: 1.55.2
+      onnxruntime-web:
+        specifier: 1.26.0-dev.20260416-b7804b056c
+        version: 1.26.0-dev.20260416-b7804b056c
       playcanvas:
         specifier: ^2.21.4
         version: 2.21.4

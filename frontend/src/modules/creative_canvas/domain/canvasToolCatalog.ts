@@ -1,6 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { stringifyAnnotationItems } from './canvasAnnotationCodec';
 import { NODE_TOOL_TYPES } from './canvasNodeTool';
+import { FACE_PASS_DEFAULT_SIZE_LEVEL } from './facePassGeometry';
+import {
+  FACE_PASS_DEFAULT_DETECTOR,
+  FACE_PASS_DEFAULT_NO_FACE,
+  FACE_PASS_DEFAULT_SINGLE_EYE,
+} from './facePassOptions';
 import {
   isCanvasToolImageSourceNode,
   resolveCanvasNodeSourceImageUrl,
@@ -79,8 +85,57 @@ export const splitStoryboardToolPlugin: CanvasToolPlugin = {
     await context.processTool(NODE_TOOL_TYPES.splitStoryboard, sourceImageUrl, options),
 };
 
+// 人脸直过：把检测到的眼睛用白底黑边方块遮住，结果落到新建的下游节点。
+// 参数与上游 /api/detect 完全一致（detector / noFace / singleEye / size），
+// 通过表单编辑器暴露，不做一键直出。
+export const facePassToolPlugin: CanvasToolPlugin = {
+  type: NODE_TOOL_TYPES.facePass,
+  labelKey: 'nodeToolbar.facePass',
+  icon: 'facePass',
+  editor: 'form',
+  supportsNode: (node) => hasToolableImage(node),
+  createInitialOptions: () => ({
+    detector: FACE_PASS_DEFAULT_DETECTOR,
+    noFace: FACE_PASS_DEFAULT_NO_FACE,
+    singleEye: FACE_PASS_DEFAULT_SINGLE_EYE,
+    size: FACE_PASS_DEFAULT_SIZE_LEVEL,
+  }),
+  fields: [
+    {
+      key: 'detector',
+      label: '检测器',
+      type: 'select',
+      options: [
+        { label: 'YuNet（ONNX，默认）', value: 'onnx' },
+        { label: 'Haar 级联', value: 'haar' },
+      ],
+    },
+    {
+      key: 'size',
+      label: '遮挡大小（2 ≈ 眼睛，10 ≈ 整张脸）',
+      type: 'number',
+      min: 1,
+      max: 10,
+      step: 1,
+    },
+    {
+      key: 'singleEye',
+      label: '每张脸只遮一只眼',
+      type: 'checkbox',
+    },
+    {
+      key: 'noFace',
+      label: '跳过人脸检测，全图扫描眼睛',
+      type: 'checkbox',
+    },
+  ],
+  execute: async (sourceImageUrl, options, context) =>
+    await context.processTool(NODE_TOOL_TYPES.facePass, sourceImageUrl, options),
+};
+
 export const builtInToolPlugins: CanvasToolPlugin[] = [
   cropToolPlugin,
   splitStoryboardToolPlugin,
+  facePassToolPlugin,
   annotateToolPlugin,
 ];

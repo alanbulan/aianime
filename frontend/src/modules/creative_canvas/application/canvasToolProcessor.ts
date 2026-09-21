@@ -29,6 +29,10 @@ export interface CanvasToolImageGateway {
     sourceImage: string,
     options: Record<string, unknown>,
   ) => Promise<string>;
+  facePass: (
+    sourceImage: string,
+    options: Record<string, unknown>,
+  ) => Promise<string>;
   persist: (sourceImage: string) => Promise<string>;
   detectAspectRatio: (sourceImage: string) => Promise<string>;
   getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
@@ -83,6 +87,14 @@ export class CanvasToolProcessor {
           outputImageUrl: await this.imageGateway.annotate(
             await this.imageGateway.persist(sourceImageUrl),
             options
+          ),
+        };
+      case NODE_TOOL_TYPES.facePass:
+        // 人脸直过完全在浏览器 Worker 内用本地 ONNX 小模型完成，不经过后端。
+        return {
+          outputImageUrl: await this.imageGateway.facePass(
+            sourceImageUrl,
+            options,
           ),
         };
       default:

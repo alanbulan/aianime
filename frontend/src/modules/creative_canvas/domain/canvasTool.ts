@@ -45,11 +45,16 @@ export interface ToolColorField extends ToolFieldBase {
   type: 'color';
 }
 
+export interface ToolCheckboxField extends ToolFieldBase {
+  type: 'checkbox';
+}
+
 export type ToolFieldSchema =
   | ToolTextField
   | ToolNumberField
   | ToolSelectField
-  | ToolColorField;
+  | ToolColorField
+  | ToolCheckboxField;
 
 export interface ToolExecutionContext {
   processTool: (
@@ -59,7 +64,7 @@ export interface ToolExecutionContext {
   ) => Promise<CanvasToolResult>;
 }
 
-export type ToolIconKey = 'crop' | 'annotate' | 'split';
+export type ToolIconKey = 'crop' | 'annotate' | 'split' | 'facePass';
 export type ToolEditorKind = 'form' | 'crop' | 'annotate' | 'split';
 
 export interface CanvasToolPlugin {

@@ -395,9 +395,6 @@ export const useNodeManagementToolbarController =
     publishCanvasProjectionRemovalRequested,
     publishCanvasProjectionSyncRequested,
   });
-export const useImageNodeToolbarController = createUseImageNodeToolbarController({
-  eventPort: canvasEventBus,
-});
 export const useAudioGeneration = createUseAudioGeneration({
   useStore: useCanvasStore,
   useUpstreamContents,
@@ -706,6 +703,9 @@ export const useImageMatteController = createUseImageMatteController({
   exportNodeWidth: EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   exportNodeHeight: EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   reportError: (message, error) => console.error(message, error),
+});
+export const useImageNodeToolbarController = createUseImageNodeToolbarController({
+  eventPort: canvasEventBus,
 });
 export const useImageEditToolbarController =
   createUseImageEditToolbarController({

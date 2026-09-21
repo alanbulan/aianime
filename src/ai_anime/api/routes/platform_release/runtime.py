@@ -14,13 +14,21 @@ from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.file_delivery import serve_project_file
 
 
+# 同一份「图片处理运行环境」依赖包内的资产白名单：
+# modnet 供抠图，yunet 供人脸直过，runtime/ 下的 onnxruntime WASM 两者共用。
 MATTE_RUNTIME_ASSETS = {
     "models/Xenova/modnet/config.json": "application/json",
     "models/Xenova/modnet/preprocessor_config.json": "application/json",
     "models/Xenova/modnet/onnx/model_quantized.onnx": "application/octet-stream",
     "models/Xenova/modnet/onnx/model_fp16.onnx": "application/octet-stream",
+    "models/yunet/yunet_2023mar.onnx": "application/octet-stream",
+    "models/haar/haarcascade_frontalface_default.xml": "text/xml",
+    "models/haar/haarcascade_profileface.xml": "text/xml",
+    "models/haar/haarcascade_eye.xml": "text/xml",
     "runtime/ort-wasm-simd-threaded.asyncify.mjs": "text/javascript",
     "runtime/ort-wasm-simd-threaded.asyncify.wasm": "application/wasm",
+    "opencv/opencv.js": "text/javascript",
+    "opencv/opencv_js.wasm": "application/wasm",
 }
 
 

@@ -94,6 +94,11 @@ export interface NodeToolDialogProps {
   projectId: string;
 }
 
+/** 人脸直过输出 WebP（上游 OUT_EXT），其余工具输出 PNG。 */
+function resolveToolResultExtension(toolType: NodeToolType): string {
+  return toolType === NODE_TOOL_TYPES.facePass ? 'webp' : 'png';
+}
+
 export function createNodeToolDialog({
   useStore,
   closeToolDialog,
@@ -321,7 +326,7 @@ export function createNodeToolDialog({
           const uploadedUrl = await uploadLocalImageToBackend(
             projectId,
             prepared.imageUrl,
-            `${activeToolDialog.toolType}-${sourceNode.id}-${Date.now()}.png`
+            `${activeToolDialog.toolType}-${sourceNode.id}-${Date.now()}.${resolveToolResultExtension(activeToolDialog.toolType)}`
           );
           const createdNodeId = addDerivedExportNode(
             sourceNode.id,

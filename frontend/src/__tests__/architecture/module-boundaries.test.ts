@@ -4275,12 +4275,15 @@ describe("frontend architecture boundaries", () => {
     expect(toolImageGateway).not.toContain("@/features/canvas");
     expect(new Set(importSpecifiers(toolImageGatewayPath))).toEqual(
       new Set([
+        "@/shared/media/data-url",
         "./browserImageCommands",
         "../application/canvasToolProcessor",
         "../domain/aspectRatio",
         "../domain/canvasAnnotationCodec",
+        "../domain/facePassOptions",
         "../domain/imageData",
         "./browserCanvasAnnotationRenderer",
+        "./browserFacePassWorkerClient",
         "./browserImageRuntime",
       ]),
     );

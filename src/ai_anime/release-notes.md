@@ -1,7 +1,18 @@
 ---
-version: 1.1.78
+version: 1.1.79
 attention: medium
 ---
+# v1.1.79
+
+## 画布新增人脸直过 / Face Pass on the canvas
+
+- 图片节点工具栏新增“人脸直过”：在本地用 YuNet 检测人脸，再以白底黑边方块遮住眼睛，结果输出为新的下游节点，不经过云端。
+- 支持 YuNet（默认）与 Haar 级联两种检测器，可调遮挡大小（1–10）、每张脸只遮一只眼、以及跳过人脸检测全图找眼。
+- “图片抠图运行环境”升级为“图片处理运行环境”，新增 YuNet 与 Haar 模型及 OpenCV 运行时；已安装抠图环境的用户需在“设置 > 环境依赖”重新安装一次。
+- The image node toolbar gains Face Pass: faces are detected locally with YuNet and eyes are masked with white squares, producing a new downstream node without any cloud call.
+- Choose between YuNet (default) and Haar cascades, adjust mask size (1–10), mask one eye per face, or skip face detection and scan the whole image.
+- The matting runtime is now the image processing runtime and adds the YuNet, Haar, and OpenCV assets; reinstall it once under Settings > Dependencies.
+
 # v1.1.78
 
 ## 创作点显示统一 / Creation point display

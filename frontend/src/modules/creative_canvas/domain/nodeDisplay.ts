@@ -10,6 +10,7 @@ export type CanvasExportResultKind =
   | 'storyboardSplitExport'
   | 'storyboardFrameEdit'
   | 'matte'
+  | 'facePass'
   | 'upscale';
 
 export interface CanvasNodeDisplayData {
@@ -45,6 +46,7 @@ export const EXPORT_RESULT_DISPLAY_NAME: Record<CanvasExportResultKind, string> 
   storyboardSplitExport: '分格导出',
   storyboardFrameEdit: '单格结果',
   matte: '抠图结果',
+  facePass: '人脸直过结果',
   upscale: '高清放大',
 };
 

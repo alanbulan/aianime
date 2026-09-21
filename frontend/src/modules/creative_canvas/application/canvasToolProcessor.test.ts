@@ -12,6 +12,7 @@ import { NODE_TOOL_TYPES } from '../domain/canvasNodeTool';
 const annotateImage = vi.fn();
 const cropImage = vi.fn();
 const detectAspectRatio = vi.fn();
+const facePassImage = vi.fn();
 const getDimensions = vi.fn();
 const nextId = vi.fn();
 const persistImage = vi.fn();
@@ -27,6 +28,7 @@ const imageGateway: CanvasToolImageGateway = {
   annotate: (sourceImage, options) => annotateImage(sourceImage, options),
   crop: (sourceImage, options) => cropImage(sourceImage, options),
   detectAspectRatio: (sourceImage) => detectAspectRatio(sourceImage),
+  facePass: (sourceImage, options) => facePassImage(sourceImage, options),
   getDimensions: (sourceImage) => getDimensions(sourceImage),
   persist: (sourceImage) => persistImage(sourceImage),
   readStoryboardMetadata: (sourceImage) =>

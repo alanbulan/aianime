@@ -75,6 +75,12 @@ describe("useImageNodeToolbarController", () => {
         iconOnly: false,
       },
       {
+        type: NODE_TOOL_TYPES.facePass,
+        icon: "facePass",
+        label: "translated:nodeToolbar.facePass",
+        iconOnly: false,
+      },
+      {
         type: NODE_TOOL_TYPES.annotate,
         icon: "annotate",
         label: "translated:tool.annotate",

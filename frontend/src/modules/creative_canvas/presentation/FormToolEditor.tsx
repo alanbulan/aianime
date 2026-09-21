@@ -17,7 +17,7 @@ function readNumberOption(options: ToolOptions, key: string): number {
 
 export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEditorProps) {
   const updateOption = useCallback(
-    (key: string, value: string | number) => {
+    (key: string, value: string | number | boolean) => {
       onOptionsChange({
         ...options,
         [key]: value,
@@ -59,6 +59,17 @@ export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEdi
             value={readTextOption(options, field.key)}
             onChange={(event) => updateOption(field.key, event.target.value)}
             className="h-10 w-full rounded-lg border border-border bg-muted p-1"
+          />
+        );
+      }
+
+      if (field.type === 'checkbox') {
+        return (
+          <input
+            type="checkbox"
+            checked={options[field.key] === true}
+            onChange={(event) => updateOption(field.key, event.target.checked)}
+            className="h-4 w-4 rounded border-border bg-muted accent-primary"
           />
         );
       }

@@ -2,6 +2,7 @@
 import {
   Boxes,
   Crop,
+  EyeOff,
   Globe2,
   Lightbulb,
   PenLine,
@@ -19,7 +20,11 @@ import {
 import { NodeToolbarIconChip } from "./NodeToolbarIconChip";
 import type { NodeToolType } from "../domain/canvasNodeTool";
 
-export type ImageNodeToolbarToolIcon = "crop" | "annotate" | "split";
+export type ImageNodeToolbarToolIcon =
+  | "crop"
+  | "annotate"
+  | "split"
+  | "facePass";
 
 export interface ImageNodeToolbarToolAction {
   type: NodeToolType;
@@ -44,6 +49,7 @@ const toolIconMap: Record<ImageNodeToolbarToolIcon, LucideIcon> = {
   crop: Crop,
   annotate: PenLine,
   split: Scissors,
+  facePass: EyeOff,
 };
 
 export interface ImageNodeToolbarActionsViewProps {
