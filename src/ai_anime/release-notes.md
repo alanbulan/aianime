@@ -1,7 +1,20 @@
 ---
-version: 1.1.80
+version: 1.1.81
 attention: medium
 ---
+# v1.1.81
+
+## 人脸直过修复 / Face Pass fixes
+
+- 修复多次执行人脸直过后内存持续增长的问题：Haar 级联分类器改为只加载一次。
+- 人脸直过的结果节点现在显示为“人脸直过结果”，不再是通用的“导出结果”。
+- 工具参数表单点击文字即可切换复选框；源图读取不再经过 base64 往返。
+- 本版本取代未完成发布的 1.1.79 与 1.1.80，包含下方 1.1.79 条目的全部人脸直过功能；已安装旧抠图环境的用户需在“设置 > 环境依赖”重新安装一次。
+- Fixes memory growth after repeated Face Pass runs by loading the Haar cascades once.
+- Face Pass result nodes are now titled “Face Pass Result” instead of the generic export title.
+- Clicking a field label toggles its checkbox; source images no longer round-trip through base64.
+- Supersedes the unpublished 1.1.79 and 1.1.80 builds and includes every Face Pass change listed under 1.1.79; reinstall the image processing runtime once under Settings > Dependencies.
+
 # v1.1.80
 
 ## 人脸直过正式发布 / Face Pass release
