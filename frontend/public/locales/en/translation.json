@@ -2880,7 +2880,8 @@
     "confirm": "Confirm",
     "splitDiscardHint": "(red areas are separator pixels discarded during extraction)",
     "cropResultTitle": "Crop Result",
-    "annotateResultTitle": "Annotation Result"
+    "annotateResultTitle": "Annotation Result",
+    "facePassResultTitle": "Face Pass Result"
   },
   "redraw": {
     "sourceLoadFailed": "Failed to load the source image",

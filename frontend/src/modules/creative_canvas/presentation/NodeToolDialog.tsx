@@ -262,6 +262,9 @@ export function createNodeToolDialog({
       if (toolType === NODE_TOOL_TYPES.annotate) {
         return t('toolDialog.annotateResultTitle');
       }
+      if (toolType === NODE_TOOL_TYPES.facePass) {
+        return t('toolDialog.facePassResultTitle');
+      }
       return EXPORT_RESULT_DISPLAY_NAME.generic;
     }, [t]);
 
@@ -335,7 +338,10 @@ export function createNodeToolDialog({
             uploadedUrl,
             {
               defaultTitle: resolveResultNodeTitle(activeToolDialog.toolType),
-              resultKind: 'generic',
+              resultKind:
+                activeToolDialog.toolType === NODE_TOOL_TYPES.facePass
+                  ? 'facePass'
+                  : 'generic',
               aspectRatioStrategy: 'provided',
               sizeStrategy: 'autoMinEdge',
             }

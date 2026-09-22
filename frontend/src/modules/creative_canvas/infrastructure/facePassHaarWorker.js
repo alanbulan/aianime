@@ -134,13 +134,22 @@ function buildMaskSquares(face, sizeLevel, imageWidth, imageHeight, singleEye) {
   });
 }
 
-/* ---------- OpenCV 加载 ---------- */
+/* ---------- OpenCV 与级联加载（与上游 init 一样只做一次） ---------- */
 
-let cvPromise = null;
+let runtimePromise = null;
 
-function loadCv() {
-  if (!cvPromise) {
-    cvPromise = (function () {
+function loadCascade(cv, filename, failureMessage) {
+  const cascade = new cv.CascadeClassifier();
+  if (!cascade.load('/' + filename)) {
+    cascade.delete();
+    throw new Error(failureMessage);
+  }
+  return cascade;
+}
+
+function loadRuntime() {
+  if (!runtimePromise) {
+    runtimePromise = (function () {
       try {
         // UMD 会自动执行一次 factory 并把返回值挂到 self.cv；
         // 再用 wasmBinary 显式初始化一次（与上游 Node 用法一致，可同步拿到 API）。
@@ -183,7 +192,14 @@ function loadCv() {
                 });
               }),
             ).then(function () {
-              return cv;
+              // CascadeClassifier 是 WASM 堆上的 C++ 对象，随 worker 生命周期常驻，
+              // 不能每次 compose 都 new 一份（不 delete 会持续泄漏）。
+              return {
+                cv: cv,
+                frontalCascade: loadCascade(cv, CASCADE_FILES.frontal, '人脸模型加载失败'),
+                profileCascade: loadCascade(cv, CASCADE_FILES.profile, '侧脸模型加载失败'),
+                eyeCascade: loadCascade(cv, CASCADE_FILES.eye, '眼睛模型加载失败'),
+              };
             });
           });
       } catch (error) {
@@ -191,11 +207,11 @@ function loadCv() {
         return Promise.reject(new Error(RUNTIME_GUIDANCE + detail));
       }
     })();
-    cvPromise.catch(function () {
-      cvPromise = null;
+    runtimePromise.catch(function () {
+      runtimePromise = null;
     });
   }
-  return cvPromise;
+  return runtimePromise;
 }
 
 /* ---------- Haar 检测（上游 detect-eyes.js 的对应实现） ---------- */
@@ -540,7 +556,11 @@ function drawSquares(cv, image, squares) {
 }
 
 async function compose(request) {
-  const cv = await loadCv();
+  const runtime = await loadRuntime();
+  const cv = runtime.cv;
+  const frontalCascade = runtime.frontalCascade;
+  const profileCascade = runtime.profileCascade;
+  const eyeCascade = runtime.eyeCascade;
   const bitmap = await createImageBitmap(request.blob, {
     imageOrientation: 'from-image',
     // 上游用 sharp 解码且不做色彩管理，这里同样禁用，避免灰度值偏移。
@@ -562,19 +582,6 @@ async function compose(request) {
     const gray = new cv.Mat();
     try {
       cv.cvtColor(image, gray, cv.COLOR_RGBA2GRAY);
-
-      const frontalCascade = new cv.CascadeClassifier();
-      const profileCascade = new cv.CascadeClassifier();
-      const eyeCascade = new cv.CascadeClassifier();
-      if (!frontalCascade.load('/' + CASCADE_FILES.frontal)) {
-        throw new Error('人脸模型加载失败');
-      }
-      if (!profileCascade.load('/' + CASCADE_FILES.profile)) {
-        throw new Error('侧脸模型加载失败');
-      }
-      if (!eyeCascade.load('/' + CASCADE_FILES.eye)) {
-        throw new Error('眼睛模型加载失败');
-      }
 
       const options = request.options;
       const singleEye = options.singleEye !== false;

@@ -28,9 +28,11 @@ export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEdi
 
   const renderField = useCallback(
     (field: ToolFieldSchema) => {
+      const fieldId = `tool-field-${field.key}`;
       if (field.type === 'text') {
         return (
           <UiInput
+            id={fieldId}
             type="text"
             value={readTextOption(options, field.key)}
             onChange={(event) => updateOption(field.key, event.target.value)}
@@ -42,6 +44,7 @@ export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEdi
       if (field.type === 'number') {
         return (
           <UiInput
+            id={fieldId}
             type="number"
             value={readNumberOption(options, field.key)}
             min={field.min}
@@ -55,6 +58,7 @@ export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEdi
       if (field.type === 'color') {
         return (
           <input
+            id={fieldId}
             type="color"
             value={readTextOption(options, field.key)}
             onChange={(event) => updateOption(field.key, event.target.value)}
@@ -66,6 +70,7 @@ export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEdi
       if (field.type === 'checkbox') {
         return (
           <input
+            id={fieldId}
             type="checkbox"
             checked={options[field.key] === true}
             onChange={(event) => updateOption(field.key, event.target.checked)}
@@ -76,6 +81,7 @@ export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEdi
 
       return (
         <UiSelect
+          id={fieldId}
           value={readTextOption(options, field.key)}
           onChange={(event) => updateOption(field.key, event.target.value)}
           className="h-10 border-border bg-muted text-sm"
@@ -95,7 +101,12 @@ export function FormToolEditor({ fields, options, onOptionsChange }: FormToolEdi
     <div className="space-y-4">
       {fields.map((field) => (
         <div key={field.key}>
-          <label className="mb-1 block text-xs text-text-muted">{field.label}</label>
+          <label
+            htmlFor={`tool-field-${field.key}`}
+            className="mb-1 block text-xs text-text-muted"
+          >
+            {field.label}
+          </label>
           {renderField(field)}
         </div>
       ))}

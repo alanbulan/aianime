@@ -2880,7 +2880,8 @@
     "confirm": "确定",
     "splitDiscardHint": "（红色区域为抽取时会丢弃的分割线像素）",
     "cropResultTitle": "裁剪结果",
-    "annotateResultTitle": "标注结果"
+    "annotateResultTitle": "标注结果",
+    "facePassResultTitle": "人脸直过结果"
   },
   "redraw": {
     "sourceLoadFailed": "无法加载源图",

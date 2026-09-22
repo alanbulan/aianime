@@ -4275,7 +4275,6 @@ describe("frontend architecture boundaries", () => {
     expect(toolImageGateway).not.toContain("@/features/canvas");
     expect(new Set(importSpecifiers(toolImageGatewayPath))).toEqual(
       new Set([
-        "@/shared/media/data-url",
         "./browserImageCommands",
         "../application/canvasToolProcessor",
         "../domain/aspectRatio",
@@ -4323,6 +4322,7 @@ describe("frontend architecture boundaries", () => {
         "../application/imagePreparation",
         "../domain/imageData",
         "@/shared/media/cross-origin",
+        "@/shared/media/data-url",
       ]),
     );
     expect(existsSync(legacyImageRuntimePath)).toBe(false);

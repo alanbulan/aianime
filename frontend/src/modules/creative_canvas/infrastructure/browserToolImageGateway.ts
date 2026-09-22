@@ -9,13 +9,12 @@ import { parseAspectRatio } from '../domain/aspectRatio';
 import { parseAnnotationItems } from '../domain/canvasAnnotationCodec';
 import { resolveFacePassOptions } from '../domain/facePassOptions';
 import { reduceAspectRatio } from '../domain/imageData';
-import { dataUrlToBlob } from '@/shared/media/data-url';
 import { drawAnnotations } from './browserCanvasAnnotationRenderer';
 import {
   blobToDataUrl,
   browserImageRuntimeGateway,
   canvasToDataUrl,
-  imageUrlToDataUrl,
+  imageUrlToBlob,
   loadImageElement,
   persistImageLocally,
 } from './browserImageRuntime';
@@ -179,11 +178,8 @@ async function facePassImage(
   sourceImage: string,
   options: Record<string, unknown>,
 ): Promise<string> {
-  // 桌面端 CSP 的 connect-src 不含 data:，不能用 fetch(dataUrl) 取 Blob，
-  // 与 browserAssetSourceGateway 一样直接解码。
-  const sourceBlob = dataUrlToBlob(await imageUrlToDataUrl(sourceImage));
   const result = await facePassImageInBrowserWorker(
-    sourceBlob,
+    await imageUrlToBlob(sourceImage),
     resolveFacePassOptions(options),
   );
   if (result.eyeCount === 0) {

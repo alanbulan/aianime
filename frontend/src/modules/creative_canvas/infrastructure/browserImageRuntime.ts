@@ -5,6 +5,7 @@ import {
 } from '../domain/imageData';
 import type { CanvasImageRuntimeGateway } from '../application/imagePreparation';
 import { mediaNeedsCrossOrigin } from '@/shared/media/cross-origin';
+import { dataUrlToBlob } from '@/shared/media/data-url';
 
 interface ErrorWithDetails extends Error {
   details?: string;
@@ -51,9 +52,10 @@ export async function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-export async function imageUrlToDataUrl(imageUrl: string): Promise<string> {
+/** 读取图片为 Blob；data: URL 直接解码（桌面 CSP 的 connect-src 不含 data:）。 */
+export async function imageUrlToBlob(imageUrl: string): Promise<Blob> {
   if (imageUrl.startsWith('data:')) {
-    return imageUrl;
+    return dataUrlToBlob(imageUrl);
   }
 
   if (isLikelyLocalImagePath(imageUrl)) {
@@ -64,7 +66,7 @@ export async function imageUrlToDataUrl(imageUrl: string): Promise<string> {
         `source=${imageUrl}\nstatus=${localResponse.status}`,
       );
     }
-    return await blobToDataUrl(await localResponse.blob());
+    return await localResponse.blob();
   }
 
   const response = await fetch(imageUrl);
@@ -74,7 +76,14 @@ export async function imageUrlToDataUrl(imageUrl: string): Promise<string> {
       `url=${imageUrl}\nstatus=${response.status}`,
     );
   }
-  return await blobToDataUrl(await response.blob());
+  return await response.blob();
+}
+
+export async function imageUrlToDataUrl(imageUrl: string): Promise<string> {
+  if (imageUrl.startsWith('data:')) {
+    return imageUrl;
+  }
+  return await blobToDataUrl(await imageUrlToBlob(imageUrl));
 }
 
 async function readFileAsDataUrl(file: File): Promise<string> {
