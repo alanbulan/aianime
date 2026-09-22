@@ -9,6 +9,10 @@
  * CSP 的 script-src 又不含 blob:，无法用 blob/eval 绕行。
  * 因此这里用原生 classic worker 源文件，由 `?url` 引入后 `new Worker(url)` 创建。
  *
+ * 文件名是与桌面端的契约：opencv.js 的 embind 用 `new Function` 生成调用器，需要
+ * 'unsafe-eval'；desktop/src/desktop-session-security.ts 只给名为
+ * facePassHaarWorker(-hash).js 的脚本响应下发含 'unsafe-eval' 的 CSP。改名必须同步。
+ *
  * 几何计算与 domain/facePassGeometry.ts 保持一致（文件末尾导出以便测试比对），
  * 检测与绘制流程与上游 seedance2-real-people/lib/detect-eyes.js 逐项对齐。
  */

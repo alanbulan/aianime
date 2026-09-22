@@ -123,3 +123,27 @@ HTTP 400，但 Windows 包在脚本 35 分钟超时内仍未传完。对比历�
 云端版本 ID `f27c7228-506f-48b3-9687-5b3549e82801`，状态 `PUBLISHED`，版本 `1.1.81`，
 三个平台的安装包与更新清单摘要均与 CI 校验清单一致。1.1.79 与 1.1.80 未在云端登记。
 本机未做三端人工安装验收；原生资源、签名与更新验证由构建运行 35672168569 执行。
+
+## 1.1.81 真机复现 CSP 失败与改发 1.1.82
+
+用户在 Windows 1.1.81 上执行人脸直过，弹窗报
+`Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script`。
+
+根因：opencv.js 的 embind 绑定层 `craftInvokerFunction` 用 `newFunc(Function, args)`
+动态生成每个 C++ 方法的调用器，官方 OpenCV.js 4.x 构建同样如此（本地下载核对，
+含 `new Function(` 与 `craftInvokerFunction(`），因此任何 opencv.js 都离不开
+`'unsafe-eval'`。onnxruntime-web 的 `new Function` 只在 emval 方法调用路径，
+YuNet 推理不经过。
+
+修复：桌面端 `desktop-session-security.ts` 只对可信来源、路径名为
+`facePassHaarWorker(-hash).js` 的脚本响应下发含 `'unsafe-eval'` 的 CSP；专用 worker 的
+策略来自自身脚本响应头，作用域仅该 worker（无 DOM，connect-src 不变）。页面、抠图
+worker、YuNet worker、opencv.js 自身响应以及外部域名同名脚本均保持原策略。
+前端 worker 文件头注明文件名契约，桌面测试断言前端源文件仍在原路径。
+
+Chromium 实测（Playwright，加载正式构建的两个 worker 与真实模型/运行时文件）：
+严格策略下 YuNet worker 正常、Haar worker 报出与用户截图一致的错误；
+按修复后的策略，两个 worker 均正常返回，无控制台错误。
+
+验证：桌面类型检查通过；桌面测试 318 通过、3 跳过；前端 Haar worker 一致性测试
+5 通过；`git diff --check` 通过。版本升级到 `1.1.82` 并推送标签 `v1.1.82`。

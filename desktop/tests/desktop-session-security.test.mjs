@@ -6,7 +6,12 @@ import { createServer } from "node:http";
 import { once } from "node:events";
 import { createRequire } from "node:module";
 
-import { installDesktopSessionSecurity } from "../src/desktop-session-security.ts";
+import { existsSync } from "node:fs";
+
+import {
+  installDesktopSessionSecurity,
+  isDynamicCodeWorkerScriptUrl,
+} from "../src/desktop-session-security.ts";
 
 function createPermissionHarness(additionalConnectSources = []) {
   let checkPermission;
@@ -134,6 +139,45 @@ test("renderer content security policy keeps matte traffic local", () => {
   assert.doesNotMatch(policy, /(?:^|\s)'unsafe-eval'(?:\s|;)/);
   assert.match(policy, /connect-src [^;]*blob:/);
   assert.doesNotMatch(policy, /huggingface|hf\.co|jsdelivr|unpkg/);
+});
+
+test("only the face pass Haar worker script receives a CSP that allows eval", () => {
+  const { receiveHeaders } = createPermissionHarness();
+  const policyFor = (url) => {
+    let response;
+    receiveHeaders({ url, responseHeaders: {} }, (value) => {
+      response = value;
+    });
+    return response.responseHeaders["Content-Security-Policy"][0];
+  };
+  const evalAllowed = /script-src [^;]*'unsafe-eval'/;
+
+  assert.match(policyFor("http://127.0.0.1:18080/assets/facePassHaarWorker-uelPe3cJ.js"), evalAllowed);
+  assert.match(
+    policyFor("http://127.0.0.1:5173/src/modules/creative_canvas/infrastructure/facePassHaarWorker.js"),
+    evalAllowed,
+  );
+  // 页面、抠图 worker、YuNet worker 与 opencv.js 自身的响应都保持不放开 eval。
+  for (const url of [
+    "http://127.0.0.1:18080/",
+    "http://127.0.0.1:18080/assets/index-D-BA_oo4.js",
+    "http://127.0.0.1:18080/assets/facePassWorker-BsDn8q1D.js",
+    "http://127.0.0.1:18080/assets/matteWorker-KigKcCLv.js",
+    "http://127.0.0.1:18080/api/v1/runtime-dependencies/matte/opencv/opencv.js",
+    "http://127.0.0.1:18080/assets/facePassHaarWorker.js.map",
+    "http://evil.example/assets/facePassHaarWorker-x.js?next=/",
+  ]) {
+    assert.doesNotMatch(policyFor(url), evalAllowed, url);
+  }
+  assert.equal(isDynamicCodeWorkerScriptUrl(undefined, ["http://127.0.0.1:18080"]), false);
+  assert.equal(isDynamicCodeWorkerScriptUrl("not a url", ["http://127.0.0.1:18080"]), false);
+  // 文件名是与前端的契约：前端源文件必须仍在原路径，否则放开的策略会落空。
+  assert.ok(
+    existsSync(new URL(
+      "../../frontend/src/modules/creative_canvas/infrastructure/facePassHaarWorker.js",
+      import.meta.url,
+    )),
+  );
 });
 
 test("desktop CSP permits WASM in Chromium pages and workers while blocking JavaScript eval", async (t) => {

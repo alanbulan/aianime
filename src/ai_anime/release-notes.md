@@ -1,7 +1,18 @@
 ---
-version: 1.1.81
+version: 1.1.82
 attention: medium
 ---
+# v1.1.82
+
+## 人脸直过桌面端修复 / Face Pass desktop fix
+
+- 修复桌面端执行人脸直过时报“Evaluating a string as JavaScript violates the following Content Security Policy”而无法输出结果的问题。
+- 原因是 OpenCV 运行时的绑定层需要动态生成函数；现在仅对人脸直过的 Haar 处理 worker 放开该限制，主界面与其他功能的安全策略保持不变。
+- 人脸直过功能与运行环境说明见 1.1.81 与 1.1.79 条目。
+- Fixes Face Pass failing on desktop with “Evaluating a string as JavaScript violates the following Content Security Policy”.
+- The OpenCV runtime binding layer needs dynamic function creation; the relaxation now applies only to the Face Pass Haar worker while the main window and every other feature keep the existing policy.
+- See the 1.1.81 and 1.1.79 entries for the Face Pass feature and runtime notes.
+
 # v1.1.81
 
 ## 人脸直过修复 / Face Pass fixes
