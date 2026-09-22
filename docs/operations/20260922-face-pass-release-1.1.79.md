@@ -147,3 +147,20 @@ Chromium 实测（Playwright，加载正式构建的两个 worker 与真实模�
 
 验证：桌面类型检查通过；桌面测试 318 通过、3 跳过；前端 Haar worker 一致性测试
 5 通过；`git diff --check` 通过。版本升级到 `1.1.82` 并推送标签 `v1.1.82`。
+
+## 1.1.82 最终发布结果
+
+标签 `v1.1.82`（提交 `4d1e9b35`）运行
+[35694801821](https://github.com/alanbulan/aianime/actions/runs/35694801821)
+三端打包全部成功；统一发布任务的云端上传运行 25 分钟仍停在第一个包，链路仍慢，
+取消该运行后本机复用同批构件发布：下载三个构件，`release:combine` 字节与 SHA-256
+核对通过，dry-run 通过，北京时间十五时四十八分 `release:publish` 成功。
+
+| 平台 | 云端安装文件 | 字节数 | SHA-256 前 12 位 |
+| --- | --- | ---: | --- |
+| Windows x64 | `AI-anime-1.1.82-x64-setup.exe` | 678,443,026 | `55cccacc1acc` |
+| Intel Mac | `AI-anime-1.1.82-macos-x64.zip` | 811,313,919 | `0b77104146cc` |
+| Apple Silicon Mac | `AI-anime-1.1.82-macos-arm64.zip` | 794,983,955 | `34fe7de9b4b8` |
+
+云端版本 ID `019d65d8-6c62-4316-a235-baf3d21c07a5`，状态 `PUBLISHED`，版本 `1.1.82`。
+本机未做三端人工安装验收；原生资源、签名与更新验证由构建运行执行。
