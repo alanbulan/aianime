@@ -196,3 +196,28 @@ Chromium 实测（Playwright，加载正式构建的两个 worker 与真实模�
 验证：定向单元 24 通过；`pnpm --dir frontend test:unit` 2309 通过；
 `pnpm --dir frontend typecheck` 通过；`pnpm --dir frontend test:architecture` 411 通过。
 版本升级到 `1.1.83` 并推送标签 `v1.1.83` 触发三端构建。未做桌面安装包真机验收，需用户安装 1.1.83 后用同一张图复核。
+
+## 1.1.83 最终发布结果
+
+标签 `v1.1.83`（提交 `b2829ad8`）运行
+[35721385171](https://github.com/alanbulan/aianime/actions/runs/35721385171)
+三端打包全部成功，草稿 Release 已保存全部 14 个制品；统一发布任务上传 Windows 包
+（fileId 3906）35 分钟后被脚本超时中止（`The operation was aborted due to timeout`），
+版本未在云端登记，与 1.1.81、1.1.82 同一症状。
+
+改为本机复用同批构件发布。`gh run download` 拉取 Actions 构件仅约 230 KB/s，改用
+`curl` 直接请求构件 zip 接口（单流约 3–5 MB/s，中途被服务端断开一次后按 Range 续传），
+三个 zip 字节数与构件清单一致后解压到 `desktop/release/AI-anime-<target>/`；
+`release:combine` 对三端安装包与更新清单的字节数、SHA-256 及校验清单逐项核对通过，
+dry-run 通过，北京时间二十二时零一分 `release:publish` 成功。
+
+| 平台 | 云端安装文件 | 字节数 | SHA-256 前 12 位 |
+| --- | --- | ---: | --- |
+| Windows x64 | `AI-anime-1.1.83-x64-setup.exe` | 678,411,307 | `c4a64e43527b` |
+| Intel Mac | `AI-anime-1.1.83-macos-x64.zip` | 811,310,907 | `242be13ce2f9` |
+| Apple Silicon Mac | `AI-anime-1.1.83-macos-arm64.zip` | 796,594,936 | `e07d8d224c75` |
+
+云端版本 ID `8d6781d8-6c07-4e3b-8243-44e537f7f62e`，状态 `PUBLISHED`，版本 `1.1.83`，
+三个平台的安装包与更新清单摘要均与 CI 校验清单一致。
+本机未做三端人工安装验收；原生资源、签名与更新验证由构建运行执行。人脸直过默认
+效果需用户安装 1.1.83 后用同一张实拍图复核。
