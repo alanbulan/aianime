@@ -164,3 +164,35 @@ Chromium 实测（Playwright，加载正式构建的两个 worker 与真实模�
 
 云端版本 ID `019d65d8-6c62-4316-a235-baf3d21c07a5`，状态 `PUBLISHED`，版本 `1.1.82`。
 本机未做三端人工安装验收；原生资源、签名与更新验证由构建运行执行。
+
+## 1.1.82 真机结果不可用：默认参数下的三处偏差修正
+
+用户在 1.1.82 上用默认参数处理一张实拍人像，结果出现三种异常：整张脸盖一层橙色
+半透明阴影；两只眼睛都被白方块遮住；下巴以下的毛衣、头发上散布六个小白方块。
+同一张图在上游线上站 face.83zi.com 默认参数只遮右眼一个方块，其余干净。
+
+复现与定位（GitHub 快照 `ddbba868` 的 `lib/detect-eyes.js` 在本机 Node 直跑同一张图）：
+
+| 现象 | 根因 | 证据 |
+| --- | --- | --- |
+| 橙色阴影 | 上游 `paintFaceOverlay` 是 Haar 补获脸的调试彩绘，GitHub 快照无条件画；线上版只在 `debug=1` 才画 | 线上 API 文档 `debug` 字段说明 |
+| 第二只眼被遮 | GitHub 快照 onnx 路径的 Haar 兜底必跑，且过滤条件把中心点当矩形传给 `centerInside` 得到 NaN，从不过滤，同一张脸被 Haar 再遮一次；线上版新增 `haarFallback`，省略时只在 YuNet 未检出人脸才启用 | 本机直跑 GitHub 快照 onnx 路径 `eyeCount=8`，线上默认参数 `eyeCount=1` |
+| 身上的小白方块 | Haar 正脸级联 `minSize` 固定 30px，1122×1402 的图上把毛衣纹理、发丝当成 44–64px 的脸；`minNeighbors` 2 时误检 6 处 | 参数扫描：`minSize` 提到 60px 以上时只剩真脸（346,258,544×544） |
+
+修正（`facePassHaarWorker.js`、`facePassGeometry.ts`、`facePassOptions.ts`、
+`canvasToolCatalog.ts`）：
+
+- 新增 `haarFallback` 参数，语义与线上版一致：默认 `auto` 只在 YuNet 一张脸都没检出时
+  启用 Haar 兜底；`always` 总是启用并真正过滤掉已被 YuNet 覆盖的脸；`off` 关闭。
+  表单新增对应下拉项。
+- 删除橙色调试彩绘。
+- Haar 人脸 `minSize` 改为短边的 6%，且不低于上游的 30px；`detectAllFaces` 三次
+  调用共用该值。
+
+本机用上游 opencv.js/YuNet 运行时执行修正后的 worker 几何与兜底判断：YuNet 检出
+1 张脸，`auto`/`always` 下 Haar 额外脸均为 0，输出只遮右眼一个方块，与线上站默认
+结果一致。Haar 检测器路径 `minSize=67` 只检出真脸 1 张。
+
+验证：定向单元 24 通过；`pnpm --dir frontend test:unit` 2309 通过；
+`pnpm --dir frontend typecheck` 通过；`pnpm --dir frontend test:architecture` 411 通过。
+版本升级到 `1.1.83` 并推送标签 `v1.1.83` 触发三端构建。未做桌面安装包真机验收，需用户安装 1.1.83 后用同一张图复核。

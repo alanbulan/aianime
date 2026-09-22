@@ -4,6 +4,7 @@ import { NODE_TOOL_TYPES } from './canvasNodeTool';
 import { FACE_PASS_DEFAULT_SIZE_LEVEL } from './facePassGeometry';
 import {
   FACE_PASS_DEFAULT_DETECTOR,
+  FACE_PASS_DEFAULT_HAAR_FALLBACK,
   FACE_PASS_DEFAULT_NO_FACE,
   FACE_PASS_DEFAULT_SINGLE_EYE,
 } from './facePassOptions';
@@ -86,7 +87,7 @@ export const splitStoryboardToolPlugin: CanvasToolPlugin = {
 };
 
 // 人脸直过：把检测到的眼睛用白底黑边方块遮住，结果落到新建的下游节点。
-// 参数与上游 /api/detect 完全一致（detector / noFace / singleEye / size），
+// 参数与上游线上版 /api/detect 一致（detector / size / singleEye / haarFallback / noFace），
 // 通过表单编辑器暴露，不做一键直出。
 export const facePassToolPlugin: CanvasToolPlugin = {
   type: NODE_TOOL_TYPES.facePass,
@@ -99,6 +100,7 @@ export const facePassToolPlugin: CanvasToolPlugin = {
     noFace: FACE_PASS_DEFAULT_NO_FACE,
     singleEye: FACE_PASS_DEFAULT_SINGLE_EYE,
     size: FACE_PASS_DEFAULT_SIZE_LEVEL,
+    haarFallback: FACE_PASS_DEFAULT_HAAR_FALLBACK,
   }),
   fields: [
     {
@@ -124,8 +126,18 @@ export const facePassToolPlugin: CanvasToolPlugin = {
       type: 'checkbox',
     },
     {
+      key: 'haarFallback',
+      label: 'Haar 补漏（仅 YuNet 生效）',
+      type: 'select',
+      options: [
+        { label: '仅 YuNet 未检出人脸时（默认）', value: 'auto' },
+        { label: '总是补漏（多人合影漏脸时用）', value: 'always' },
+        { label: '关闭', value: 'off' },
+      ],
+    },
+    {
       key: 'noFace',
-      label: '跳过人脸检测，全图扫描眼睛',
+      label: '跳过人脸检测，全图扫描眼睛（仅 Haar 生效）',
       type: 'checkbox',
     },
   ],

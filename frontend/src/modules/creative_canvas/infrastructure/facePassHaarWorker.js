@@ -14,7 +14,12 @@
  * facePassHaarWorker(-hash).js 的脚本响应下发含 'unsafe-eval' 的 CSP。改名必须同步。
  *
  * 几何计算与 domain/facePassGeometry.ts 保持一致（文件末尾导出以便测试比对），
- * 检测与绘制流程与上游 seedance2-real-people/lib/detect-eyes.js 逐项对齐。
+ * 检测与绘制流程以上游 seedance2-real-people/lib/detect-eyes.js 为底，但有三处
+ * 有意偏离（均已在同一张实拍图上复现 GitHub 快照的问题后修正）：
+ * 1. Haar 兜底默认只在 YuNet 未检出人脸时启用（上游线上版 haarFallback 语义），
+ *    GitHub 快照兜底必跑且过滤条件因 NaN 失效，会把同一张脸的另一只眼再遮一次；
+ * 2. 不画上游的橙色“Haar 补获”调试彩绘（线上版仅 debug=1 才画）；
+ * 3. Haar 人脸 minSize 按短边比例取值，不再固定 30px，避免把衣服纹理当成脸。
  */
 
 const RUNTIME_DEPENDENCY_ROOT = '/api/v1/runtime-dependencies/matte';
@@ -36,6 +41,8 @@ const MIN_EYE_SIDE = 10;
 const MIN_SIZE_LEVEL = 1;
 const MAX_SIZE_LEVEL = 10;
 const DEFAULT_SIZE_LEVEL = 5;
+const HAAR_MIN_FACE_SIDE_PX = 30;
+const HAAR_MIN_FACE_SIDE_RATIO = 0.06;
 
 const RUNTIME_GUIDANCE =
   '人脸直过运行环境未安装或不完整，请前往“设置 > 环境依赖”安装后重试。';
@@ -91,6 +98,23 @@ function clampSquare(centerX, centerY, side, imageWidth, imageHeight) {
   top = Math.max(0, Math.min(top, imageHeight - side));
   const size = Math.min(side, imageWidth - left, imageHeight - top);
   return { x: left, y: top, size: Math.max(1, size) };
+}
+
+function resolveHaarMinFaceSide(imageWidth, imageHeight) {
+  const shortEdge = Math.max(1, Math.min(imageWidth, imageHeight));
+  return Math.max(
+    HAAR_MIN_FACE_SIDE_PX,
+    Math.round(shortEdge * HAAR_MIN_FACE_SIDE_RATIO),
+  );
+}
+
+function pointInsideRect(point, rect) {
+  return (
+    point.x >= rect.x &&
+    point.x <= rect.x + rect.width &&
+    point.y >= rect.y &&
+    point.y <= rect.y + rect.height
+  );
 }
 
 function resolveBorderThickness(imageWidth, imageHeight) {
@@ -321,8 +345,10 @@ function detectAllFaces(cv, frontalCascade, profileCascade, gray) {
   const profileFlip = new cv.RectVector();
   const flipped = new cv.Mat();
   const equalized = equalizedGray(cv, gray);
+  const minSide = resolveHaarMinFaceSide(gray.cols, gray.rows);
+  const minSize = new cv.Size(minSide, minSide);
   try {
-    frontalCascade.detectMultiScale(equalized, frontal, 1.1, 2, 0, new cv.Size(30, 30));
+    frontalCascade.detectMultiScale(equalized, frontal, 1.1, 2, 0, minSize);
     for (let index = 0; index < frontal.size(); index += 1) {
       const rect = frontal.get(index);
       list.push({
@@ -334,7 +360,7 @@ function detectAllFaces(cv, frontalCascade, profileCascade, gray) {
       });
     }
 
-    profileCascade.detectMultiScale(equalized, profile, 1.1, 3, 0, new cv.Size(30, 30));
+    profileCascade.detectMultiScale(equalized, profile, 1.1, 3, 0, minSize);
     for (let index = 0; index < profile.size(); index += 1) {
       const rect = profile.get(index);
       list.push({
@@ -348,7 +374,7 @@ function detectAllFaces(cv, frontalCascade, profileCascade, gray) {
 
     // OpenCV 侧脸级联主要认朝左轮廓，翻转后再检朝右。
     cv.flip(equalized, flipped, 1);
-    profileCascade.detectMultiScale(flipped, profileFlip, 1.1, 3, 0, new cv.Size(30, 30));
+    profileCascade.detectMultiScale(flipped, profileFlip, 1.1, 3, 0, minSize);
     for (let index = 0; index < profileFlip.size(); index += 1) {
       const rect = profileFlip.get(index);
       list.push({
@@ -425,25 +451,28 @@ function maskEye(cv, image, rect, size, faceRect) {
   cv.rectangle(image, point1, point2, new cv.Scalar(0, 0, 0, 255), thickness);
 }
 
-function paintFaceOverlay(cv, image, faceRect) {
-  const width = faceRect.width;
-  const height = faceRect.height;
-  if (width <= 0 || height <= 0) {
-    return;
+/**
+ * onnx 路径下 Haar 兜底要处理的脸：
+ * - mode 'off' 不跑；'auto' 只在 YuNet 一张脸都没检出时跑；'always' 总是跑；
+ * - 跑时只保留中心点不落在任何 YuNet 脸框内的候选，避免同一张脸被遮第二只眼。
+ * 纯函数，供测试直接调用。
+ */
+function selectHaarFallbackFaces(haarFaces, yunetFaces, mode) {
+  if (mode === 'off') {
+    return [];
   }
-  const overlay = new cv.Mat(
-    height,
-    width,
-    cv.CV_8UC4,
-    new cv.Scalar(220, 120, 50, 80),
-  );
-  try {
-    const roi = image.roi(new cv.Rect(faceRect.x, faceRect.y, width, height));
-    cv.addWeighted(overlay, 0.45, roi, 0.55, 0, roi);
-    roi.delete();
-  } finally {
-    overlay.delete();
+  if (mode !== 'always' && yunetFaces.length > 0) {
+    return [];
   }
+  return haarFaces.filter(function (candidate) {
+    const center = {
+      x: candidate.x + candidate.width / 2,
+      y: candidate.y + candidate.height / 2,
+    };
+    return !yunetFaces.some(function (face) {
+      return pointInsideRect(center, face.box);
+    });
+  });
 }
 
 function detectEyesInFaces(cv, eyeCascade, faceRects, gray, image, size, singleEye) {
@@ -606,31 +635,20 @@ async function compose(request) {
           eyeCount += squares.length;
         }
 
-        // 第 2 轮：Haar 人脸兜底（双保险），只处理 YuNet 未覆盖的脸。
-        const haarFaces = detectAllFaces(cv, frontalCascade, profileCascade, gray);
-        // 注意：上游把「中心点」对象直接当作 inner 传给 centerInside，而 centerInside
-        // 内部会再取一次 inner.width / 2；中心点没有 width，相加得到 NaN，比较恒为
-        // false，于是 **Haar 检出的脸一律不会被过滤**。这是上游的既有行为，
-        // 这里如实复刻（曾按「修正」写法传入 0 宽高，结果与上游不一致）。
-        const extraFaces = haarFaces.filter(function (candidate) {
-          const center = {
-            x: candidate.x + candidate.width / 2,
-            y: candidate.y + candidate.height / 2,
-          };
-          return !request.yunetFaces.some(function (face) {
-            return centerInside(center, {
-              x: face.box.x,
-              y: face.box.y,
-              width: face.box.width,
-              height: face.box.height,
-            });
-          });
-        });
+        // 第 2 轮：Haar 兜底，默认只在 YuNet 一张脸都没找到时才跑。
+        const haarFallback = options.haarFallback || 'auto';
+        const needHaar =
+          haarFallback === 'always' ||
+          (haarFallback !== 'off' && request.yunetFaces.length === 0);
+        const extraFaces = needHaar
+          ? selectHaarFallbackFaces(
+              detectAllFaces(cv, frontalCascade, profileCascade, gray),
+              request.yunetFaces,
+              haarFallback,
+            )
+          : [];
 
         if (extraFaces.length > 0) {
-          for (const face of extraFaces) {
-            paintFaceOverlay(cv, image, face);
-          }
           eyeCount += detectEyesInFaces(
             cv,
             eyeCascade,
@@ -721,7 +739,10 @@ if (typeof module !== 'undefined' && module.exports) {
     resolveSquareSide: resolveSquareSide,
     clampSquare: clampSquare,
     resolveBorderThickness: resolveBorderThickness,
+    resolveHaarMinFaceSide: resolveHaarMinFaceSide,
+    pointInsideRect: pointInsideRect,
     fitWithinMaxEdge: fitWithinMaxEdge,
     buildMaskSquares: buildMaskSquares,
+    selectHaarFallbackFaces: selectHaarFallbackFaces,
   };
 }

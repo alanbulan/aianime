@@ -17,8 +17,15 @@ const workerGeometry = require("./facePassHaarWorker.js") as {
   resolveSquareSide: typeof domainGeometry.resolveSquareSide;
   clampSquare: typeof domainGeometry.clampSquare;
   resolveBorderThickness: typeof domainGeometry.resolveBorderThickness;
+  resolveHaarMinFaceSide: typeof domainGeometry.resolveHaarMinFaceSide;
+  pointInsideRect: typeof domainGeometry.pointInsideRect;
   fitWithinMaxEdge: typeof domainGeometry.fitWithinMaxEdge;
   buildMaskSquares: typeof domainGeometry.buildMaskSquares;
+  selectHaarFallbackFaces: (
+    haarFaces: readonly domainGeometry.FacePassRect[],
+    yunetFaces: readonly domainGeometry.FacePassDetection[],
+    mode: "auto" | "always" | "off",
+  ) => domainGeometry.FacePassRect[];
 };
 
 const FACE_BOX = { x: 100, y: 100, width: 200, height: 240 };
@@ -80,10 +87,41 @@ describe("facePassHaarWorker geometry parity", () => {
       expect(workerGeometry.resolveBorderThickness(w, h)).toBe(
         domainGeometry.resolveBorderThickness(w, h),
       );
+      expect(workerGeometry.resolveHaarMinFaceSide(w, h)).toBe(
+        domainGeometry.resolveHaarMinFaceSide(w, h),
+      );
       expect(workerGeometry.fitWithinMaxEdge(w, h)).toEqual(
         domainGeometry.fitWithinMaxEdge(w, h),
       );
     }
+    for (const point of [
+      { x: 200, y: 220 },
+      { x: 100, y: 100 },
+      { x: 99, y: 220 },
+      { x: 200, y: 341 },
+    ]) {
+      expect(workerGeometry.pointInsideRect(point, FACE_BOX)).toBe(
+        domainGeometry.pointInsideRect(point, FACE_BOX),
+      );
+    }
+  });
+
+  it("only runs the Haar fallback when YuNet found nothing, and never re-masks a YuNet face", () => {
+    // 与 YuNet 脸框重叠的 Haar 候选（中心落在框内）+ 一处衣服纹理误检。
+    const overlapping = { x: 120, y: 110, width: 170, height: 200 };
+    const sweater = { x: 40, y: 600, width: 50, height: 50 };
+    const haarFaces = [overlapping, sweater];
+
+    // 默认 auto：YuNet 已有脸 → 不补漏，衣服误检也不会被画。
+    expect(workerGeometry.selectHaarFallbackFaces(haarFaces, [FACE], "auto")).toEqual([]);
+    // auto 且 YuNet 一张脸都没有 → 交给 Haar。
+    expect(workerGeometry.selectHaarFallbackFaces(haarFaces, [], "auto")).toEqual(haarFaces);
+    // always：真正过滤掉已被 YuNet 覆盖的脸（GitHub 快照此处因 NaN 从不过滤）。
+    expect(workerGeometry.selectHaarFallbackFaces(haarFaces, [FACE], "always")).toEqual([
+      sweater,
+    ]);
+    // off：永远不跑。
+    expect(workerGeometry.selectHaarFallbackFaces(haarFaces, [], "off")).toEqual([]);
   });
 
   it("builds identical mask squares for single-eye and both-eyes modes", () => {

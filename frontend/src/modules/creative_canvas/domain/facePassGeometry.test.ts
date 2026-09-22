@@ -8,7 +8,9 @@ import {
   clampFacePassSizeLevel,
   clampSquare,
   eyeRectFromLandmark,
+  pointInsideRect,
   resolveBorderThickness,
+  resolveHaarMinFaceSide,
   resolveSquareSide,
   type FacePassDetection,
   type FacePassRect,
@@ -92,6 +94,24 @@ describe("facePassGeometry", () => {
       y: 0,
       size: 512,
     });
+  });
+
+  it("scales the Haar minimum face side with the short edge, never below 30px", () => {
+    // 小图沿用上游的 30px 下限。
+    expect(resolveHaarMinFaceSide(320, 240)).toBe(30);
+    expect(resolveHaarMinFaceSide(500, 500)).toBe(30);
+    // 1122×1402 的实拍图：短边 6% ≈ 67px，把 45–64px 的毛衣纹理误检挡在门外。
+    expect(resolveHaarMinFaceSide(1122, 1402)).toBe(67);
+    expect(resolveHaarMinFaceSide(1600, 900)).toBe(54);
+    expect(resolveHaarMinFaceSide(0, 0)).toBe(30);
+  });
+
+  it("tests whether a point lies inside a rect, edges inclusive", () => {
+    expect(pointInsideRect({ x: 200, y: 220 }, FACE_BOX)).toBe(true);
+    expect(pointInsideRect({ x: 100, y: 100 }, FACE_BOX)).toBe(true);
+    expect(pointInsideRect({ x: 300, y: 340 }, FACE_BOX)).toBe(true);
+    expect(pointInsideRect({ x: 99, y: 220 }, FACE_BOX)).toBe(false);
+    expect(pointInsideRect({ x: 200, y: 341 }, FACE_BOX)).toBe(false);
   });
 
   it("scales the border thickness from the short edge, bounded to 2-4", () => {

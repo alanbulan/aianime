@@ -44,6 +44,13 @@ const EYE_SIDE_FROM_IOD = 0.55;
 /** 缺少第二个眼关键点时的脸尺寸比例。 */
 const EYE_SIDE_FROM_FACE_RATIO = 0.18;
 const MIN_EYE_SIDE = 10;
+/**
+ * Haar 人脸级联的最小窗口：上游固定 30px，在 1600px 的图上会把毛衣纹理、发丝
+ * 当成 40–60px 的“脸”并在身上画一堆小方块（实测同一张图误检 6 处）。
+ * 这里改为按短边比例取值：短边 6%，且不低于上游的 30px。
+ */
+const HAAR_MIN_FACE_SIDE_PX = 30;
+const HAAR_MIN_FACE_SIDE_RATIO = 0.06;
 
 export function clampFacePassSizeLevel(value: unknown): number {
   const numeric = Number(value);
@@ -119,6 +126,28 @@ export function clampSquare(
   top = Math.max(0, Math.min(top, imageHeight - side));
   const size = Math.min(side, imageWidth - left, imageHeight - top);
   return { x: left, y: top, size: Math.max(1, size) };
+}
+
+/** Haar 人脸级联 detectMultiScale 的 minSize 边长。 */
+export function resolveHaarMinFaceSide(
+  imageWidth: number,
+  imageHeight: number,
+): number {
+  const shortEdge = Math.max(1, Math.min(imageWidth, imageHeight));
+  return Math.max(
+    HAAR_MIN_FACE_SIDE_PX,
+    Math.round(shortEdge * HAAR_MIN_FACE_SIDE_RATIO),
+  );
+}
+
+/** 点是否落在矩形内（含边界）。 */
+export function pointInsideRect(point: FacePassPoint, rect: FacePassRect): boolean {
+  return (
+    point.x >= rect.x &&
+    point.x <= rect.x + rect.width &&
+    point.y >= rect.y &&
+    point.y <= rect.y + rect.height
+  );
 }
 
 /** 黑框线宽：短边 / 400，限制在 2–4（上游 borderThickness）。 */

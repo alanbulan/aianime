@@ -1,7 +1,16 @@
 ---
-version: 1.1.82
+version: 1.1.83
 attention: medium
 ---
+# v1.1.83
+
+## 人脸直过默认效果修正 / Face Pass default output fix
+
+- 修复默认参数下人脸直过的三处异常：整张脸叠一层橙色阴影、两只眼睛都被遮住、衣服与头发上出现多个小白方块。现在默认只遮一只眼，其余画面保持原样，与上游线上版本一致。
+- 橙色阴影是上游调试标记，已移除；Haar 补漏改为仅在 YuNet 未检出人脸时启用，并新增“Haar 补漏”选项（仅未检出时 / 总是 / 关闭）；Haar 人脸最小尺寸随图片短边缩放，不再把衣服纹理当成人脸。
+- Fixes three defects in the default Face Pass output: an orange tint over the whole face, both eyes masked, and stray small white squares on clothing and hair. The default now masks a single eye and leaves the rest untouched, matching the upstream hosted service.
+- The orange tint was an upstream debug overlay and is removed; the Haar fallback now runs only when YuNet finds no face, with a new “Haar fallback” option (only when none found / always / off); the Haar minimum face size scales with the short edge so fabric texture is no longer detected as a face.
+
 # v1.1.82
 
 ## 人脸直过桌面端修复 / Face Pass desktop fix
