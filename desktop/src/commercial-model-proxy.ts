@@ -275,6 +275,15 @@ export class CommercialModelProxy {
     });
   }
 
+  private assertRequestSession(generation: number): void {
+    if (generation !== this.client.currentSessionGeneration) {
+      throw new CommercialApiError("登录状态已变更，请重新操作", {
+        status: 409,
+        code: "SESSION_CHANGED",
+      });
+    }
+  }
+
   private async handle(
     request: IncomingMessage,
     response: ServerResponse,
@@ -282,6 +291,8 @@ export class CommercialModelProxy {
     try {
       assertLoopbackRequest(request);
       assertLocalAuthorization(request, this.token);
+      // 读取请求体、报价确认和路由重试均属于同一次登录，不能中途换用新账户。
+      const sessionGeneration = this.client.currentSessionGeneration;
       const method = String(request.method ?? "GET").toUpperCase();
       if (!["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"].includes(method)) {
         throw new CommercialApiError("不支持的模型代理方法", { status: 405 });
@@ -293,6 +304,7 @@ export class CommercialModelProxy {
         method === "GET" || method === "HEAD"
           ? undefined
           : await readModelRequestBody(request, contentType);
+      this.assertRequestSession(sessionGeneration);
       if (requestUrl.pathname.startsWith(MODEL_CONTROL_PATH_PREFIX)) {
         if (
           requestUrl.search ||
@@ -304,7 +316,7 @@ export class CommercialModelProxy {
         if (method !== "POST") {
           throw new CommercialApiError("任务调用取消只接受 POST", { status: 405 });
         }
-        await this.handleTaskCancellation(path, rawBody, response);
+        await this.handleTaskCancellation(path, rawBody, response, sessionGeneration);
         return;
       }
 
@@ -350,6 +362,7 @@ export class CommercialModelProxy {
             AbortSignal.timeout(this.requestTimeoutMs),
           ]);
       const requestInput = {
+        sessionGeneration,
         method,
         path,
         contentType,
@@ -367,6 +380,7 @@ export class CommercialModelProxy {
             taskId: normalizeTaskIdHeader(request.headers["x-ai-anime-task-id"]),
           })
         : await this.requestWithFallback(requestInput);
+      this.assertRequestSession(sessionGeneration);
       if (response.destroyed) return;
       assertModelResponseContract(path, upstream.response);
       await this.rememberVideoTaskRoute(
@@ -374,7 +388,9 @@ export class CommercialModelProxy {
         path,
         upstream.route,
         upstream.response,
+        sessionGeneration,
       );
+      this.assertRequestSession(sessionGeneration);
       pipeModelResponse(
         method,
         upstream.response,
@@ -407,6 +423,7 @@ export class CommercialModelProxy {
   }
 
   private async requestIdempotentImageWrite(input: {
+    sessionGeneration: number;
     method: string;
     path: string;
     contentType: string;
@@ -423,6 +440,7 @@ export class CommercialModelProxy {
       input.requestHeaders["idempotency-key"],
     );
     const subject = await this.client.modelInvocationSubject();
+    this.assertRequestSession(input.sessionGeneration);
     const requestHash = await modelRequestFingerprint(
       input.method,
       input.path,
@@ -434,6 +452,7 @@ export class CommercialModelProxy {
         reasoningEffort: input.reasoningEffort ?? "",
       },
     );
+    this.assertRequestSession(input.sessionGeneration);
     const identity: ModelInvocationIdentity = {
       subject,
       operation: "IMAGE",
@@ -450,6 +469,7 @@ export class CommercialModelProxy {
       routeKey: initialRoute.key,
       routeSource: initialRoute.source,
     });
+    this.assertRequestSession(input.sessionGeneration);
     if (claim.kind === "conflict") {
       throw new CommercialApiError(
         "同一 Idempotency-Key 已用于不同的图片请求参数",
@@ -481,10 +501,10 @@ export class CommercialModelProxy {
         identity,
         taskCancellation.reason,
       );
-      return this.cancelledImageResult(identity, cancelled, pinnedRoute);
+      return this.cancelledImageResult(identity, cancelled, pinnedRoute, input.sessionGeneration);
     }
     if (claim.record.cancellationRequested) {
-      return this.cancelledImageResult(identity, claim.record, pinnedRoute);
+      return this.cancelledImageResult(identity, claim.record, pinnedRoute, input.sessionGeneration);
     }
     if (claim.record.routeSource === "byok") {
       if (claim.record.response) {
@@ -521,6 +541,7 @@ export class CommercialModelProxy {
 
   private async executeIdempotentImageWrite(
     input: {
+      sessionGeneration: number;
       method: string;
       path: string;
       contentType: string;
@@ -599,7 +620,9 @@ export class CommercialModelProxy {
     identity: ModelInvocationIdentity,
     record: StoredModelInvocation,
     route: ModelRoute,
+    sessionGeneration: number,
   ): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
+    this.assertRequestSession(sessionGeneration);
     if (route.source === "cloud") {
       const state = await this.client.cancelInvocationByIdempotencyKey(
         identity.operation,
@@ -623,6 +646,7 @@ export class CommercialModelProxy {
     path: string,
     rawBody: Buffer | undefined,
     response: ServerResponse,
+    sessionGeneration: number,
   ): Promise<void> {
     const pathname = new URL(path, "http://model-proxy.local").pathname;
     const match = MODEL_TASK_CANCEL_PATH.exec(pathname);
@@ -633,11 +657,13 @@ export class CommercialModelProxy {
     const body = parseControlBody(rawBody);
     const reason = requiredControlText(body.reason, "reason", 500);
     const subject = await this.client.modelInvocationSubject();
+    this.assertRequestSession(sessionGeneration);
     await this.invocationStore.requestTaskCancellation(subject, taskId, reason);
     const records = await this.invocationStore.recordsForTask(subject, taskId);
     const states = [];
     for (const record of records) {
       const cancelled = await this.invocationStore.requestCancellation(record, reason);
+      this.assertRequestSession(sessionGeneration);
       if (record.routeSource === "cloud") {
         try {
           const cloud = await this.client.cancelInvocationByIdempotencyKey(
@@ -654,6 +680,7 @@ export class CommercialModelProxy {
             remoteCancellationStatus: "REQUESTED",
           });
         } catch (error) {
+          this.assertRequestSession(sessionGeneration);
           states.push({
             idempotencyKey: record.idempotencyKey,
             source: "cloud",
@@ -676,6 +703,7 @@ export class CommercialModelProxy {
           cancelled.routeSource === "byok" ? "UNSUPPORTED_BY_PROXY" : "NOT_DISPATCHED",
       });
     }
+    this.assertRequestSession(sessionGeneration);
     response.statusCode = 200;
     response.setHeader("Content-Type", "application/json; charset=utf-8");
     response.end(JSON.stringify({ taskId, cancellationRequested: true, invocations: states }));
@@ -715,6 +743,7 @@ export class CommercialModelProxy {
   }
 
   private async requestWithFallback(input: {
+    sessionGeneration: number;
     method: string;
     path: string;
     contentType: string;
@@ -739,6 +768,7 @@ export class CommercialModelProxy {
       for (let routeAttempt = 1; routeAttempt <= routeAttempts; routeAttempt += 1) {
         totalAttempts += 1;
         try {
+          this.assertRequestSession(input.sessionGeneration);
           const prepared = await prepareBodyForRoute(
             input.rawBody,
             input.contentType,
@@ -754,10 +784,15 @@ export class CommercialModelProxy {
             route.parameterOverrides,
           );
           await input.beforeRouteRequest?.(route);
+          this.assertRequestSession(input.sessionGeneration);
           const upstream =
             route.source === "cloud"
               ? await this.requestCloud(route, input, prepared)
               : await requestByok(route, input, prepared);
+          if (input.sessionGeneration !== this.client.currentSessionGeneration) {
+            await upstream.body?.cancel().catch(() => undefined);
+            this.assertRequestSession(input.sessionGeneration);
+          }
           const responseError = upstream.ok
             ? undefined
             : await responseErrorForRouteAudit(upstream);
@@ -804,6 +839,7 @@ export class CommercialModelProxy {
           break;
         } catch (error) {
           lastError = error;
+          this.assertRequestSession(input.sessionGeneration);
           if (error instanceof CommercialBudgetError) {
             this.auditRouteAttempt(route, totalAttempts, error.status, "rejected", error);
             throw error;
@@ -903,6 +939,7 @@ export class CommercialModelProxy {
   private async requestCloud(
     route: ModelRoute,
     input: {
+      sessionGeneration: number;
       method: string;
       path: string;
       requestHeaders: IncomingMessage["headers"];
@@ -911,6 +948,7 @@ export class CommercialModelProxy {
     prepared: PreparedBody,
   ): Promise<Response> {
     const device = await this.deviceIdentity.summary();
+    this.assertRequestSession(input.sessionGeneration);
     const capability = this.routing.modelCapabilities?.find((item) => item.modelId === route.modelId);
     let body = prepared;
     const headers = new Headers(forwardedHeaders(input.requestHeaders, prepared.contentType));
@@ -922,15 +960,21 @@ export class CommercialModelProxy {
       const idempotencyKey = headers.get("Idempotency-Key") ?? randomUUID();
       headers.set("Idempotency-Key", idempotencyKey);
       const scope = await this.client.meteredSessionScope(device.publicKeyHash);
-      body = await this.billingAuthorizer.authorize(`${scope}:${idempotencyKey}`, route.modelId, input.path, prepared,
-        this.clientVersion, () => this.client.quoteModel({ modelCode: route.modelId, path: input.path, prepared,
-          clientVersion: this.clientVersion, devicePublicKeyHash: device.publicKeyHash, signal: input.signal }), input.signal);
+      this.assertRequestSession(input.sessionGeneration);
+      body = await this.billingAuthorizer.authorize(`${scope}:${input.sessionGeneration}:${idempotencyKey}`, route.modelId, input.path, prepared,
+        this.clientVersion, () => {
+          this.assertRequestSession(input.sessionGeneration);
+          return this.client.quoteModel({ modelCode: route.modelId, path: input.path, prepared,
+            clientVersion: this.clientVersion, devicePublicKeyHash: device.publicKeyHash, signal: input.signal });
+        }, input.signal);
       if (body.contentType) headers.set("Content-Type", body.contentType);
       else headers.delete("Content-Type");
       } catch (error) {
+        this.assertRequestSession(input.sessionGeneration);
         throw new CommercialBudgetError(error instanceof Error ? error.message : "本次消费未获确认，没有提交模型生成");
       }
     }
+    this.assertRequestSession(input.sessionGeneration);
     return this.client.modelRequest({
       method: input.method,
       path: input.path,
@@ -947,11 +991,13 @@ export class CommercialModelProxy {
     path: string,
     route: ModelRoute,
     response: Response,
+    sessionGeneration: number,
   ): Promise<void> {
     const pathname = new URL(path, "http://model-proxy.local").pathname;
     if (method !== "POST" || pathname !== "/v1/videos" || !response.ok) return;
     try {
       const payload = (await response.clone().json()) as { id?: unknown };
+      this.assertRequestSession(sessionGeneration);
       const id = typeof payload.id === "string" ? payload.id.trim() : "";
       if (!id) return;
       const now = Date.now();

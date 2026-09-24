@@ -76,16 +76,17 @@ test("workspace bump refuses inconsistent source versions", () => {
   assert.throws(() => readWorkspaceVersion(root), /版本文件不一致/);
 });
 
-test("Gitee workflow auto-triggers master and guards release commits", () => {
+test("Gitee workflow verifies master without creating divergent version commits", () => {
   const workflow = readFileSync(
     join(process.cwd(), "..", ".workflow", "流水线-202608101609.yml"),
     "utf8",
   );
   assert.match(workflow, /step: build@gcc/);
-  assert.match(workflow, /step: build@nodejs/);
+  assert.doesNotMatch(workflow, /step: build@nodejs|version_release/);
   assert.match(workflow, /NODE_VERSION=24\.19\.0/);
   assert.match(workflow, /precise:\s*\n\s*- master/);
-  assert.match(workflow, /chore\(release\): 自动升级版本至 v/);
+  assert.doesNotMatch(workflow, /bump-version\.mjs|git commit|push origin|GIT_ASKPASS|AI_MANGA_PUSH_TOKEN/);
+  assert.match(workflow, /https:\/\/astral\.sh\/uv\/0\.11\.8\/install\.sh/);
   assert.match(workflow, /pnpm --dir desktop test/);
   assert.match(workflow, /pnpm --dir frontend test\s*\n/);
   assert.match(workflow, /pnpm --dir frontend test:browser:install --with-deps/);
@@ -95,12 +96,5 @@ test("Gitee workflow auto-triggers master and guards release commits", () => {
   assert.match(workflow, /uv run --locked ruff check src tests/);
   assert.doesNotMatch(workflow, /--isolated|--no-project|--with pytest/);
   assert.ok(workflow.indexOf("pnpm --dir frontend install") < workflow.indexOf("pnpm --dir desktop test"));
-  assert.match(workflow, /AI_MANGA_PUSH_TOKEN/);
-  assert.match(
-    workflow,
-    /variables:\s*\n\s*global:\s*\n\s*- AI_MANGA_PUSH_TOKEN\s*\n\s*- AI_MANGA_PUSH_USERNAME/,
-  );
-  assert.match(workflow, /GIT_ASKPASS/);
-  assert.match(workflow, /https:\/\/gitee\.com\/mingcheng_software\/ai-manga-desktop\.git/);
-  assert.match(workflow, /push origin HEAD:master/);
+  assert.ok(workflow.indexOf("pnpm --dir frontend install") < workflow.indexOf("uv run --locked pytest"));
 });

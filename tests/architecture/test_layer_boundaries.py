@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import ast
+import io
+import json
 import re
+import subprocess
+import tokenize
 from collections import Counter
 from pathlib import Path
 
@@ -5355,6 +5359,50 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
         assert not legacy_module.exists()
 
 
+def _without_python_comments(source: str) -> str:
+    lines = source.splitlines(keepends=True)
+    for token in tokenize.generate_tokens(io.StringIO(source).readline):
+        if token.type == tokenize.COMMENT:
+            row, column = token.start
+            end_column = token.end[1]
+            line = lines[row - 1]
+            lines[row - 1] = line[:column] + " " * (end_column - column) + line[end_column:]
+    return "".join(lines)
+
+
+def _without_typescript_comments(sources: dict[Path, str]) -> dict[Path, str]:
+    if not sources:
+        return {}
+    result = subprocess.run(
+        ["node", str(REPO_ROOT / "frontend/scripts/source-without-comments.mjs")],
+        input=json.dumps([
+            {"extension": path.suffix, "source": source}
+            for path, source in sources.items()
+        ]),
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+        timeout=60,
+        cwd=REPO_ROOT,
+    )
+    return dict(zip(sources, json.loads(result.stdout), strict=True))
+
+
+def test_python_provider_scan_ignores_only_comments() -> None:
+    source = '''# seedance source attribution
+value = "https://openai.example/#qwen"  # seedream
+other = "escaped \\" # deepseek"
+doc = """# gemini
+// minimax"""
+'''
+    stripped = _without_python_comments(source)
+    assert "seedance" not in stripped and "seedream" not in stripped
+    for name in ("openai", "qwen", "deepseek", "gemini", "minimax"):
+        assert name in stripped
+    assert stripped.count("\n") == source.count("\n")
+
+
 def test_business_layers_do_not_hardcode_provider_or_model_names() -> None:
     roots = (
         PACKAGE_ROOT / "modules" / "production",
@@ -5400,7 +5448,8 @@ def test_business_layers_do_not_hardcode_provider_or_model_names() -> None:
         ("midjourney", re.compile(r"midjourney", re.IGNORECASE)),
         ("ideogram", re.compile(r"ideogram", re.IGNORECASE)),
     )
-    violations: list[str] = []
+    candidates: dict[Path, str] = {}
+    typescript: dict[Path, str] = {}
     for root in roots:
         for path in root.rglob("*"):
             if not path.is_file() or path.suffix not in {".py", ".ts", ".tsx"}:
@@ -5408,11 +5457,21 @@ def test_business_layers_do_not_hardcode_provider_or_model_names() -> None:
             if "tests" in path.parts or "__tests__" in path.parts or ".test." in path.name:
                 continue
             source = path.read_text(encoding="utf-8")
-            matches = [name for name, pattern in forbidden if pattern.search(source)]
-            if matches:
-                violations.append(
-                    f"{path.relative_to(REPO_ROOT).as_posix()}: {', '.join(matches)}"
-                )
+            if not any(pattern.search(source) for _, pattern in forbidden):
+                continue
+            if path.suffix == ".py":
+                candidates[path] = _without_python_comments(source)
+            else:
+                typescript[path] = source
+
+    candidates.update(_without_typescript_comments(typescript))
+    violations: list[str] = []
+    for path, source in candidates.items():
+        matches = [name for name, pattern in forbidden if pattern.search(source)]
+        if matches:
+            violations.append(
+                f"{path.relative_to(REPO_ROOT).as_posix()}: {', '.join(matches)}"
+            )
 
     assert not violations, "\n".join(violations)
 

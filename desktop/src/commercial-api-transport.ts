@@ -43,7 +43,12 @@ export class CommercialApiTransport {
   protected readonly now: () => number;
   protected sessionCache: StoredCommercialSession | null | undefined;
   protected rememberedLoginCache: StoredCommercialRememberedLogin | null | undefined;
-  protected refreshInFlight: Promise<StoredCommercialSession> | null = null;
+  protected sessionGeneration = 0;
+  private refreshInFlight: {
+    generation: number;
+    promise: Promise<StoredCommercialSession>;
+  } | null = null;
+  private persistenceInFlight: Promise<void> = Promise.resolve();
   protected activeDeviceId: string | null = null;
 
   constructor(options: CommercialClientOptions) {
@@ -60,37 +65,47 @@ export class CommercialApiTransport {
     return this.loadCurrentLicense(devicePublicKeyHash);
   }
 
+  get currentSessionGeneration(): number {
+    return this.sessionGeneration;
+  }
+
   async modelInvocationSubject(): Promise<string> {
+    const generation = this.sessionGeneration;
     const session = await this.requireSession();
+    this.assertSessionGeneration(generation);
     return `${session.gatewayOrigin}|${session.tenant.id}|${session.user.id}`;
   }
 
   protected async loadCurrentLicense(
     devicePublicKeyHash: string,
   ): Promise<CommercialAuthorizationWire> {
+    const generation = this.sessionGeneration;
     const value = parseCommercialAuthorizationWire(
       await this.authenticatedJson("GET", "/api/v1/client/licenses/current", {
-      query: {
-        devicePublicKeyHash: requiredText(
-          devicePublicKeyHash,
-          "devicePublicKeyHash",
+        query: {
+          devicePublicKeyHash: requiredText(
+            devicePublicKeyHash,
+            "devicePublicKeyHash",
           ),
         },
       }),
     );
+    this.assertSessionGeneration(generation);
     this.activeDeviceId = value.device?.id ?? null;
     return value;
   }
 
   async modelRequest(input: CommercialModelRequest): Promise<Response> {
+    const generation = this.sessionGeneration;
     const method = requiredText(input.method, "method").toUpperCase();
     const path = normalizeModelPath(input.path);
-    let session = await this.requireFreshSession();
+    let session = await this.requireFreshSession(generation);
     const requiresActivatedDevice = isModelWriteMethod(method)
       || isModelCatalogRead(method, path);
     if (requiresActivatedDevice && this.activeDeviceId === null) {
       await this.loadCurrentLicense(input.devicePublicKeyHash);
     }
+    this.assertSessionGeneration(generation);
     const deviceId = this.activeDeviceId;
     if (requiresActivatedDevice && deviceId === null) {
       throw new CommercialApiError("当前设备尚未激活", { status: 403 });
@@ -110,6 +125,7 @@ export class CommercialApiTransport {
           ? 1
           : MODEL_TRANSIENT_MAX_ATTEMPTS;
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        this.assertSessionGeneration(generation);
         response = await this.requestModelResponse({
           ...input,
           method,
@@ -118,6 +134,7 @@ export class CommercialApiTransport {
           deviceId,
           idempotencyKey,
         });
+        await this.checkResponseSession(response, generation);
         if (
           !MODEL_TRANSIENT_STATUSES.has(response.status) ||
           attempt === maxAttempts
@@ -134,13 +151,12 @@ export class CommercialApiTransport {
     let response = await execute(session.accessToken);
     if (response.status !== 401) return response;
 
-    const latest = await this.loadSession();
-    session =
-      latest && latest.accessToken !== session.accessToken
-        ? latest
-        : await this.refreshSession(session);
+    await response.body?.cancel();
+    session = await this.refreshSession(session, generation);
     response = await execute(session.accessToken);
-    if (response.status === 401) await this.clearSession();
+    if (response.status === 401 && this.sessionCache?.accessToken === session.accessToken) {
+      await this.clearSession(generation);
+    }
     return response;
   }
 
@@ -149,10 +165,13 @@ export class CommercialApiTransport {
     path: string,
     options: Omit<RequestOptions, "token"> = {},
   ): Promise<unknown> {
+    const generation = this.sessionGeneration;
     const response = await this.authenticatedResponse(method, path, options);
     await assertSuccessfulResponse(response);
+    this.assertSessionGeneration(generation);
     if (response.status === 204) return undefined;
     const text = await response.text();
+    this.assertSessionGeneration(generation);
     if (!text.trim()) return undefined;
     try {
       return JSON.parse(text) as unknown;
@@ -168,37 +187,55 @@ export class CommercialApiTransport {
     path: string,
     options: Omit<RequestOptions, "token"> = {},
   ): Promise<Response> {
-    let session = await this.requireSession();
-    if (session.expiresAtEpochMs <= this.now() + REFRESH_SKEW_MS) {
-      session = await this.refreshSession(session);
-    }
+    const generation = this.sessionGeneration;
+    let session = await this.requireFreshSession(generation);
 
-    const execute = (token: string) =>
-      this.requestResponse(method, path, {
+    const execute = async (token: string) => {
+      this.assertSessionGeneration(generation);
+      const response = await this.requestResponse(method, path, {
         ...options,
         token,
       });
+      await this.checkResponseSession(response, generation);
+      return response;
+    };
     let response = await execute(session.accessToken);
     if (response.status !== 401) return response;
 
-    const latest = await this.loadSession();
-    session =
-      latest && latest.accessToken !== session.accessToken
-        ? latest
-        : await this.refreshSession(session);
+    await response.body?.cancel();
+    session = await this.refreshSession(session, generation);
     response = await execute(session.accessToken);
-    if (response.status === 401) {
-      await this.clearSession();
+    if (response.status === 401 && this.sessionCache?.accessToken === session.accessToken) {
+      await this.clearSession(generation);
     }
     return response;
   }
 
-  protected async requireFreshSession(): Promise<StoredCommercialSession> {
+  protected async requireFreshSession(
+    generation = this.sessionGeneration,
+  ): Promise<StoredCommercialSession> {
     let session = await this.requireSession();
+    this.assertSessionGeneration(generation);
     if (session.expiresAtEpochMs <= this.now() + REFRESH_SKEW_MS) {
-      session = await this.refreshSession(session);
+      session = await this.refreshSession(session, generation);
     }
+    this.assertSessionGeneration(generation);
     return session;
+  }
+
+  protected assertSessionGeneration(generation: number): void {
+    if (generation !== this.sessionGeneration) {
+      throw new CommercialApiError("登录状态已变更，请重新操作", {
+        status: 409,
+        code: "SESSION_CHANGED",
+      });
+    }
+  }
+
+  private async checkResponseSession(response: Response, generation: number): Promise<void> {
+    if (generation === this.sessionGeneration) return;
+    await response.body?.cancel().catch(() => undefined);
+    this.assertSessionGeneration(generation);
   }
 
   protected async requestModelResponse(
@@ -252,9 +289,14 @@ export class CommercialApiTransport {
 
   protected async refreshSession(
     previous: StoredCommercialSession,
+    generation = this.sessionGeneration,
   ): Promise<StoredCommercialSession> {
-    if (this.refreshInFlight) return this.refreshInFlight;
-    this.refreshInFlight = (async () => {
+    this.assertSessionGeneration(generation);
+    const current = await this.requireSession();
+    this.assertSessionGeneration(generation);
+    if (current.accessToken !== previous.accessToken) return current;
+    if (this.refreshInFlight?.generation === generation) return this.refreshInFlight.promise;
+    const promise = (async () => {
       try {
         const value = await this.requestJson(
           "POST",
@@ -279,13 +321,17 @@ export class CommercialApiTransport {
             ? { rememberedLogin: previous.rememberedLogin }
             : {}),
         };
-        await this.replaceSession(session);
+        await this.replaceSession(session, generation);
         return session;
       } catch (error) {
+        this.assertSessionGeneration(generation);
         if (!isAuthenticationFailure(error)) throw error;
         const storedRememberedLogin = await this.loadRememberedLogin();
+        this.assertSessionGeneration(generation);
         const rememberedLogin = previous.rememberedLogin
           ?? (storedRememberedLogin
+            && storedRememberedLogin.tenantCode === previous.tenant.code
+            && storedRememberedLogin.username === previous.user.username
             ? {
                 tenantCode: storedRememberedLogin.tenantCode,
                 username: storedRememberedLogin.username,
@@ -293,29 +339,34 @@ export class CommercialApiTransport {
               }
             : undefined);
         if (!rememberedLogin) {
-          await this.clearSession();
+          await this.clearSession(generation);
           throw error;
         }
         try {
-          return await this.reauthenticate(rememberedLogin);
+          return await this.reauthenticate(rememberedLogin, previous, generation);
         } catch (reauthenticationError) {
           if (isPermanentLoginFailure(reauthenticationError)) {
-            await this.clearSession();
+            await this.clearSession(generation);
           }
           throw reauthenticationError;
         }
       }
     })();
+    const flight = { generation, promise };
+    this.refreshInFlight = flight;
     try {
-      return await this.refreshInFlight;
+      return await promise;
     } finally {
-      this.refreshInFlight = null;
+      if (this.refreshInFlight === flight) this.refreshInFlight = null;
     }
   }
 
   protected async reauthenticate(
     rememberedLogin: RememberedCommercialLogin,
+    previous: StoredCommercialSession,
+    generation: number,
   ): Promise<StoredCommercialSession> {
+    this.assertSessionGeneration(generation);
     const value = await this.requestJson("POST", "/api/v1/client/auth/login", {
       body: {
         loginType: "PASSWORD",
@@ -329,8 +380,12 @@ export class CommercialApiTransport {
       parseLoginResponse(value),
       rememberedLogin,
     );
-    await this.replaceSession(session);
-    await this.saveRememberedLogin(rememberedLogin);
+    if (session.user.id !== previous.user.id || session.tenant.id !== previous.tenant.id) {
+      await this.revokeToken(session.accessToken).catch(() => undefined);
+      throw new CommercialApiError("自动登录账户与原会话不一致", { status: 401 });
+    }
+    await this.replaceSession(session, generation);
+    await this.saveRememberedLogin(rememberedLogin, generation);
     return session;
   }
 
@@ -364,15 +419,18 @@ export class CommercialApiTransport {
 
   protected async loadSession(): Promise<StoredCommercialSession | null> {
     if (this.sessionCache !== undefined) return this.sessionCache;
+    const generation = this.sessionGeneration;
     const session = await this.sessionStore.load();
+    if (generation !== this.sessionGeneration || this.sessionCache !== undefined) {
+      return this.sessionCache ?? null;
+    }
     if (session && session.gatewayOrigin !== this.baseUrl) {
-      await this.sessionStore.clear();
-      this.sessionCache = null;
+      await this.clearSession(generation);
       return null;
     }
     this.sessionCache = session;
     if (session?.rememberedLogin) {
-      await this.saveRememberedLogin(session.rememberedLogin);
+      await this.saveRememberedLogin(session.rememberedLogin, generation);
     }
     return session;
   }
@@ -380,10 +438,13 @@ export class CommercialApiTransport {
   protected async loadRememberedLogin(): Promise<StoredCommercialRememberedLogin | null> {
     if (!this.rememberedLoginStore) return null;
     if (this.rememberedLoginCache !== undefined) return this.rememberedLoginCache;
+    const generation = this.sessionGeneration;
     const remembered = await this.rememberedLoginStore.load();
+    if (generation !== this.sessionGeneration || this.rememberedLoginCache !== undefined) {
+      return this.rememberedLoginCache ?? null;
+    }
     if (remembered && remembered.gatewayOrigin !== this.baseUrl) {
-      await this.rememberedLoginStore.clear();
-      this.rememberedLoginCache = null;
+      await this.clearRememberedLogin(generation);
       return null;
     }
     this.rememberedLoginCache = remembered;
@@ -392,7 +453,9 @@ export class CommercialApiTransport {
 
   protected async saveRememberedLogin(
     login: RememberedCommercialLogin,
+    generation = this.sessionGeneration,
   ): Promise<void> {
+    this.assertSessionGeneration(generation);
     if (!this.rememberedLoginStore) return;
     const stored: StoredCommercialRememberedLogin = {
       schemaVersion: 1,
@@ -401,28 +464,44 @@ export class CommercialApiTransport {
       username: login.username,
       password: login.password,
     };
-    await this.rememberedLoginStore.save(stored);
     this.rememberedLoginCache = stored;
+    await this.persist(() => this.rememberedLoginStore!.save(stored));
+    this.assertSessionGeneration(generation);
   }
 
-  protected async clearRememberedLogin(): Promise<void> {
+  protected async clearRememberedLogin(generation = this.sessionGeneration): Promise<void> {
+    this.assertSessionGeneration(generation);
     this.rememberedLoginCache = null;
-    await this.rememberedLoginStore?.clear();
+    await this.persist(async () => { await this.rememberedLoginStore?.clear(); });
+    this.assertSessionGeneration(generation);
   }
 
-  protected async replaceSession(session: StoredCommercialSession): Promise<void> {
-    if (session.rememberMe === false) {
-      await this.sessionStore.clear();
-    } else {
-      await this.sessionStore.save(session);
-    }
+  protected async replaceSession(
+    session: StoredCommercialSession,
+    generation = this.sessionGeneration,
+  ): Promise<void> {
+    this.assertSessionGeneration(generation);
     this.sessionCache = session;
+    await this.persist(() => session.rememberMe === false
+      ? this.sessionStore.clear()
+      : this.sessionStore.save(session));
+    this.assertSessionGeneration(generation);
   }
 
-  protected async clearSession(): Promise<void> {
+  protected async clearSession(generation = this.sessionGeneration): Promise<void> {
+    if (generation !== this.sessionGeneration) return;
+    // 登录/退出立即使旧请求失效；磁盘操作串行，避免慢写入覆盖较新的退出或登录。
+    this.sessionGeneration += 1;
     this.sessionCache = null;
     this.activeDeviceId = null;
-    await this.sessionStore.clear();
+    this.refreshInFlight = null;
+    await this.persist(() => this.sessionStore.clear());
+  }
+
+  private persist(operation: () => Promise<void>): Promise<void> {
+    const pending = this.persistenceInFlight.then(operation);
+    this.persistenceInFlight = pending.catch(() => undefined);
+    return pending;
   }
 
   protected async requestJson(

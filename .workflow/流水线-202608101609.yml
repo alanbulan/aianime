@@ -1,6 +1,6 @@
 version: "1.0"
-name: desktop-auto-version
-displayName: Electron 桌面端自动版本与更新记录
+name: desktop-quality-gate
+displayName: Electron 桌面端质量验证
 stages:
 - stage:
   name: test_build
@@ -15,16 +15,6 @@ stages:
     commands:
     - |
       set -eu
-      CURRENT_SUBJECT=$(git log -1 --format=%s)
-      case "${CURRENT_SUBJECT}" in
-        "chore(release): 自动升级版本至 v"*)
-          echo "当前提交是流水线生成的版本提交，不重复测试。"
-          mkdir -p frontend/dist
-          printf '%s\n' "版本提交已在来源提交的流水线中通过全部质量门。" > frontend/dist/PIPELINE_GUARD.txt
-          exit 0
-          ;;
-      esac
-
       NODE_VERSION=24.19.0
       mkdir -p .ci-runtime
       wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz" -O ".ci-runtime/node-v${NODE_VERSION}-linux-x64.tar.gz"
@@ -36,15 +26,15 @@ stages:
 
       corepack enable
       corepack prepare pnpm@11.24.0 --activate
-      wget -qO- https://astral.sh/uv/install.sh | sh
+      wget -qO- https://astral.sh/uv/0.11.8/install.sh | sh
       node --version
       pnpm --version
       uv --version
 
       uv sync --locked --python 3.12
+      pnpm --dir frontend install --frozen-lockfile
       uv run --locked ruff check src tests .hermes/plugins/ai_anime
       uv run --locked pytest tests -q
-      pnpm --dir frontend install --frozen-lockfile
       pnpm --dir frontend test:browser:install --with-deps
       pnpm --dir frontend test
       pnpm --dir frontend typecheck
@@ -63,68 +53,6 @@ stages:
       resource:
         cpu: "2"
         memory: "4"
-- stage:
-  name: version_release
-  displayName: 自动递增版本
-  strategy: naturally
-  trigger: auto
-  steps:
-  - step: build@nodejs
-    name: bump_patch_version
-    displayName: 递增补丁版本并生成中英文更新记录
-    nodeVersion: 15.12.0
-    commands:
-    - node --version
-    - |
-      set -eu
-      CURRENT_SUBJECT=$(git log -1 --format=%s)
-      case "${CURRENT_SUBJECT}" in
-        "chore(release): 自动升级版本至 v"*)
-          echo "当前提交是流水线生成的版本提交，不再次递增版本。"
-          exit 0
-          ;;
-      esac
-
-      if [ -z "${AI_MANGA_PUSH_TOKEN:-}" ]; then
-        echo "缺少 Gitee Go 密文变量 AI_MANGA_PUSH_TOKEN，无法将自动版本提交写回仓库。"
-        exit 2
-      fi
-
-      SOURCE_COMMIT=$(git rev-parse HEAD)
-      AI_MANGA_PUSH_USERNAME="${AI_MANGA_PUSH_USERNAME:-wurulan}"
-      export AI_MANGA_PUSH_USERNAME AI_MANGA_PUSH_TOKEN
-      ASKPASS_PATH="${HOME}/.ai-manga-gitee-askpass.sh"
-      cat > "${ASKPASS_PATH}" <<'EOF'
-      #!/bin/sh
-      case "$1" in
-        *Username*) printf '%s\n' "${AI_MANGA_PUSH_USERNAME}" ;;
-        *) printf '%s\n' "${AI_MANGA_PUSH_TOKEN}" ;;
-      esac
-      EOF
-      chmod 700 "${ASKPASS_PATH}"
-      trap 'rm -f "${ASKPASS_PATH}"' EXIT
-
-      git remote set-url origin https://gitee.com/mingcheng_software/ai-manga-desktop.git
-      git checkout -B master
-      GITEE_COMMIT="${SOURCE_COMMIT}" node scripts/release/bump-version.mjs --patch --auto
-      VERSION=$(node -p "require('./desktop/package.json').version")
-
-      git config user.name "Gitee Go"
-      git config user.email "noreply@gitee.com"
-      git add README_ENGINEERING.md pyproject.toml uv.lock desktop/package.json frontend/vite.config.ts src/ai_anime/release-notes.md docs/cloud-integration-handoff.md
-      git commit \
-        -m "chore(release): 自动升级版本至 v${VERSION}" \
-        -m "来源提交：${SOURCE_COMMIT}" \
-        -m "流水线构建：${GITEE_PIPELINE_BUILD_NUMBER:-unknown}" \
-        -m "质量门：Electron 测试与类型检查、前端架构回归与正式构建、Python 关键路径测试全部通过。" \
-        -m "版本同步：Python、Electron、前端兜底版本、锁文件、README、云端交接文档和中英文更新记录已统一更新。"
-      GIT_ASKPASS="${ASKPASS_PATH}" GIT_TERMINAL_PROMPT=0 git -c credential.helper= push origin HEAD:master
-    notify: []
-    strategy:
-      retry: "0"
-      resource:
-        cpu: "1"
-        memory: "2"
 triggers:
   trigger: auto
   push:
@@ -134,7 +62,3 @@ triggers:
 notify: []
 strategy:
   blocking: true
-variables:
-  global:
-  - AI_MANGA_PUSH_TOKEN
-  - AI_MANGA_PUSH_USERNAME

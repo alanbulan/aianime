@@ -2,6 +2,12 @@ name: Build Windows and macOS
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_to_cloud:
+        description: Publish verified packages to the live cloud after building
+        required: false
+        type: boolean
+        default: false
   push:
     tags:
       - "v*"
@@ -107,6 +113,14 @@ jobs:
       - name: Test desktop packaging contracts
         run: pnpm --dir desktop typecheck && pnpm --dir desktop test
 
+      - name: Verify frontend types and session isolation
+        run: |
+          pnpm --dir frontend typecheck
+          pnpm --dir frontend test:unit src/__tests__/modules/identity_access/commercial-session-store.test.ts
+
+      - name: Verify architecture and repository guidance
+        run: uv run --locked pytest tests/architecture -q
+
       - name: Verify current quota and renderer startup contract
         run: |
           pnpm --dir frontend test:unit src/__tests__/modules/model_usage/commercial-model-access.test.ts src/__tests__/modules/model_usage/metered-units.test.ts
@@ -186,7 +200,7 @@ jobs:
           compression-level: 0
 
   release:
-    name: Collect and publish all three targets
+    name: Collect verified packages and optionally publish
     needs: package
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -244,7 +258,7 @@ jobs:
           fi
 
       - name: Publish verified packages to cloud
-        if: github.repository == 'alanbulan/aianime' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_to_cloud && github.repository == 'alanbulan/aianime' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
         env:
           RELEASE_GATEWAY: https://aianime.mingcw.com
           RELEASE_TENANT: system

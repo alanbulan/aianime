@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, rm } from "node:fs/promises";
+import { basename, join } from "node:path";
 
 import {
   readEncryptedJsonFile,
@@ -109,6 +109,7 @@ export class InMemoryModelInvocationStore implements ModelInvocationStore {
   constructor(private readonly now: () => number = Date.now) {}
 
   async claim(input: ModelInvocationClaim): Promise<ModelInvocationClaimResult> {
+    await this.pruneExpiredResponses();
     const identity = normalizeIdentity(input);
     const key = memoryKey(identity);
     const existing = this.records.get(key);
@@ -253,28 +254,112 @@ export class InMemoryModelInvocationStore implements ModelInvocationStore {
   }
 
   async recordsForTask(subjectInput: string, taskIdInput: string): Promise<StoredModelInvocation[]> {
+    await this.pruneExpiredResponses();
     const subject = required(subjectInput, "subject");
     const taskId = required(taskIdInput, "taskId");
     return [...this.records.values()]
-      .filter((record) => record.subject === subject && record.taskId === taskId)
-      .map((record) => expireResponse(record, this.now()));
+      .filter((record) => record.subject === subject && record.taskId === taskId);
+  }
+
+  async pruneExpiredResponses(): Promise<void> {
+    for (const [key, record] of this.records) {
+      const expired = expireResponse(record, this.now());
+      if (expired !== record) this.records.set(key, expired);
+    }
   }
 
   private require(key: string): StoredModelInvocation {
     const record = this.records.get(key);
     if (!record) throw new Error("model invocation idempotency record is missing");
-    return record;
+    const expired = expireResponse(record, this.now());
+    if (expired !== record) this.records.set(key, expired);
+    return expired;
   }
 }
 
 export class EncryptedFileModelInvocationStore implements ModelInvocationStore {
   private readonly lockTails = new Map<string, Promise<void>>();
+  private readonly taskIndex = new Map<string, Map<string, ModelInvocationIdentity>>();
+  private readonly responseExpirations = new Map<string, { identity: ModelInvocationIdentity; expiresAt: number }>();
+  private initialization: Promise<void> | null = null;
+  private maintenanceEnabled = false;
+  private maintenanceTimer: ReturnType<typeof setInterval> | null = null;
+  private maintenanceInFlight: Promise<void> | null = null;
 
   constructor(
     private readonly directory: string,
     private readonly secureStorage: SecureStorageAdapter,
     private readonly now: () => number = Date.now,
   ) {}
+
+  initialize(): Promise<void> {
+    this.initialization ??= this.loadIndex();
+    return this.initialization;
+  }
+
+  async startMaintenance(onError: (error: unknown) => void): Promise<void> {
+    this.maintenanceEnabled = true;
+    await this.pruneExpiredResponses();
+    if (!this.maintenanceEnabled || this.maintenanceTimer) return;
+    this.maintenanceTimer = setInterval(() => {
+      void this.pruneExpiredResponses().catch(onError);
+    }, 60_000);
+    this.maintenanceTimer.unref();
+  }
+
+  async stopMaintenance(): Promise<void> {
+    this.maintenanceEnabled = false;
+    if (this.maintenanceTimer) clearInterval(this.maintenanceTimer);
+    this.maintenanceTimer = null;
+    await this.maintenanceInFlight;
+  }
+
+  async pruneExpiredResponses(): Promise<void> {
+    if (this.maintenanceInFlight) return this.maintenanceInFlight;
+    const pending = (async () => {
+      await this.initialize();
+      for (const { identity, expiresAt } of [...this.responseExpirations.values()]) {
+        if (expiresAt <= this.now()) {
+          await this.withLock(identity, () => this.readMetadataUnlocked(identity));
+        }
+      }
+    })();
+    this.maintenanceInFlight = pending;
+    try {
+      await pending;
+    } finally {
+      if (this.maintenanceInFlight === pending) this.maintenanceInFlight = null;
+    }
+  }
+
+  private async loadIndex(): Promise<void> {
+    const directory = join(this.directory, "invocations");
+    const names = await this.fileNames(directory);
+    const retainedResponses = new Set<string>();
+    for (const name of names) {
+      if (!name.endsWith(".bin")) continue;
+      const record = await readEncryptedJsonFile(join(directory, name), this.secureStorage,
+        parseStoredModelInvocation, { preserveValidationError: true });
+      if (!record) continue;
+      // 旧版本将正文放在记录内；首次读取时迁出正文，保留原幂等身份与执行状态。
+      const expired = expireResponse(record, this.now());
+      if (record.response || expired !== record) await this.writeUnlocked(expired);
+      else this.indexRecord(record);
+      if (expired.responseExpiresAt) retainedResponses.add(basename(this.responsePath(record)));
+    }
+    // 回收正文已写入但元数据未提交时留下的文件，不删除任何幂等记录。
+    const responseDirectory = join(this.directory, "responses");
+    for (const name of await this.fileNames(responseDirectory)) {
+      if (name.endsWith(".bin") && !retainedResponses.has(name)) {
+        await rm(join(responseDirectory, name), { force: true });
+      }
+    }
+  }
+
+  private async fileNames(directory: string): Promise<string[]> {
+    try { return await readdir(directory); }
+    catch (error) { if (isMissingPath(error)) return []; throw error; }
+  }
 
   async claim(input: ModelInvocationClaim): Promise<ModelInvocationClaimResult> {
     const identity = normalizeIdentity(input);
@@ -374,7 +459,7 @@ export class EncryptedFileModelInvocationStore implements ModelInvocationStore {
     const identity = normalizeIdentity(identityInput);
     const reason = required(reasonInput, "reason");
     return this.withLock(identity, async () => {
-      const existing = await this.readUnlocked(identity);
+      const existing = await this.readMetadataUnlocked(identity);
       const timestamp = new Date(this.now()).toISOString();
       const record: StoredModelInvocation = existing ?? {
         schemaVersion: 1,
@@ -457,25 +542,13 @@ export class EncryptedFileModelInvocationStore implements ModelInvocationStore {
   ): Promise<StoredModelInvocation[]> {
     const subject = required(subjectInput, "subject");
     const taskId = required(taskIdInput, "taskId");
-    let names: string[];
-    const invocationDirectory = join(this.directory, "invocations");
-    try {
-      names = await readdir(invocationDirectory);
-    } catch (error) {
-      if (isMissingPath(error)) return [];
-      throw error;
-    }
+    await this.initialize();
     const records: StoredModelInvocation[] = [];
-    for (const name of names) {
-      if (!name.endsWith(".bin")) continue;
-      const record = await readEncryptedJsonFile(
-        join(invocationDirectory, name),
-        this.secureStorage,
-        parseStoredModelInvocation,
-        { preserveValidationError: true },
-      );
+    const identities = this.taskIndex.get(taskMemoryKey(subject, taskId));
+    for (const identity of identities?.values() ?? []) {
+      const record = await this.withLock(identity, () => this.readMetadataUnlocked(identity));
       if (record?.subject === subject && record.taskId === taskId) {
-        records.push(expireResponse(record, this.now()));
+        records.push(record);
       }
     }
     return records;
@@ -484,12 +557,22 @@ export class EncryptedFileModelInvocationStore implements ModelInvocationStore {
   private async requireUnlocked(
     identity: ModelInvocationIdentity,
   ): Promise<StoredModelInvocation> {
-    const record = await this.readUnlocked(identity);
+    const record = await this.readMetadataUnlocked(identity);
     if (!record) throw new Error("model invocation idempotency record is missing");
     return record;
   }
 
   private async readUnlocked(
+    identity: ModelInvocationIdentity,
+  ): Promise<StoredModelInvocation | null> {
+    const record = await this.readMetadataUnlocked(identity);
+    if (!record || !record.responseExpiresAt) return record;
+    const response = await readEncryptedJsonFile(this.responsePath(identity), this.secureStorage,
+      parseStoredResponse, { preserveValidationError: true });
+    return { ...record, response };
+  }
+
+  private async readMetadataUnlocked(
     identity: ModelInvocationIdentity,
   ): Promise<StoredModelInvocation | null> {
     const path = this.pathFor(identity);
@@ -501,16 +584,39 @@ export class EncryptedFileModelInvocationStore implements ModelInvocationStore {
     );
     if (!record) return null;
     const expired = expireResponse(record, this.now());
-    if (expired !== record) await writeEncryptedJsonFile(path, this.secureStorage, expired);
+    if (expired !== record) await this.writeUnlocked(expired);
     return expired;
   }
 
-  private writeUnlocked(record: StoredModelInvocation): Promise<void> {
-    return writeEncryptedJsonFile(
-      this.pathFor(record),
-      this.secureStorage,
-      record,
-    );
+  private async writeUnlocked(record: StoredModelInvocation): Promise<void> {
+    if (record.response) {
+      await writeEncryptedJsonFile(this.responsePath(record), this.secureStorage, record.response);
+    } else if (!record.responseExpiresAt) {
+      await rm(this.responsePath(record), { force: true });
+    }
+    const metadata = { ...record, response: null };
+    await writeEncryptedJsonFile(this.pathFor(record), this.secureStorage, metadata);
+    this.indexRecord(metadata);
+  }
+
+  private indexRecord(record: StoredModelInvocation): void {
+    const identity = normalizeIdentity(record);
+    const key = memoryKey(identity);
+    if (record.taskId) {
+      const taskKey = taskMemoryKey(record.subject, record.taskId);
+      let entries = this.taskIndex.get(taskKey);
+      if (!entries) { entries = new Map(); this.taskIndex.set(taskKey, entries); }
+      entries.set(key, identity);
+    }
+    if (record.responseExpiresAt) {
+      this.responseExpirations.set(key, { identity, expiresAt: Date.parse(record.responseExpiresAt) || 0 });
+    } else {
+      this.responseExpirations.delete(key);
+    }
+  }
+
+  private responsePath(identity: ModelInvocationIdentity): string {
+    return join(this.directory, "responses", basename(this.pathFor(identity)));
   }
 
   private pathFor(identity: ModelInvocationIdentity): string {
@@ -537,7 +643,7 @@ export class EncryptedFileModelInvocationStore implements ModelInvocationStore {
     identity: ModelInvocationIdentity,
     action: () => Promise<T>,
   ): Promise<T> {
-    return this.withSerializedLock(memoryKey(identity), action);
+    return this.initialize().then(() => this.withSerializedLock(memoryKey(identity), action));
   }
 
   private async withSerializedLock<T>(
@@ -581,7 +687,6 @@ function expireResponse(
   now: number,
 ): StoredModelInvocation {
   if (
-    !record.response ||
     !record.responseExpiresAt ||
     Date.parse(record.responseExpiresAt) > now
   ) {

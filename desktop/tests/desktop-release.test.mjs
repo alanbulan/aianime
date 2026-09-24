@@ -161,6 +161,12 @@ test("workflow builds exactly three native targets and waits for all before a si
   assert.equal(workflow.jobs.release.permissions.contents, "write");
   assert.equal(workflow.concurrency["cancel-in-progress"], false);
   assert.equal(workflow.concurrency.group, "build-desktop-${{ github.repository }}");
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs.publish_to_cloud, {
+    description: "Publish verified packages to the live cloud after building",
+    required: false,
+    type: "boolean",
+    default: false,
+  });
 
   const steps = workflow.jobs.package.steps;
   const at = (name) => steps.findIndex((step) => step.name === name);
@@ -171,6 +177,12 @@ test("workflow builds exactly three native targets and waits for all before a si
   const stage = at("Stage verified package and checksums");
   const upload = at("Upload platform artifact");
   assert.ok(at("Install locked Node dependencies") < browser && browser < tests && tests < build);
+  const session = at("Verify frontend types and session isolation");
+  const architecture = at("Verify architecture and repository guidance");
+  assert.ok(tests < session && session < architecture && architecture < build);
+  assert.match(steps[session].run, /pnpm --dir frontend typecheck/);
+  assert.match(steps[session].run, /commercial-session-store\.test\.ts/);
+  assert.equal(steps[architecture].run, "uv run --locked pytest tests/architecture -q");
   assert.ok(at("Verify native Sparkle update and signature rejection") < build);
   const restoreFfmpeg = at("Restore native FFmpeg binaries");
   const validateFfmpeg = at("Build and validate native FFmpeg");
@@ -189,6 +201,7 @@ test("workflow builds exactly three native targets and waits for all before a si
   assert.ok(steps.every((step) => !step.env?.RELEASE_PASSWORD));
   assert.equal(steps[upload].with.path, "desktop/release/handoff/");
   assert.equal(steps[upload].with.name, "AI-anime-${{ matrix.target }}");
+  assert.equal(steps[upload].with["retention-days"], 7);
 
   const release = workflow.jobs.release.steps;
   const download = release.find((step) => step.uses?.startsWith("actions/download-artifact@"));
@@ -200,8 +213,7 @@ test("workflow builds exactly three native targets and waits for all before a si
   assert.equal(release[draft].if, "github.ref_type == 'tag'");
   assert.match(release[draft].run, /--draft/);
   assert.match(release[draft].run, /refusing to replace/);
-  assert.match(release[publish].if, /github\.repository == 'alanbulan\/aianime'/);
-  assert.match(release[publish].if, /refs\/heads\/master/);
+  assert.equal(release[publish].if, "github.event_name == 'workflow_dispatch' && inputs.publish_to_cloud && github.repository == 'alanbulan/aianime' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))");
   assert.equal(release[publish].env.RELEASE_PASSWORD, "${{ secrets.RELEASE_PASSWORD }}");
   assert.match(release[publish].run, /pnpm --dir desktop release:publish --reason/);
   assert.ok(release.filter((_, index) => index !== publish).every((step) => !step.env?.RELEASE_PASSWORD));

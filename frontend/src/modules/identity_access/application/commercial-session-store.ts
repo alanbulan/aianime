@@ -59,6 +59,10 @@ export function createCommercialAuthStore(
   tenantPreference: CommercialTenantPreference,
 ): CommercialAuthStore {
   let initializeInFlight: Promise<void> | null = null;
+  let sessionGeneration = 0;
+  const assertGeneration = (generation: number) => {
+    if (generation !== sessionGeneration) throw new Error("登录状态已变更，请重新操作");
+  };
 
   return create<CommercialAuthState>((set, get) => ({
     availability: "unknown",
@@ -72,8 +76,10 @@ export function createCommercialAuthStore(
     initialize: async () => {
       if (get().availability !== "unknown") return;
       if (initializeInFlight) return initializeInFlight;
+      const generation = sessionGeneration;
       initializeInFlight = (async () => {
         const status = await gateway.status();
+        if (generation !== sessionGeneration) return;
         if (!status.configured) {
           set({
             availability: "unconfigured",
@@ -83,7 +89,9 @@ export function createCommercialAuthStore(
           return;
         }
         const session = await gateway.restoreSession();
+        if (generation !== sessionGeneration) return;
         const rememberedLogin = await gateway.rememberedLogin();
+        if (generation !== sessionGeneration) return;
         set({ availability: "configured", session, rememberedLogin });
         if (session) await get().loadProfile().catch(() => undefined);
       })();
@@ -104,21 +112,26 @@ export function createCommercialAuthStore(
       }));
     },
     loadPublicConfig: async (tenantCodeOverride) => {
+      const generation = sessionGeneration;
       const tenantCode = (tenantCodeOverride ?? get().tenantCode).trim();
       if (!tenantCode) throw new Error("Tenant code is required");
       const publicConfig = await gateway.fetchPublicConfig(tenantCode);
+      assertGeneration(generation);
       let captcha: CommercialCaptcha | null = null;
       if (publicConfig.login.captchaEnabled) {
         captcha = await gateway.fetchCaptcha(tenantCode);
       }
+      assertGeneration(generation);
       tenantPreference.write(tenantCode);
       set({ tenantCode, publicConfig, captcha });
       return publicConfig;
     },
     refreshCaptcha: async () => {
+      const generation = sessionGeneration;
       const tenantCode = get().tenantCode.trim();
       if (!tenantCode) throw new Error("Tenant code is required");
       const captcha = await gateway.fetchCaptcha(tenantCode);
+      assertGeneration(generation);
       set({ captcha });
       return captcha;
     },
@@ -135,12 +148,15 @@ export function createCommercialAuthStore(
       await gateway.sendSmsLoginCode(tenantCode, phone.trim());
     },
     login: async (input) => {
+      const generation = ++sessionGeneration;
+      set({ session: null, profile: null, avatarDataUrl: null });
       const tenantCode = input.tenantCode.trim();
       const state = get();
       let publicConfig = state.publicConfig;
       if (!publicConfig || state.tenantCode !== tenantCode) {
         publicConfig = await state.loadPublicConfig(tenantCode);
       }
+      assertGeneration(generation);
       const isPasswordLogin = input.loginType === "PASSWORD";
       if (!isPasswordLogin && !publicConfig.login.smsLoginEnabled) {
         throw new Error("SMS login is disabled for this tenant");
@@ -168,6 +184,7 @@ export function createCommercialAuthStore(
               }
             : { ...input, tenantCode },
         );
+        assertGeneration(generation);
         tenantPreference.write(tenantCode);
         set({
           availability: "configured",
@@ -184,9 +201,10 @@ export function createCommercialAuthStore(
               : null,
         });
         await get().loadProfile().catch(() => undefined);
+        assertGeneration(generation);
         return session;
       } catch (error) {
-        if (isPasswordLogin && publicConfig.login.captchaEnabled) {
+        if (generation === sessionGeneration && isPasswordLogin && publicConfig.login.captchaEnabled) {
           await get().refreshCaptcha().catch(() => undefined);
         }
         throw error;
@@ -195,10 +213,13 @@ export function createCommercialAuthStore(
     loginRemembered: async (rememberMe, captchaCode) => {
       const rememberedLogin = get().rememberedLogin;
       if (!rememberedLogin) throw new Error("没有可用的已保存登录信息");
+      const generation = ++sessionGeneration;
+      set({ session: null, profile: null, avatarDataUrl: null });
       let publicConfig = get().publicConfig;
       if (!publicConfig || get().tenantCode !== rememberedLogin.tenantCode) {
         publicConfig = await get().loadPublicConfig(rememberedLogin.tenantCode);
       }
+      assertGeneration(generation);
       const captcha = get().captcha;
       if (publicConfig.login.captchaEnabled && !captchaCode?.trim()) {
         throw new Error("Captcha code is required");
@@ -210,6 +231,7 @@ export function createCommercialAuthStore(
             ? { captchaKey: captcha.key, captchaCode: captchaCode!.trim() }
             : {}),
         });
+        assertGeneration(generation);
         tenantPreference.write(rememberedLogin.tenantCode);
         set({
           availability: "configured",
@@ -219,12 +241,15 @@ export function createCommercialAuthStore(
           rememberedLogin: rememberMe ? rememberedLogin : null,
         });
         await get().loadProfile().catch(() => undefined);
+        assertGeneration(generation);
         return session;
       } catch (error) {
+        if (generation !== sessionGeneration) throw error;
         if (publicConfig.login.captchaEnabled) {
           await get().refreshCaptcha().catch(() => undefined);
         }
         const available = await gateway.rememberedLogin().catch(() => null);
+        assertGeneration(generation);
         set({ rememberedLogin: available });
         throw error;
       }
@@ -242,23 +267,23 @@ export function createCommercialAuthStore(
       }
     },
     logout: async () => {
+      const generation = ++sessionGeneration;
       let rememberedLogin = get().rememberedLogin;
+      set({ session: null, profile: null, avatarDataUrl: null });
       try {
         await gateway.logout();
       } finally {
-        rememberedLogin = await gateway.rememberedLogin().catch(
-          () => rememberedLogin,
-        );
-        set({
-          session: null,
-          rememberedLogin,
-          profile: null,
-          avatarDataUrl: null,
-        });
+        if (generation === sessionGeneration) {
+          rememberedLogin = await gateway.rememberedLogin().catch(() => rememberedLogin);
+          if (generation === sessionGeneration) set({ rememberedLogin });
+        }
       }
     },
     loadProfile: async () => {
+      const generation = sessionGeneration;
       const profile = await gateway.fetchProfile();
+      assertGeneration(generation);
+      mergeProfileIntoSession(get().session, profile);
       let avatarDataUrl: string | null = null;
       if (profile.avatar) {
         try {
@@ -267,6 +292,7 @@ export function createCommercialAuthStore(
           avatarDataUrl = null;
         }
       }
+      assertGeneration(generation);
       set((state) => ({
         profile,
         avatarDataUrl,
@@ -275,7 +301,9 @@ export function createCommercialAuthStore(
       return profile;
     },
     updateProfile: async (input) => {
+      const generation = sessionGeneration;
       const profile = await gateway.updateProfile(input);
+      assertGeneration(generation);
       set((state) => ({
         profile,
         session: mergeProfileIntoSession(state.session, profile),
@@ -283,17 +311,21 @@ export function createCommercialAuthStore(
       return profile;
     },
     uploadAvatar: async (file) => {
+      const generation = sessionGeneration;
       if (!file.type || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
         throw new Error("Avatar must be JPEG, PNG, or WebP");
       }
       if (file.size < 1 || file.size > 5 * 1024 * 1024) {
         throw new Error("Avatar must be no larger than 5 MiB");
       }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      assertGeneration(generation);
       const result = await gateway.uploadAvatar({
         fileName: file.name,
         contentType: file.type,
-        bytes: new Uint8Array(await file.arrayBuffer()),
+        bytes,
       });
+      assertGeneration(generation);
       set((state) => ({
         profile: result.profile,
         avatarDataUrl: result.avatar.dataUrl,
@@ -301,7 +333,9 @@ export function createCommercialAuthStore(
       }));
     },
     deleteAvatar: async () => {
+      const generation = sessionGeneration;
       const result = await gateway.deleteAvatar();
+      assertGeneration(generation);
       set((state) => ({
         profile: result.profile,
         avatarDataUrl: null,
@@ -309,7 +343,10 @@ export function createCommercialAuthStore(
       }));
     },
     changePassword: async (oldPassword, newPassword) => {
+      const generation = sessionGeneration;
       await gateway.changePassword(oldPassword, newPassword);
+      assertGeneration(generation);
+      sessionGeneration += 1;
       set({ session: null, profile: null, avatarDataUrl: null });
     },
     sendPasswordResetCode: async (email) => {
@@ -337,6 +374,7 @@ function mergeProfileIntoSession(
   profile: CommercialUserProfile,
 ): CommercialSession | null {
   if (!session) return null;
+  if (session.user.id !== profile.id) throw new Error("账户资料与当前登录身份不一致");
   return {
     ...session,
     user: {

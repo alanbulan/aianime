@@ -9,7 +9,7 @@
 - 本文件：任务路由、规则优先级和项目系统图摘要。
 - `.aigo/rules/*.md`：可执行的工程、技术栈、测试和发布规则。
 - `desktop/AGENTS.md`、`frontend/AGENTS.md`、`src/ai_anime/AGENTS.md`：目录局部规则。
-- `README.md`：当前产品、运行架构、技术栈、目录和开发命令事实。
+- `README.md`：当前产品概览；`README_ENGINEERING.md`：运行架构、技术栈、目录和开发命令事实。
 - `UPSTREAM.md`：上游评估与移植流程。
 - `docs/architecture/`：架构计划、审计和阶段记录；只读取与任务相关的文档，历史
   记录不自动代表当前实现。
@@ -22,12 +22,12 @@
 | 任务 | 必须读取 | 按需读取 |
 | --- | --- | --- |
 | 任意非简单改动 | `.aigo/rules/code-governance.md`、`.aigo/rules/testing.md` | 相关测试与最近实现 |
-| Python、FastAPI、SQLite、任务执行 | `.aigo/rules/python-backend.md`、`src/ai_anime/AGENTS.md` | `README.md` 第 4.3、5、6、11 节 |
-| React、路由、状态、Canvas、UI | `.aigo/rules/frontend-react.md`、`frontend/AGENTS.md` | `README.md` 第 4.1、5、6、11 节 |
-| Electron、IPC、sidecar、桌面商业链路 | `.aigo/rules/desktop-electron.md`、`desktop/AGENTS.md` | `README.md` 第 2、4.2、7、8 节 |
+| Python、FastAPI、SQLite、任务执行 | `.aigo/rules/python-backend.md`、`src/ai_anime/AGENTS.md` | `README_ENGINEERING.md` 第 4.3、5、6、11 节 |
+| React、路由、状态、Canvas、UI | `.aigo/rules/frontend-react.md`、`frontend/AGENTS.md` | `README_ENGINEERING.md` 第 4.1、5、6、11 节 |
+| Electron、IPC、sidecar、桌面商业链路 | `.aigo/rules/desktop-electron.md`、`desktop/AGENTS.md` | `README_ENGINEERING.md` 第 2、4.2、7、8 节 |
 | 跨栈合同或架构边界 | 涉及的各栈规则、现有架构门禁 | `docs/architecture/` 中的当前相关记录 |
 | 测试、构建或环境故障 | `.aigo/rules/testing.md` | 锁文件、测试配置和失败日志 |
-| 打包、更新、安全、上游同步 | `.aigo/rules/release-security.md` | `README.md` 第 12、13 节、`UPSTREAM.md` |
+| 打包、更新、安全、上游同步 | `.aigo/rules/release-security.md` | `README_ENGINEERING.md` 第 12、13 节、`UPSTREAM.md` |
 
 ## 系统边界摘要
 

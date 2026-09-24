@@ -2,12 +2,12 @@
 
 AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、Electron 主进程、FastAPI 本地 sidecar、Python 业务运行时、SQLite、FFmpeg 和 Hermes ACP 组成，最终用户不需要单独安装 Python、Node.js 或 FFmpeg。
 
-当前客户端版本：`1.1.83`。
+当前客户端版本：`1.1.84`。
 
 1.1.73 是精细积分计费兼容源码版本；本轮不代表 Windows/macOS 安装包已经发布。
 云端报价、原生预算确认及版本化余额/调用历史的验收见 `docs/operations/20260917-metered-client.zh-CN.md`。
 
-`master` 分支已接入 Gitee Go 自动版本流水线。普通代码提交会先串行执行根 uv.lock 锁定环境下的 Python Ruff 与全量测试、前端完整回归（含架构、组件和 Chromium 浏览器）与类型检查、前端 CE 构建、Electron 测试与类型检查；全部通过后自动递增补丁版本，生成中英文更新记录，并以 `chore(release): 自动升级版本至 vX.Y.Z` 提交回写仓库。流水线生成的版本提交会被守卫识别，不会再次递增；前端测试构件同时保存在本次 Gitee Go 构建产物中。Windows NSIS 和 macOS 安装包仍需在对应系统构建，避免把错误平台的 Python sidecar 打进安装包。
+`master` 分支已接入 Gitee Go 质量门。普通代码提交会串行执行根 uv.lock 锁定环境下的 Python Ruff 与全量测试、前端完整回归（含架构、组件和 Chromium 浏览器）与类型检查、前端 CE 构建、Electron 测试与类型检查；前端测试构件保存在本次 Gitee Go 构建产物中。版本与更新记录在本地统一提交，依次推送 Gitee 主仓和 GitHub 构建镜像，流水线不自动递增版本或回写提交。Windows x64、macOS Intel 和 macOS Apple Silicon 安装包由 GitHub Actions 在对应系统构建，构建制品与真实云端发布分别控制。
 
 当前发布目标：
 
@@ -816,15 +816,16 @@ Ladybug 仅对 Intel Mac 固定为 0.17.1；Windows 仍用 0.19.0，Apple Silico
 
 Intel 的 cryptography 维持锁定版本，不降级加密库；按其[官方静态构建方式](https://cryptography.io/en/latest/installation/#building-cryptography-on-macos)链接针对 13.0 编译的 OpenSSL 4.0.2，避免带入构建机的 Homebrew 动态库。目标专用缓存放在 `desktop/.macos-intel-cache/`，两个 Python 环境在耗时的 FFmpeg 构建前先做 Mach-O 预检，成品仍执行完整扫描。Windows 与 Apple Silicon 不调用这一准备脚本。
 
-### GitHub Actions 自动生成 Intel 包
+### GitHub Actions 三平台发布构建
 
-推送代码到 GitHub 后，可在 Actions 页面手动运行 `Build macOS Intel`；也可推送与当前应用版本一致的标签自动出包：
+先按 `.aigo/rules/code-governance.md` 核对本地与两个产品远端基线，完成锁定环境验证，再依次同步 Gitee 与 GitHub。可在 Actions 页面手动运行 `Build Windows and macOS`；也可推送与当前应用版本一致的新标签自动出包。以下以本版本为例，标签已存在时不得覆盖：
 
 ```bash
-git remote add github git@github.com:YOUR_ACCOUNT/YOUR_REPOSITORY.git
-git push -u github master
-git tag v1.1.63
-git push github v1.1.63
+git push origin master
+git push github master
+git tag -a v1.1.84 -m "发布构建 1.1.84"
+git push origin v1.1.84
+git push github v1.1.84
 ```
 
 `.github/workflows/build-desktop.yml` 在 GitHub Actions 中显示为 **Build Windows and macOS**。一次手动运行或 `v*` 标签推送会构建三个目标；每个目标使用原生宿主及对应的标准出包命令：
@@ -835,15 +836,15 @@ git push github v1.1.63
 | macOS Intel | `macos-15-intel` | `pnpm --dir desktop package:mac:x64` | `.dmg` / `.zip`，macOS 13.4+ |
 | macOS Apple Silicon | `macos-15`（arm64） | `pnpm --dir desktop package:mac` | `.dmg` / `.zip`，macOS 15+ |
 
-三个任务固定 Node.js、Python、uv 与 pnpm 版本，macOS 固定 Meson 版本。先验证宿主平台/架构、工作区版本、发布说明和标签，再执行桌面合同测试、参数面板浏览器测试与构建。两种 Mac 都验证安装包资源、Mach-O 架构/最低系统版本和签名，并运行 Sparkle 更新与错误签名拒绝检查。版本标签必须与工作区版本一致。
+三个任务固定 Node.js、Python、uv 与 pnpm 版本，macOS 固定 Meson 版本。先验证宿主平台/架构、工作区版本、发布说明和标签，再串行执行桌面类型及完整测试、前端类型与会话竞态回归、仓库规范与架构门禁、参数面板浏览器测试及构建。架构门禁使用锁定的前端解析器识别注释，需先安装两端 Node 依赖；字符串、模板、正则及界面文本中的模型硬编码仍会检查。两种 Mac 都验证安装包资源、Mach-O 架构/最低系统版本和签名，并运行 Sparkle 更新与错误签名拒绝检查。版本标签必须与工作区版本一致。
 
-每个任务通过 `pnpm --dir desktop release:stage <windows-x64|macos-x64|macos-arm64>` 生成独立的 `AI-anime-<目标>` Actions 制品，包含安装包、更新 YAML、JSON 清单、SHA-256 清单及云端专用 YAML，保留 1 天。任一文件为空或达到 2 GiB 时拒绝交付。两种 Mac 的 GitHub 附件分别命名为 `latest-mac-x64.yml` 和 `latest-mac-arm64.yml`，其独立 `cloud/` 目录内仍使用更新器要求的 `latest-mac.yml`。
+每个任务通过 `pnpm --dir desktop release:stage <windows-x64|macos-x64|macos-arm64>` 生成独立的 `AI-anime-<目标>` Actions 制品，包含安装包、更新 YAML、JSON 清单、SHA-256 清单及云端专用 YAML，保留 7 天。任一文件为空或达到 2 GiB 时拒绝交付。两种 Mac 的 GitHub 附件分别命名为 `latest-mac-x64.yml` 和 `latest-mac-arm64.yml`，其独立 `cloud/` 目录内仍使用更新器要求的 `latest-mac.yml`。
 
 所有构建成功后，唯一的汇总任务下载三个独立目录，并通过 `pnpm --dir desktop release:combine` 复核版本、平台、发布说明、文件大小与 SHA-256，生成包含三份制品的 `desktop/release/cloud-release.json`。缺少任一平台、清单不一致或文件被改动都会中止发布。标签构建将三平台安装包及不同名清单放入同一个草稿 GitHub Release；已正式发布的 GitHub Release 不允许覆盖附件。构建失败时已成功的平台仍可在 Actions 下载。
 
-在 `alanbulan/aianime` 的 `master` 或 `v*` 标签上，汇总校验及归档成功后继续执行 `pnpm --dir desktop release:publish`，自动登录 `https://aianime.mingcw.com`，一次登记并发布三平台云端版本；GitHub Release 本身保持草稿。此处沿用原工作流的自动云端发布条件，手动运行 `master` 也会进入云端发布。`RELEASE_PASSWORD` 仅传给最终发布步骤，`SPARKLE_ED_PRIVATE_KEY` 仅传给两个 Mac 签名步骤。流水线整体串行，后续运行不取消正在上传或发布的任务。
+手动构建的 `publish_to_cloud` 开关默认为关闭，标签触发也只完成构建与草稿归档。只有手动运行时明确打开开关，并且来自 `alanbulan/aianime` 的 `master` 或 `v*` 标签，汇总成功后才执行 `pnpm --dir desktop release:publish`，登录 `https://aianime.mingcw.com` 并一次登记、发布三平台云端版本；GitHub Release 本身保持草稿。安装验收后需要复用已有制品时，可运行 `Publish existing desktop packages`，填写原构建的 `source_run_id`，它会核验来源后直接发布，无须重建。`RELEASE_PASSWORD` 仅传给最终发布步骤，`SPARKLE_ED_PRIVATE_KEY` 仅传给两个 Mac 签名步骤。两条流水线共用并发组，后续运行不取消正在上传或发布的任务。
 
-发布新修复前应在 Gitee 主仓按既有流程同步版本号与发布说明，再同步到 GitHub 并使用新版本标签或手动运行。当前版本若已有任一相同平台制品，发布器会在上传前拒绝覆盖；重新构建相同版本不等于替换现有安装包。三平台构建和资源检查通过仍不能替代对应系统的干净安装、登录、生成、退出及升级人工验收。
+发布新修复前应在本地统一提交版本号与发布说明，再依次同步到 Gitee、GitHub，并使用新版本标签或手动运行。Gitee Go 不再自动递增版本或写回提交，避免两个产品仓再次分叉。当前版本若已有任一相同平台制品，发布器会在上传前拒绝覆盖；重新构建相同版本不等于替换现有安装包。三平台构建和资源检查通过仍不能替代对应系统的干净安装、登录、生成、退出及升级人工验收。
 
 发布脚本 `desktop/scripts/publish-client-release.cjs` 原样来自[云端仓库](https://gitee.com/mingcheng_software/ai-manga-drama)的 `scripts/operations/publish-client-release.cjs`，固定审核来源提交为 `2848e2c343a8652d8376fd1ffb85c017e504e4db`。按云端接入说明将脚本纳入桌面仓库，避免运行时依赖 Gitee 私有源码下载；更新时重新审核并同步原脚本，不维护第二套发布协议。`release:manifest:mac:x64` 同时生成 `desktop/release/cloud/release.json` 和仅引用 ZIP 的 `cloud/latest-mac.yml`，版本说明来自当前 `src/ai_anime/release-notes.md`。原始 DMG、双构件 YAML 和发布 JSON 保持不变；该单平台命令仍可用于本机交付；三平台 Action 由汇总步骤生成统一云端计划，DMG 不作为云端更新包上传。
 
@@ -853,7 +854,7 @@ GitHub 托管环境是 macOS 15，不是 Ventura。流水线会校验所有 Mach
 
 GitHub 仓库公开前必须确认源码和历史中不包含密钥或敏感数据；公共仓库使用标准托管 Runner 免费。私有仓库的 macOS Runner 会消耗账户 Actions 额度，超额后按 GitHub 当前计费规则收费。不得将商业配置、密钥、内部发布逻辑或制品推送到现有 `upstream`。
 
-仓库现有 Gitee Go 流水线使用 Linux x64 云端构建步骤，只负责质量门、前端测试构建和自动版本提交，不能直接生成该 macOS 构件。Gitee 公开文档中的自有主机 Agent 也只明确支持 Linux；自动化出包必须另行接入一台 Intel / macOS 13 构建机，由 Gitee 触发它执行 `pnpm --dir desktop package:mac:x64`，不能把该命令直接加到现有 `build@gcc` 或 `build@nodejs` 步骤中。
+仓库现有 Gitee Go 流水线使用 Linux x64 云端构建步骤，只负责锁定环境下的质量门与前端测试构建，不生成版本提交或上传安装包。它会先安装前端依赖，再执行需要 TypeScript 解析器的 Python 架构门禁；三平台安装包统一由上述 GitHub Actions 原生宿主生成，不能把 macOS 打包命令直接放入 Linux 构建步骤。
 
 主安装包之外的“导演世界 3D 运行环境”仍只提供 Windows x64 与 macOS arm64 预编译包，Intel Mac 的“设置 → 环境依赖”会将它标记为不支持；这是现有可选运行时的架构限制，不是本次依赖降级造成。主包中的后端、Whisper、FFmpeg、字幕和 Hermes 会随 Intel 包构建并执行自动冒烟；完整界面与生成工作流仍需在安装后的目标机验收。
 
@@ -882,6 +883,7 @@ Mac 出包前运行 `runtime:sparkle`；出包后使用 `SPARKLE_ED_PRIVATE_KEY`
 | Remote | 地址 | 用途 |
 | --- | --- | --- |
 | `origin` | `https://gitee.com/mingcheng_software/ai-manga-desktop.git` | 当前主仓 |
+| `github` | `https://github.com/alanbulan/aianime.git` | 产品构建镜像，与主仓同步 |
 | `upstream` | `https://github.com/dramaclaw/dramaclaw.git` | DramaClaw 原始上游，只读评估 |
 
 详细约定见 [UPSTREAM.md](UPSTREAM.md)。上游改动不能直接整批合并；应先判断业务价值，再按当前 bounded context 和分层边界移植。商业配置、密钥、内部发布逻辑和当前仓库专属架构不得推送到上游。

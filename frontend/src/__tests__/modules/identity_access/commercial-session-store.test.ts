@@ -24,6 +24,12 @@ const session: CommercialSession = {
   tenant: { id: 11, code: "customer-a", name: "客户 A", isSystem: false },
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
 const publicConfig: CommercialPublicConfig = {
   brand: { siteName: "Enlectron", siteDescription: "Desktop studio" },
   login: {
@@ -119,6 +125,117 @@ function createGateway(
     ...overrides,
   };
 }
+
+describe("commercial session races", () => {
+  const nextSession: CommercialSession = {
+    ...session,
+    user: { ...session.user, id: 2002, username: "second-user", nickname: "乙" },
+    tenant: { ...session.tenant, id: 22, code: "customer-b" },
+  };
+  const nextProfile: CommercialUserProfile = { ...profile, ...nextSession.user };
+
+  for (const operation of ["loadProfile", "updateProfile", "uploadAvatar", "deleteAvatar"] as const) {
+    for (const replacement of ["logout", "other-account", "same-account"] as const) {
+      it(`${operation} cannot refill state after ${replacement}`, async () => {
+        const started = deferred<void>();
+        const release = deferred<void>();
+        const gateway = createGateway({ restoreSession: vi.fn(async () => session) });
+        const store = createCommercialAuthStore(gateway, createPreference());
+        await store.getState().initialize();
+        const wait = async () => { started.resolve(); await release.promise; };
+        let request: Promise<unknown>;
+        if (operation === "loadProfile") {
+          gateway.fetchProfile = vi.fn(async () => { await wait(); return profile; });
+          request = store.getState().loadProfile();
+        } else if (operation === "updateProfile") {
+          gateway.updateProfile = vi.fn(async () => { await wait(); return { ...profile, nickname: "旧修改" }; });
+          request = store.getState().updateProfile({ nickname: "旧修改", email: "", phone: "", gender: 0, profileDescription: "" });
+        } else if (operation === "uploadAvatar") {
+          gateway.uploadAvatar = vi.fn(async () => {
+            await wait();
+            return { profile: { ...profile, avatar: "old-avatar" }, avatar: { contentType: "image/png", dataUrl: "data:image/png;base64,b2xk" } };
+          });
+          request = store.getState().uploadAvatar(new File(["image"], "avatar.png", { type: "image/png" }));
+        } else {
+          gateway.deleteAvatar = vi.fn(async () => { await wait(); return { profile }; });
+          request = store.getState().deleteAvatar();
+        }
+        const rejected = expect(request).rejects.toThrow("登录状态已变更");
+        await started.promise;
+        await store.getState().logout();
+        if (replacement !== "logout") {
+          const replacementSession = replacement === "other-account" ? nextSession : session;
+          gateway.login = vi.fn(async () => replacementSession);
+          gateway.fetchProfile = vi.fn(async () => replacement === "other-account" ? nextProfile : profile);
+          await store.getState().login({
+            loginType: "PASSWORD", tenantCode: replacementSession.tenant.code,
+            username: replacementSession.user.username, password: "test-password", rememberMe: false,
+          });
+        }
+        const before = store.getState();
+        release.resolve();
+        await rejected;
+        expect(store.getState().session).toEqual(before.session);
+        expect(store.getState().profile).toEqual(before.profile);
+        expect(store.getState().avatarDataUrl).toEqual(before.avatarDataUrl);
+      });
+    }
+  }
+
+  it("ignores an avatar finishing after the profile request's session logged out", async () => {
+    const started = deferred<void>();
+    const avatar = deferred<{ contentType: string; dataUrl: string }>();
+    const gateway = createGateway({ restoreSession: vi.fn(async () => session) });
+    const store = createCommercialAuthStore(gateway, createPreference());
+    await store.getState().initialize();
+    gateway.fetchProfile = vi.fn(async () => ({ ...profile, avatar: "avatar" }));
+    gateway.fetchAvatar = vi.fn(async () => { started.resolve(); return avatar.promise; });
+    const rejected = expect(store.getState().loadProfile()).rejects.toThrow("登录状态已变更");
+    await started.promise;
+    await store.getState().logout();
+    avatar.resolve({ contentType: "image/png", dataUrl: "data:image/png;base64,b2xk" });
+    await rejected;
+    expect(store.getState().session).toBeNull();
+    expect(store.getState().profile).toBeNull();
+    expect(store.getState().avatarDataUrl).toBeNull();
+  });
+
+  it("does not restore a session after logout while initialization is pending", async () => {
+    const started = deferred<void>();
+    const restored = deferred<CommercialSession | null>();
+    const store = createCommercialAuthStore(createGateway({
+      restoreSession: vi.fn(async () => { started.resolve(); return restored.promise; }),
+    }), createPreference());
+    const initializing = store.getState().initialize();
+    await started.promise;
+    await store.getState().logout();
+    restored.resolve(session);
+    await initializing;
+    expect(store.getState().session).toBeNull();
+    expect(store.getState().profile).toBeNull();
+  });
+
+  it("a delayed remote logout does not erase the following login", async () => {
+    const started = deferred<void>();
+    const released = deferred<void>();
+    const gateway = createGateway({
+      restoreSession: vi.fn(async () => session),
+      logout: vi.fn(async () => { started.resolve(); await released.promise; return { remoteRevoked: true, success: true }; }),
+    });
+    const store = createCommercialAuthStore(gateway, createPreference());
+    await store.getState().initialize();
+    const loggingOut = store.getState().logout();
+    await started.promise;
+    gateway.login = vi.fn(async () => nextSession);
+    gateway.fetchProfile = vi.fn(async () => nextProfile);
+    await store.getState().login({ loginType: "PASSWORD", tenantCode: "customer-b", username: "second-user", password: "test-password", rememberMe: true });
+    released.resolve();
+    await loggingOut;
+    expect(store.getState().session).toEqual(nextSession);
+    expect(store.getState().profile).toEqual(nextProfile);
+    expect(store.getState().rememberedLogin?.username).toBe("second-user");
+  });
+});
 
 describe("commercial auth store", () => {
   it("keeps browser-only runtime unconfigured", async () => {

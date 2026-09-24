@@ -57,6 +57,7 @@ import {
 let mainWindow: BrowserWindow | null = null;
 let backend: LocalBackend | null = null;
 let commercialModelProxy: CommercialModelProxy | null = null;
+let modelInvocationStore: EncryptedFileModelInvocationStore | null = null;
 let stopPromise: Promise<void> | null = null;
 let quitting = false;
 const budgetDialog = new MeteredBudgetDialog((state) => {
@@ -289,34 +290,38 @@ async function startApplication(): Promise<void> {
     "logs",
     "model-routing.log",
   );
-  commercialModelProxy = new CommercialModelProxy(
-    client,
-    deviceIdentity,
-    (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
-    {
-      clientVersion: app.getVersion(),
-      confirmMeteredBudget: (quote, signal) => budgetDialog.confirm(quote, signal),
-      invocationStore: new EncryptedFileModelInvocationStore(
-        join(app.getPath("userData"), "commercial-model-invocations"),
-        safeStorage,
-      ),
-    },
-  );
-  await commercialModelProxy.start();
-  const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
-  backend = new LocalBackend({
-    desktopApp: app,
-    runtimeDependencyPaths: runtimeDependencies.paths,
-    restartOnUnexpectedExit: true,
-    onRestartExhausted: (error) => {
-      dialog.showErrorBox("AI anime backend stopped", error.message);
-    },
-    environment: {
-      AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
-      AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
-    },
-  });
   try {
+    modelInvocationStore = new EncryptedFileModelInvocationStore(
+      join(app.getPath("userData"), "commercial-model-invocations"),
+      safeStorage,
+    );
+    await modelInvocationStore.startMaintenance((error) => {
+      console.warn("清理过期模型响应失败", error);
+    });
+    commercialModelProxy = new CommercialModelProxy(
+      client,
+      deviceIdentity,
+      (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
+      {
+        clientVersion: app.getVersion(),
+        confirmMeteredBudget: (quote, signal) => budgetDialog.confirm(quote, signal),
+        invocationStore: modelInvocationStore,
+      },
+    );
+    await commercialModelProxy.start();
+    const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
+    backend = new LocalBackend({
+      desktopApp: app,
+      runtimeDependencyPaths: runtimeDependencies.paths,
+      restartOnUnexpectedExit: true,
+      onRestartExhausted: (error) => {
+        dialog.showErrorBox("AI anime backend stopped", error.message);
+      },
+      environment: {
+        AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
+        AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
+      },
+    });
     await backend.start();
     installDesktopSessionSecurity({
       targetSession: session.defaultSession,
@@ -348,10 +353,19 @@ async function stopApplication(): Promise<void> {
   const pending = (async () => {
     const localBackend = backend;
     backend = null;
-    await localBackend?.stop();
     const modelProxy = commercialModelProxy;
     commercialModelProxy = null;
-    await modelProxy?.stop();
+    const invocationStore = modelInvocationStore;
+    modelInvocationStore = null;
+    try {
+      await localBackend?.stop();
+    } finally {
+      try {
+        await modelProxy?.stop();
+      } finally {
+        await invocationStore?.stopMaintenance();
+      }
+    }
   })();
   stopPromise = pending;
   try {
@@ -381,7 +395,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on("before-quit", (event) => {
-  if ((!backend && !commercialModelProxy) || quitting) return;
+  if ((!backend && !commercialModelProxy && !modelInvocationStore) || quitting) return;
   event.preventDefault();
   quitting = true;
   void stopApplication().finally(() => app.quit());

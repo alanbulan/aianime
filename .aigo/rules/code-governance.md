@@ -11,6 +11,30 @@
 - 新依赖、生产配置、数据库破坏性迁移、真实外部服务和付费资源不属于普通实现步骤，
   必须先确认。
 
+## 本地与双远端基线
+
+- 产品主仓为 `origin`（Gitee 的 `mingcheng_software/ai-manga-desktop`），构建镜像为
+  `github`（GitHub 的 `alanbulan/aianime`）；两者发布分支均为 `master`。
+  `upstream` 仅用于评估原始上游，不是产品同步目标。
+- 开工前分别 fetch 两个产品远端的 `master`，记录 `HEAD`、`origin/master` 和
+  `github/master` 的完整提交号及 `git status --short`。存在远端新提交时先检查差异，
+  可快进则快进；分叉时正常合并并验证，禁止 force push 或重置覆盖用户改动。
+- 2026-09-24 修复起始基线为 `c025e2b2c985c49a32fc5fe6df4792344bc21ee3`，
+  本地与两个产品远端一致，双向提交差均为 `0/0`，源码版本为 `1.1.83`。
+  这是起始审计记录，后续版本以实际远端提交和锁文件为准。
+- Python 使用根目录 `uv.lock` 和 `uv run --locked`；前端、桌面分别使用自己的
+  `pnpm-lock.yaml`，安装执行 `pnpm install --frozen-lockfile`。不得用更新全部依赖
+  消除环境差异，工具版本以当前构建工作流和项目声明为准。
+- 提交前串行完成影响范围内的测试、类型与架构检查以及 `git diff --check`，逐项
+  暂存本次文件。原有未跟踪文件、凭据、用户数据和构建产物不进入提交。
+- 正常提交后先推送 `origin`，再推送 `github`；用 `git ls-remote <remote>
+  refs/heads/master` 核对两端完整提交号等于本地 `HEAD`。任一端失败就如实标记
+  未同步，不以本地跟踪引用代替实时远端证据。
+- 版本与发布说明在本地统一提交并保留历史条目。Gitee Go 只执行质量门，不自动递增
+  版本或写回提交，避免主仓单独产生新提交导致两个产品仓再次分叉。
+- 发布构建必须使用已同步的提交，并检查工作流实际执行的提交号。构建制品与
+  发布到真实云端分别控制；构建成功不等于安装验收或线上发布完成。
+
 ## 所有权与分层
 
 - 先定位拥有该行为的 bounded context，再从其 `public`、`composition`、用例与测试

@@ -114,15 +114,19 @@ export const COMMERCIAL_RUNTIME_DEPENDENCIES_URL =
 
 export class CommercialApiClient extends CommercialApiTransport {
   async meteredSessionScope(devicePublicKeyHash: string): Promise<string> {
-    const session = await this.requireFreshSession();
+    const generation = this.sessionGeneration;
+    const session = await this.requireFreshSession(generation);
     if (this.activeDeviceId === null) await this.loadCurrentLicense(devicePublicKeyHash);
+    this.assertSessionGeneration(generation);
     if (this.activeDeviceId === null) throw new CommercialApiError("当前设备尚未激活", { status: 403 });
     return `${session.tenant.id}:${session.user.id}:${this.activeDeviceId}`;
   }
 
   async quoteModel(input: { modelCode: string; path: string; prepared: PreparedBody; clientVersion: string;
     devicePublicKeyHash: string; maximumMicroPoints?: string; signal: AbortSignal }): Promise<CommercialMeteredQuote> {
+    const generation = this.sessionGeneration;
     await this.meteredSessionScope(input.devicePublicKeyHash);
+    this.assertSessionGeneration(generation);
     const kind = modelQuoteKind(input.path);
     if (!kind || !/^\d+\.\d+\.\d+$/u.test(input.clientVersion)) throw new CommercialApiError("当前客户端不能为该请求生成安全报价", { status: 426 });
     const body = input.prepared.body;
@@ -134,6 +138,7 @@ export class CommercialApiClient extends CommercialApiTransport {
       ...(input.maximumMicroPoints === undefined ? {} : { billingMaximumMicroPoints: exactMicroPoints(input.maximumMicroPoints) }),
       ...(body instanceof FormData ? { formData: body } : { rawBody: rawBody!, contentType: input.prepared.contentType ?? "application/json" }),
     });
+    this.assertSessionGeneration(generation);
     return parseMeteredQuote(value, input.modelCode, this.now());
   }
 
@@ -199,6 +204,10 @@ export class CommercialApiClient extends CommercialApiTransport {
             smsCode: requiredText(input.smsCode, "smsCode"),
             rememberMe: input.rememberMe,
           });
+    const clearing = this.clearSession();
+    const generation = this.sessionGeneration;
+    await clearing;
+    this.assertSessionGeneration(generation);
     const value = await this.requestJson("POST", "/api/v1/client/auth/login", {
       body,
     });
@@ -214,14 +223,14 @@ export class CommercialApiClient extends CommercialApiTransport {
         : undefined,
     );
     try {
-      await this.replaceSession(session);
+      await this.replaceSession(session, generation);
       if (session.rememberedLogin) {
-        await this.saveRememberedLogin(session.rememberedLogin);
+        await this.saveRememberedLogin(session.rememberedLogin, generation);
       } else {
-        await this.clearRememberedLogin();
+        await this.clearRememberedLogin(generation);
       }
     } catch (error) {
-      await this.clearSession().catch(() => undefined);
+      await this.clearSession(generation).catch(() => undefined);
       await this.revokeToken(response.accessToken).catch(() => undefined);
       throw error;
     }
@@ -269,16 +278,20 @@ export class CommercialApiClient extends CommercialApiTransport {
   }
 
   async restoreSession(): Promise<CommercialSessionSummary | null> {
+    const generation = this.sessionGeneration;
     const session = await this.loadSession();
-    if (!session) return null;
+    if (!session || generation !== this.sessionGeneration) return null;
     if (session.expiresAtEpochMs > this.now() + REFRESH_SKEW_MS) {
       return toSessionSummary(session);
     }
     try {
-      return toSessionSummary(await this.refreshSession(session));
+      const refreshed = await this.refreshSession(session, generation);
+      this.assertSessionGeneration(generation);
+      return toSessionSummary(refreshed);
     } catch (error) {
+      if (generation !== this.sessionGeneration) return null;
       if (isAuthenticationFailure(error) || isPermanentLoginFailure(error)) {
-        await this.clearSession();
+        await this.clearSession(generation);
         return null;
       }
       return toSessionSummary(session);
@@ -286,7 +299,15 @@ export class CommercialApiClient extends CommercialApiTransport {
   }
 
   async logout(): Promise<CommercialLogoutResult> {
+    const generation = this.sessionGeneration;
     const session = await this.loadSession();
+    if (generation !== this.sessionGeneration) return { remoteRevoked: false, success: false };
+    const clearing = this.clearSession(generation);
+    const logoutGeneration = this.sessionGeneration;
+    await clearing;
+    if (session?.rememberedLogin && logoutGeneration === this.sessionGeneration) {
+      await this.saveRememberedLogin(session.rememberedLogin, logoutGeneration);
+    }
     let remoteRevoked = false;
     let success = true;
     try {
@@ -302,20 +323,20 @@ export class CommercialApiClient extends CommercialApiTransport {
     } catch {
       success = false;
       remoteRevoked = false;
-    } finally {
-      if (session?.rememberedLogin) {
-        await this.saveRememberedLogin(session.rememberedLogin);
-      }
-      await this.clearSession();
     }
     return { remoteRevoked, success };
   }
 
   async currentProfile(): Promise<CommercialUserProfile> {
+    const generation = this.sessionGeneration;
     const profile = parseUserProfile(
       await this.authenticatedJson("GET", "/api/v1/user/profile"),
     );
     const session = await this.requireSession();
+    this.assertSessionGeneration(generation);
+    if (profile.id !== session.user.id) {
+      throw new CommercialApiError("账户资料与当前登录身份不一致", { status: 409 });
+    }
     await this.replaceSession({
       ...session,
       user: {
@@ -325,13 +346,14 @@ export class CommercialApiClient extends CommercialApiTransport {
         email: profile.email,
         avatar: profile.avatar,
       },
-    });
+    }, generation);
     return profile;
   }
 
   async updateProfile(
     input: CommercialProfileUpdateInput,
   ): Promise<CommercialUserProfile> {
+    const generation = this.sessionGeneration;
     const result = parseBaseResponse(
       await this.authenticatedJson("PUT", "/api/v1/user/profile", {
         body: {
@@ -348,17 +370,21 @@ export class CommercialApiClient extends CommercialApiTransport {
       }),
     );
     requireSuccessfulBaseResponse(result, "更新资料");
+    this.assertSessionGeneration(generation);
     return this.currentProfile();
   }
 
   async currentAvatar(): Promise<CommercialProtectedImage> {
+    const generation = this.sessionGeneration;
     const response = await this.authenticatedResponse(
       "GET",
       "/api/v1/user/avatar",
       { accept: "image/*" },
     );
     await assertSuccessfulResponse(response);
-    return protectedImageData(response, "头像");
+    const image = await protectedImageData(response, "头像");
+    this.assertSessionGeneration(generation);
+    return image;
   }
 
   async uploadAvatar(
@@ -395,8 +421,10 @@ export class CommercialApiClient extends CommercialApiTransport {
     oldPassword: string,
     newPassword: string,
   ): Promise<CommercialPasswordChangeResponse> {
+    const generation = this.sessionGeneration;
     const session = await this.requireSession();
     const remembered = await this.loadRememberedLogin();
+    this.assertSessionGeneration(generation);
     const normalizedNewPassword = requiredRawText(newPassword, "newPassword");
     const result = parsePasswordChangeResponse(
       await this.authenticatedJson("PUT", "/api/v1/user/password", {
@@ -407,6 +435,7 @@ export class CommercialApiClient extends CommercialApiTransport {
       }),
     );
     requireSuccessfulCommand(result, "修改密码");
+    this.assertSessionGeneration(generation);
     if (
       remembered
       && remembered.tenantCode === session.tenant.code
@@ -416,9 +445,9 @@ export class CommercialApiClient extends CommercialApiTransport {
         tenantCode: remembered.tenantCode,
         username: remembered.username,
         password: normalizedNewPassword,
-      });
+      }, generation);
     }
-    await this.clearSession();
+    await this.clearSession(generation);
     return result;
   }
 
