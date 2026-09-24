@@ -2,7 +2,7 @@
 
 AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、Electron 主进程、FastAPI 本地 sidecar、Python 业务运行时、SQLite、FFmpeg 和 Hermes ACP 组成，最终用户不需要单独安装 Python、Node.js 或 FFmpeg。
 
-当前客户端版本：`1.1.84`。
+当前客户端版本：`1.1.85`。
 
 1.1.73 是精细积分计费兼容源码版本；本轮不代表 Windows/macOS 安装包已经发布。
 云端报价、原生预算确认及版本化余额/调用历史的验收见 `docs/operations/20260917-metered-client.zh-CN.md`。
@@ -823,9 +823,9 @@ Intel 的 cryptography 维持锁定版本，不降级加密库；按其[官方�
 ```bash
 git push origin master
 git push github master
-git tag -a v1.1.84 -m "发布构建 1.1.84"
-git push origin v1.1.84
-git push github v1.1.84
+git tag -a v1.1.85 -m "发布构建 1.1.85"
+git push origin v1.1.85
+git push github v1.1.85
 ```
 
 `.github/workflows/build-desktop.yml` 在 GitHub Actions 中显示为 **Build Windows and macOS**。一次手动运行或 `v*` 标签推送会构建三个目标；每个目标使用原生宿主及对应的标准出包命令：

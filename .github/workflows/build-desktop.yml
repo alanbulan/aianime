@@ -112,6 +112,12 @@ jobs:
           pnpm --dir frontend typecheck
           pnpm --dir frontend test:unit src/__tests__/modules/identity_access/commercial-session-store.test.ts
 
+      - name: Verify announcement details and notification read state
+        run: |
+          pnpm --dir frontend test:unit src/modules/platform_release/infrastructure/notification-read-storage.test.ts
+          pnpm --dir frontend test:component src/__tests__/components/notifications/notification-drawer.test.tsx src/__tests__/components/layout/header.test.tsx src/__tests__/modules/platform_release/commercial-announcement.dom.test.ts
+          pnpm --dir frontend test:browser src/components/notification-drawer.browser.test.tsx
+
       - name: Verify architecture and repository guidance
         run: uv run --locked pytest tests/architecture -q
 
