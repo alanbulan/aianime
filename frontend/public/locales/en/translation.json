@@ -81,6 +81,8 @@
   "notifications": {
     "title": "Notification Center",
     "close": "Close notification center",
+    "closeAnnouncement": "Close announcement",
+    "announcementBody": "Announcement content",
     "empty": "No notifications",
     "loadFailed": "Failed to load notifications. Try again later.",
     "upgrade": {

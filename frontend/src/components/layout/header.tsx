@@ -42,7 +42,6 @@ import {
   loadReadNotificationKeys,
   markNotificationKeysRead,
   useCommercialAnnouncements,
-  useCommercialRelease,
 } from "@/modules/platform_release/public";
 import {
   ProjectHeaderNavigation,
@@ -107,19 +106,14 @@ export function Header() {
   const modelGatewayConfig = useModelGatewayConfig(ceRuntime);
   const commercialEnabled = Boolean(window.aiAnimeDesktop?.commercial);
   const commercialAnnouncements = useCommercialAnnouncements(commercialEnabled);
-  const commercialRelease = useCommercialRelease(commercialEnabled);
+  // 未读提示只对应通知中心实际展示的公告，版本更新由更新入口处理。
   const notificationKeys = useMemo(
-    () => [
-      ...(commercialAnnouncements.data?.items ?? []).map(
+    () =>
+      (commercialAnnouncements.data?.items ?? []).map(
         (item) => `announcement:${item.id}`,
       ),
-      ...(commercialRelease.data?.available
-        ? [`release:${commercialRelease.data.artifactId ?? "available"}`]
-        : []),
-    ],
-    [commercialAnnouncements.data?.items, commercialRelease.data],
+    [commercialAnnouncements.data?.items],
   );
-  const notificationKeySignature = notificationKeys.join("\n");
   const hasUnreadNotification = notificationKeys.some(
     (key) => !readNotificationKeys.has(key),
   );
@@ -156,10 +150,11 @@ export function Header() {
 
   useEffect(() => {
     if (!notificationOpen || notificationKeys.length === 0) return;
-    setReadNotificationKeys(
-      markNotificationKeysRead(notificationReadScope, notificationKeys),
-    );
-  }, [notificationKeySignature, notificationKeys, notificationOpen, notificationReadScope]);
+    setReadNotificationKeys((read) => {
+      if (notificationKeys.every((key) => read.has(key))) return read;
+      return markNotificationKeysRead(notificationReadScope, [...read, ...notificationKeys]);
+    });
+  }, [notificationKeys, notificationOpen, notificationReadScope]);
 
 
   useEffect(() => {
@@ -232,11 +227,6 @@ export function Header() {
 
   const openNotifications = () => {
     closeAccountPanelNow();
-    if (notificationKeys.length > 0) {
-      setReadNotificationKeys(
-        markNotificationKeysRead(notificationReadScope, notificationKeys),
-      );
-    }
     setNotificationOpen(true);
   };
 

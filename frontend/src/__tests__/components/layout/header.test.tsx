@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Header } from "@/components/layout/header";
@@ -24,7 +24,7 @@ const commercialState = vi.hoisted(() => ({
 const resetUserSessionStateMock = vi.hoisted(() => vi.fn());
 const releaseState = vi.hoisted(() => ({
   announcements: [] as Array<{ id: string; title: string; body: string }>,
-  release: { available: false, required: false, reason: null, artifactId: null },
+  release: { available: false, required: false, reason: null, artifactId: null as string | null },
 }));
 
 vi.mock("@/lib/reset-region-state", () => ({
@@ -129,11 +129,14 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 }));
 
 function renderHeader() {
-  return render(
-    <QueryClientProvider client={new QueryClient()}>
+  const client = new QueryClient();
+  const element = () => (
+    <QueryClientProvider client={client}>
       <Header />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const view = render(element());
+  return { ...view, refresh: () => view.rerender(element()) };
 }
 
 describe("Header runtime gating", () => {
@@ -143,6 +146,7 @@ describe("Header runtime gating", () => {
       value: undefined,
     });
     runtimeState.authRequired = true;
+    runtimeState.isCe = false;
     authState.username = "local";
     commercialState.session = null;
     authState.logout.mockReset();
@@ -267,5 +271,65 @@ describe("Header runtime gating", () => {
     });
     expect(nextBell.querySelector(".bg-destructive")).not.toBeNull();
     actionsHost.remove();
+  });
+
+  it("does not count an invisible release update as an unread announcement", async () => {
+    releaseState.release = { available: true, required: false, reason: null, artifactId: "release-1" };
+    const view = renderHeader();
+    const bell = screen.getByRole("button", { name: "header.notifications" });
+    expect(bell.querySelector(".bg-destructive")).toBeNull();
+    releaseState.release = { ...releaseState.release, artifactId: "release-2" };
+    view.refresh();
+    expect(bell.querySelector(".bg-destructive")).toBeNull();
+  });
+
+  it("keeps seen announcements read after closing, reopening, remounting and checking updates", async () => {
+    releaseState.announcements = [{ id: "notice-1", title: "Notice", body: "Body" }];
+    const first = renderHeader();
+    const bell = screen.getByRole("button", { name: "header.notifications" });
+    fireEvent.click(bell);
+    await waitFor(() => expect(bell.querySelector(".bg-destructive")).toBeNull());
+    const drawer = screen.getByRole("complementary", { name: "notifications.title" });
+    fireEvent.click(within(drawer).getByRole("button", { name: "notifications.close" }));
+    fireEvent.click(bell);
+    expect(bell.querySelector(".bg-destructive")).toBeNull();
+    first.unmount();
+    releaseState.release = { available: true, required: false, reason: null, artifactId: "new-package" };
+    renderHeader();
+    expect(screen.getByRole("button", { name: "header.notifications" }).querySelector(".bg-destructive"))
+      .toBeNull();
+  });
+
+  it("marks announcements that finish loading while the drawer is open as seen", async () => {
+    const view = renderHeader();
+    fireEvent.click(screen.getByRole("button", { name: "header.notifications" }));
+    releaseState.announcements = [{ id: "late-notice", title: "Loaded later", body: "Body" }];
+    view.refresh();
+    await screen.findByText("Loaded later");
+    await waitFor(() => expect(screen.getByRole("button", { name: "header.notifications" })
+      .querySelector(".bg-destructive")).toBeNull());
+    view.unmount();
+    renderHeader();
+    expect(screen.getByRole("button", { name: "header.notifications" }).querySelector(".bg-destructive"))
+      .toBeNull();
+  });
+
+  it("preserves the read state for the same account without marking another account's notices read", async () => {
+    releaseState.announcements = [{ id: "shared-notice", title: "Notice", body: "Body" }];
+    authState.username = "alice";
+    const alice = renderHeader();
+    fireEvent.click(screen.getByRole("button", { name: "header.notifications" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "header.notifications" })
+      .querySelector(".bg-destructive")).toBeNull());
+    alice.unmount();
+    authState.username = "bob";
+    const bob = renderHeader();
+    expect(screen.getByRole("button", { name: "header.notifications" }).querySelector(".bg-destructive"))
+      .not.toBeNull();
+    bob.unmount();
+    authState.username = "alice";
+    renderHeader();
+    expect(screen.getByRole("button", { name: "header.notifications" }).querySelector(".bg-destructive"))
+      .toBeNull();
   });
 });

@@ -81,6 +81,8 @@
   "notifications": {
     "title": "通知中心",
     "close": "关闭通知中心",
+    "closeAnnouncement": "关闭公告",
+    "announcementBody": "公告内容",
     "empty": "暂无通知",
     "loadFailed": "通知加载失败，请稍后重试",
     "upgrade": {
