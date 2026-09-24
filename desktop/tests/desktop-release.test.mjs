@@ -161,12 +161,9 @@ test("workflow builds exactly three native targets and waits for all before a si
   assert.equal(workflow.jobs.release.permissions.contents, "write");
   assert.equal(workflow.concurrency["cancel-in-progress"], false);
   assert.equal(workflow.concurrency.group, "build-desktop-${{ github.repository }}");
-  assert.deepEqual(workflow.on.workflow_dispatch.inputs.publish_to_cloud, {
-    description: "Publish verified packages to the live cloud after building",
-    required: false,
-    type: "boolean",
-    default: false,
-  });
+  assert.deepEqual(Object.keys(workflow.on).sort(), ["push", "workflow_dispatch"]);
+  assert.deepEqual(workflow.on.push.tags, ["v*"]);
+  assert.equal(workflow.on.workflow_dispatch, null);
 
   const steps = workflow.jobs.package.steps;
   const at = (name) => steps.findIndex((step) => step.name === name);
@@ -213,7 +210,7 @@ test("workflow builds exactly three native targets and waits for all before a si
   assert.equal(release[draft].if, "github.ref_type == 'tag'");
   assert.match(release[draft].run, /--draft/);
   assert.match(release[draft].run, /refusing to replace/);
-  assert.equal(release[publish].if, "github.event_name == 'workflow_dispatch' && inputs.publish_to_cloud && github.repository == 'alanbulan/aianime' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))");
+  assert.equal(release[publish].if, "github.repository == 'alanbulan/aianime' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))");
   assert.equal(release[publish].env.RELEASE_PASSWORD, "${{ secrets.RELEASE_PASSWORD }}");
   assert.match(release[publish].run, /pnpm --dir desktop release:publish --reason/);
   assert.ok(release.filter((_, index) => index !== publish).every((step) => !step.env?.RELEASE_PASSWORD));

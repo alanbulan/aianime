@@ -7,7 +7,7 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 1.1.73 是精细积分计费兼容源码版本；本轮不代表 Windows/macOS 安装包已经发布。
 云端报价、原生预算确认及版本化余额/调用历史的验收见 `docs/operations/20260917-metered-client.zh-CN.md`。
 
-`master` 分支已接入 Gitee Go 质量门。普通代码提交会串行执行根 uv.lock 锁定环境下的 Python Ruff 与全量测试、前端完整回归（含架构、组件和 Chromium 浏览器）与类型检查、前端 CE 构建、Electron 测试与类型检查；前端测试构件保存在本次 Gitee Go 构建产物中。版本与更新记录在本地统一提交，依次推送 Gitee 主仓和 GitHub 构建镜像，流水线不自动递增版本或回写提交。Windows x64、macOS Intel 和 macOS Apple Silicon 安装包由 GitHub Actions 在对应系统构建，构建制品与真实云端发布分别控制。
+`master` 分支已接入 Gitee Go 质量门。普通代码提交会串行执行根 uv.lock 锁定环境下的 Python Ruff 与全量测试、前端完整回归（含架构、组件和 Chromium 浏览器）与类型检查、前端 CE 构建、Electron 测试与类型检查；前端测试构件保存在本次 Gitee Go 构建产物中。版本与更新记录在本地统一提交，依次推送 Gitee 主仓和 GitHub 构建镜像，流水线不自动递增版本或回写提交。Windows x64、macOS Intel 和 macOS Apple Silicon 安装包由 GitHub Actions 在对应系统构建；发布标签触发或手动运行发布构建时，三平台制品全部校验通过后自动发布到云端。
 
 当前发布目标：
 
@@ -842,7 +842,7 @@ git push github v1.1.84
 
 所有构建成功后，唯一的汇总任务下载三个独立目录，并通过 `pnpm --dir desktop release:combine` 复核版本、平台、发布说明、文件大小与 SHA-256，生成包含三份制品的 `desktop/release/cloud-release.json`。缺少任一平台、清单不一致或文件被改动都会中止发布。标签构建将三平台安装包及不同名清单放入同一个草稿 GitHub Release；已正式发布的 GitHub Release 不允许覆盖附件。构建失败时已成功的平台仍可在 Actions 下载。
 
-手动构建的 `publish_to_cloud` 开关默认为关闭，标签触发也只完成构建与草稿归档。只有手动运行时明确打开开关，并且来自 `alanbulan/aianime` 的 `master` 或 `v*` 标签，汇总成功后才执行 `pnpm --dir desktop release:publish`，登录 `https://aianime.mingcw.com` 并一次登记、发布三平台云端版本；GitHub Release 本身保持草稿。安装验收后需要复用已有制品时，可运行 `Publish existing desktop packages`，填写原构建的 `source_run_id`，它会核验来源后直接发布，无须重建。`RELEASE_PASSWORD` 仅传给最终发布步骤，`SPARKLE_ED_PRIVATE_KEY` 仅传给两个 Mac 签名步骤。两条流水线共用并发组，后续运行不取消正在上传或发布的任务。
+沿用自动发布流程：来自 `alanbulan/aianime` 的 `v*` 标签构建，以及在 `master` 或 `v*` 标签上手动运行的发布构建，在三平台制品汇总校验成功后自动执行 `pnpm --dir desktop release:publish`，登录 `https://aianime.mingcw.com` 并一次登记、发布三平台云端版本；没有额外的云发布开关，GitHub Release 本身保持草稿。需要复用已有制品补发时，可运行 `Publish existing desktop packages`，填写原构建的 `source_run_id`，它会核验来源后直接发布，无须重建或移动原标签。`RELEASE_PASSWORD` 仅传给最终发布步骤，`SPARKLE_ED_PRIVATE_KEY` 仅传给两个 Mac 签名步骤。两条流水线共用并发组，后续运行不取消正在上传或发布的任务。
 
 发布新修复前应在本地统一提交版本号与发布说明，再依次同步到 Gitee、GitHub，并使用新版本标签或手动运行。Gitee Go 不再自动递增版本或写回提交，避免两个产品仓再次分叉。当前版本若已有任一相同平台制品，发布器会在上传前拒绝覆盖；重新构建相同版本不等于替换现有安装包。三平台构建和资源检查通过仍不能替代对应系统的干净安装、登录、生成、退出及升级人工验收。
 
